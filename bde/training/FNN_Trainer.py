@@ -44,3 +44,6 @@ class FNN_Trainer():
                 loss = float(self.mse_loss(params, X, y))
                 print(step, loss)
         model.params = params
+
+    def predict(self):
+        pass
