@@ -12,11 +12,10 @@ class FNN():
         self.params = None  # will hold initialized weights
 
     def init_mlp(self):
-        sizes = self.sizes
         key = jax.random.PRNGKey(0)
-        keys = jax.random.split(key, len(sizes) - 1)
+        keys = jax.random.split(key, len(self.sizes) - 1)
         params = []
-        for k, (m, n) in zip(keys, zip(sizes[:-1], sizes[1:])):
+        for k, (m, n) in zip(keys, zip(self.sizes[:-1], self.sizes[1:])):
             W = jax.random.normal(k, (m, n)) / jnp.sqrt(m)
             b = jnp.zeros((n,))
             params.append((W, b))

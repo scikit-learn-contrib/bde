@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 import optax
 
+
 class FNN_Trainer():
     @staticmethod
     def mlp_forward(params, X):
@@ -43,3 +44,7 @@ class FNN_Trainer():
                 loss = float(self.mse_loss(params, X, y))
                 print(step, loss)
         model.params = params
+
+    def predict(self):
+        # TODO: Create an issue for predict method
+        pass
