@@ -17,7 +17,7 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         self.members = []
         self.optimizer = optimizer or optax.adam(learning_rate=0.01)
-        self.results = []
+        self.results = {}
 
     def get_model(self, seed: int) -> Fnn:
         """Create a single Fnn model and initialize its parameters
