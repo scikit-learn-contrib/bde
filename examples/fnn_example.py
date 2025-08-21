@@ -4,6 +4,7 @@ from bde.models.models import Fnn
 from bde.training.trainer import FnnTrainer
 import optax
 
+from bde.bde_builder import BdeBuilder
 import sys
 import os
 
@@ -35,6 +36,14 @@ def main():
 
     y_pred = trainer.predict(model.params, X_true)
     print("the first predictions are ", y_pred)
+
+    print("-----------------------------------------------------------")
+    bde = BdeBuilder(sizes, n_members=3, epochs=500, optimizer=optax.adam(1e-2))
+    # fit + predict
+    bde.fit(x=X_true, y=y_true, optimizer=bde.optimizer, epochs=500, model=None)
+    out = bde.predict(X_true, include_members=False)
+    print("keys:", list(out.keys()))            # ['ensemble_mean', 'ensemble_var']
+    print("mean shape:", out["ensemble_mean"].shape)
 
 
 if __name__ == "__main__":

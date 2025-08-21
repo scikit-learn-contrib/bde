@@ -1,7 +1,7 @@
 """this is a bde builder"""
 
-from models.models import Fnn
-from training.trainer import FnnTrainer
+from .models.models import Fnn
+from .training.trainer import FnnTrainer
 import optax
 import jax.numpy as jnp
 
