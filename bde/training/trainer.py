@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 import optax
 
-
+# TODO: major restructure is needed!
 class FnnTrainer:
     @staticmethod
     def mlp_forward(params, X):
