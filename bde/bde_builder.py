@@ -5,14 +5,19 @@ from training.trainer import FnnTrainer
 
 
 class BdeBuilder(Fnn, FnnTrainer):
-    #TODO: build the BdeBuilderClass
-    def __init__(self, sizes):
+    # TODO: build the BdeBuilderClass
+    def __init__(self, sizes, n_members, epochs):
         Fnn.__init__(self, sizes)
         FnnTrainer.__init__(self)
-        pass
+        self.sizes = sizes
+        self.n_members = n_members
+        self.epochs = epochs
 
-    def get_model(self):
-        pass
+        self.members = []
+
+    def get_model(self, seed):
+        m = Fnn(self.sizes)
+        return m.init_mlp(seed=seed)
 
     def deep_ensemble_creator(self):
         pass
