@@ -65,7 +65,7 @@ class BdeBuilder(Fnn, FnnTrainer):
             super().fit(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs or self.epochs)
         return self.members
 
-    def predict(self, x, include_members: bool = False):
+    def predict_ensemble(self, x, include_members: bool = False):
         """
         Ensemble prediction.
 

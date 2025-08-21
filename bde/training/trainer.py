@@ -28,7 +28,7 @@ class FnnTrainer:
         """
         #TODO: documentation
         """
-        prediction = self.predict(params,x)
+        prediction = self.predict(params, x)
         return jnp.mean((prediction - y) ** 2)
 
     def create_train_step(self, optimizer):
