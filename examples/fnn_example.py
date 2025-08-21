@@ -1,28 +1,13 @@
-# FNN_Builder.py
 import jax
 import jax.numpy as jnp
+from bde.models.models import FNN
+from bde.training.trainer import FNN_Trainer
 import optax
 
-from bde.training.FNN_Trainer import FNN_Trainer
+import sys
+import os
 
-class FNN():
-    'Builds a single FNN'
-    def __init__(self, sizes):
-        self.sizes = sizes
-        self.params = None  # will hold initialized weights
-
-    def init_mlp(self):
-        key = jax.random.PRNGKey(0)
-        keys = jax.random.split(key, len(self.sizes) - 1)
-        params = []
-        for k, (m, n) in zip(keys, zip(self.sizes[:-1], self.sizes[1:])):
-            W = jax.random.normal(k, (m, n)) / jnp.sqrt(m)
-            b = jnp.zeros((n,))
-            params.append((W, b))
-        self.params = params
-        return params
-
-
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
 def main():
     # generate True data for test purposes
@@ -36,10 +21,10 @@ def main():
 
     model = FNN(sizes)
     trainer = FNN_Trainer()
-    
+
     # Create optimizer
     optimizer = optax.adam(learning_rate=0.01)
-    
+
     trainer.fit(
         model=model,
         X=X_true,
@@ -50,5 +35,7 @@ def main():
 
     y_pred = trainer.predict(model.params, X_true)
     print("the first predictions are ", y_pred)
+
+
 if __name__ == "__main__":
     main()
