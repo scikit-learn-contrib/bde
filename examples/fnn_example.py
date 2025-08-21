@@ -27,7 +27,7 @@ def main():
 
     trainer.fit(
         model=model,
-        X=X_true,
+        x=X_true,
         y=y_true,
         optimizer=optimizer,
         epochs=1000

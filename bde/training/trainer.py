@@ -29,7 +29,7 @@ class FnnTrainer:
 
         return train_step
 
-    def fit(self, model, X, y, optimizer, epochs=100):
+    def fit(self, model, x, y, optimizer, epochs=100):
         if model.params is None:
             model.init_mlp(seed=0)
         opt_state = optimizer.init(model.params)
@@ -39,13 +39,13 @@ class FnnTrainer:
         train_step_fn = self.create_train_step(optimizer)
 
         for step in range(epochs):
-            params, opt_state = train_step_fn(params, opt_state, X, y)
+            params, opt_state = train_step_fn(params, opt_state, x, y)
             if step % 200 == 0:
-                loss = float(self.mse_loss(params, X, y))
+                loss = float(self.mse_loss(params, x, y))
                 print(step, loss)
         model.params = params
 
-    def predict(self, params, X):
+    def predict(self, params, x):
         """
         Obtain model predictions for input data using the current model parameters.
 
@@ -57,7 +57,7 @@ class FnnTrainer:
             - W is a weight matrix of shape (input_dim, output_dim)
             - b is a bias vector of shape (output_dim,)
 
-        X : jnp.ndarray
+        x : jnp.ndarray
             Input data of shape (n_samples, input_dim)
 
         Returns
@@ -65,4 +65,4 @@ class FnnTrainer:
         jnp.ndarray
             Model predictions of shape (n_samples, output_dim)
         """
-        return self.mlp_forward(params, X)
+        return self.mlp_forward(params, x)

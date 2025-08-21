@@ -49,7 +49,7 @@ class BdeBuilder(Fnn, FnnTrainer):
         self.members = [self.get_model(seed) for seed in range(self.n_members)]
         return self.members
 
-    def fit(self, model, X, y, optimizer, epochs=100):
+    def fit(self, model, x, y, optimizer, epochs=100):
         """Train each member of the ensemble
 
         Parameters
@@ -60,8 +60,11 @@ class BdeBuilder(Fnn, FnnTrainer):
             self.deep_ensemble_creator()
 
         for member in self.members:
-            super().fit(model=member, X=X, y=y, optimizer=self.optimizer, epochs=epochs or self.epochs)
+            super().fit(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs or self.epochs)
         return self.members
+
+    def predict(self, params, x):
+       pass
 
     def store_ensemble_results(self):
         pass
