@@ -15,12 +15,37 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         self.members = []
 
-    def get_model(self, seed):
+    def get_model(self, seed: int) -> Fnn:
+        """Create a single Fnn model and initialize its parameters
+
+        Parameters
+        ----------
+        seed : int
+            #TODO: complete documentation
+
+        Returns
+        -------
+
+        """
         m = Fnn(self.sizes)
-        return m.init_mlp(seed=seed)
+        m.init_mlp(seed=seed)
+        return m
 
     def deep_ensemble_creator(self):
-        pass
+        """Create an ensemble of ``n_members`` FNN models.
+
+        Each member is initialized with a different random seed to encourage
+        diversity within the ensemble. The initialized models are stored in the
+        ``members`` attribute and returned.
+
+        Returns
+        -------
+        list[Fnn]
+            List of initialized FNN models comprising the ensemble.
+        """
+
+        self.members = [self.get_model(seed) for seed in range(self.n_members)]
+        return self.members
 
     def store_ensemble_results(self):
         pass
