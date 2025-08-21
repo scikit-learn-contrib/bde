@@ -5,6 +5,7 @@ from training.trainer import FnnTrainer
 import optax
 import jax.numpy as jnp
 
+
 class BdeBuilder(Fnn, FnnTrainer):
     # TODO: build the BdeBuilderClass
     def __init__(self, sizes, n_members, epochs, optimizer):
@@ -63,16 +64,36 @@ class BdeBuilder(Fnn, FnnTrainer):
             super().fit(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs or self.epochs)
         return self.members
 
-    def predict(self, params, x):
-        if not self.members:
-            raise ValueError("Ensemble has no members. Call `fit` first or "
-                             "initialize with `deep_ensemble_creator`!")
+    def predict(self, x, return_members: bool = False):
+        """
+        Ensemble prediction.
 
+        Parameters
+        ----------
+        x : jnp.ndarray
+            Input data of shape (n_samples, n_features).
+        return_members : bool, optional
+            If True, also return the stacked member predictions with shape
+            (n_members, n_samples, output_dim).
+
+        Returns
+        -------
+        jnp.ndarray or tuple
+            The ensemble mean prediction of shape (n_samples, output_dim).
+            If `return_members` is True, returns (mean, members).
+        """
+        if not self.members:
+            raise ValueError("Ensemble has no members. Call `fit` or "
+                             "`deep_ensemble_creator` first.")
+
+        # single-model forward from the trainer; avoids name collision with this method
         member_preds = jnp.stack(
-            [super().predict(member.params, x) for member in self.members]
-        )
-        mean_pred = jnp.mean(member_preds, axis=0)
-        return mean_pred
+            [FnnTrainer.predict(self, m.params, x) for m in self.members],
+            axis=0
+        )  # (n_members, n_samples, output_dim)
+
+        mean_pred = jnp.mean(member_preds, axis=0)  # (n_samples, output_dim)
+        return (mean_pred, member_preds) if return_members else mean_pred
 
     def store_ensemble_results(self):
         pass
