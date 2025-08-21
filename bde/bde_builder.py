@@ -17,6 +17,7 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         self.members = []
         self.optimizer = optimizer or optax.adam(learning_rate=0.01)
+        self.results = []
 
     def get_model(self, seed: int) -> Fnn:
         """Create a single Fnn model and initialize its parameters
@@ -64,7 +65,7 @@ class BdeBuilder(Fnn, FnnTrainer):
             super().fit(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs or self.epochs)
         return self.members
 
-    def predict(self, x, return_members: bool = False):
+    def predict(self, x, include_members: bool = False):
         """
         Ensemble prediction.
 
@@ -72,7 +73,7 @@ class BdeBuilder(Fnn, FnnTrainer):
         ----------
         x : jnp.ndarray
             Input data of shape (n_samples, n_features).
-        return_members : bool, optional
+        include_members : bool, optional
             If True, also return the stacked member predictions with shape
             (n_members, n_samples, output_dim).
 
@@ -98,12 +99,24 @@ class BdeBuilder(Fnn, FnnTrainer):
             axis=0
         )  # (n_members, n_samples, output_dim)
 
-        mean_pred = jnp.mean(member_preds, axis=0)  # (n_samples, output_dim)
-        var_pred = jnp.var(member_preds, axis=0)
-        if return_members:
-            return mean_pred, var_pred, member_preds
-        else:
-            return mean_pred, var_pred
+        ensemble_mean = jnp.mean(member_preds, axis=0)  # (N, D)
+        ensemble_var = jnp.var(member_preds, axis=0)  # (N, D) epistemic
 
-    def store_ensemble_results(self):
-        pass
+        out = {
+            "ensemble_mean": ensemble_mean,
+            "ensemble_var": ensemble_var,
+        }
+        if include_members:
+            out["member_means"] = member_preds
+        return out
+
+    def store_ensemble_results(self, x, y=None, include_members: bool = True):
+        """Thin wrapper around `predict` that caches results for later evaluation/logging.
+        #TODO:Documentation
+        """
+        res = self.predict(x, include_members=include_members)
+        if y is not None:
+            res["y"] = y
+            res["mse"] = jnp.mean((res["ensemble_mean"] - y) ** 2)
+        self.results = res
+        return res
