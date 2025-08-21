@@ -12,10 +12,9 @@ class FnnTrainer:
         W, b = params[-1]  # Fixed indentation - this should be outside the loop
         return jnp.dot(X, W) + b
 
-    @staticmethod
-    def mse_loss(params, X, y):
-        pred = FnnTrainer.mlp_forward(params, X)
-        return jnp.mean((pred - y) ** 2)
+    def mse_loss(self, params, x, y):
+        prediction = self.predict(params,x)
+        return jnp.mean((prediction - y) ** 2)
 
     def create_train_step(self, optimizer):
         """Factory function to create a jitted train_step with the optimizer"""

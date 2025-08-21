@@ -95,12 +95,13 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         # single-model forward from the trainer; avoids name collision with this method
         member_preds = jnp.stack(
-            [FnnTrainer.predict(self, m.params, x) for m in self.members],
+            [super().predict(m.params, x) for m in self.members],
             axis=0
         )  # (n_members, n_samples, output_dim)
 
         ensemble_mean = jnp.mean(member_preds, axis=0)  # (N, D)
         ensemble_var = jnp.var(member_preds, axis=0)  # (N, D) epistemic
+
 
         out = {
             "ensemble_mean": ensemble_mean,
@@ -118,5 +119,6 @@ class BdeBuilder(Fnn, FnnTrainer):
         if y is not None:
             res["y"] = y
             res["mse"] = jnp.mean((res["ensemble_mean"] - y) ** 2)
+            res["mse"] = jnp.mean(super().mse_loss(res["ensemble_mean"]))
         self.results = res
         return res

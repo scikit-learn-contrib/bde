@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
-from bde.models.models import FNN
-from bde.training.trainer import FNN_Trainer
+from bde.models.models import Fnn
+from bde.training.trainer import FnnTrainer
 import optax
 
 import sys
@@ -19,8 +19,8 @@ def main():
 
     sizes = [10, 64, 64, 1]
 
-    model = FNN(sizes)
-    trainer = FNN_Trainer()
+    model = Fnn(sizes)
+    trainer = FnnTrainer()
 
     # Create optimizer
     optimizer = optax.adam(learning_rate=0.01)
