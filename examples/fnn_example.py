@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
-from bde.models.FNN_Builder import FNN
-from bde.training.FNN_Trainer import FNN_Trainer
+from bde.models.models import FNN
+from bde.training.trainer import FNN_Trainer
 import optax
 
 import sys
