@@ -3,7 +3,7 @@
 from models.models import Fnn
 from training.trainer import FnnTrainer
 import optax
-
+import jax.numpy as jnp
 
 class BdeBuilder(Fnn, FnnTrainer):
     # TODO: build the BdeBuilderClass
@@ -64,7 +64,15 @@ class BdeBuilder(Fnn, FnnTrainer):
         return self.members
 
     def predict(self, params, x):
-       pass
+        if not self.members:
+            raise ValueError("Ensemble has no members. Call `fit` first or "
+                             "initialize with `deep_ensemble_creator`!")
+
+        member_preds = jnp.stack(
+            [super().predict(member.params, x) for member in self.members]
+        )
+        mean_pred = jnp.mean(member_preds, axis=0)
+        return mean_pred
 
     def store_ensemble_results(self):
         pass
