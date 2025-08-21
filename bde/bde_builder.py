@@ -130,7 +130,7 @@ class BdeBuilder(Fnn, FnnTrainer):
     #         Keys: "ensemble_mean", "ensemble_var", optional "member_means",
     #               optional "y", "ensemble_mse", "member_mse".
     #     """
-    #     res = self.predict(x, include_members=include_members)
+    #     res = self.predict_ensemble(x, include_members=include_members)
     #
     #     if y is not None:
     #         res["y"] = y
