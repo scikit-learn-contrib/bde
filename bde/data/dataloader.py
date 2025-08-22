@@ -19,13 +19,11 @@ class DataLoader:
             seed: int = 0,
             n_samples: int = 1024,
             n_features: int = 10,
-            noise: float = 0.1,
             task: Optional[str] = None,
     ):
         self.seed = int(seed)
         self.n_samples = int(n_samples)
         self.n_features = int(n_features)
-        self.noise = float(noise)
 
         # Generate data by default
         self.data = self._data_gen()
@@ -41,7 +39,7 @@ class DataLoader:
         k_x, k_w, k_eps = jax.random.split(key, 3)
         x = jax.random.normal(k_x, (self.n_samples, self.n_features))
         w = jax.random.normal(k_w, (self.n_features, 1))
-        y = x @ w + self.noise * jax.random.normal(k_eps, (self.n_samples, 1))
+        y = x @ w + jax.random.normal(k_eps, (self.n_samples, 1))
         return {"x": x, "w": w, "y": y}
 
     def infer_task(self) -> "TaskType":
@@ -97,14 +95,13 @@ class DataLoader:
         # TODO: figure out where we are going with this
         return list(self.data.keys())
 
-
     def load(self):
         """This method loads  the correct type of data
         Returns
         -------
 
         """
-        #TODO: see if we will use sth like this!
+        # TODO: see if we will use sth like this!
         pass
 
     @property

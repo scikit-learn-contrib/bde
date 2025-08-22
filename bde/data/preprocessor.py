@@ -8,17 +8,17 @@ class DataPreProcessor:
         self.data = data
 
     def norm_data(self, data: DataLoader) -> DataLoader:
-        #TODO: code
+        #TODO: code [later]
 
         pass
 
     def aug_data(self, data: DataLoader) -> DataLoader:
-        #TODO: code
+        #TODO: code [later]
 
         pass
 
     def add_noise_data(self, data: DataLoader) -> DataLoader:
-        #TODO: code
+        #TODO: code [later]
 
         pass
 
