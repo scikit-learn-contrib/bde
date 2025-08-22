@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 
 
+
 class TaskType:
     """Holder for task types."""
     REGRESSION = "regression"
