@@ -25,14 +25,11 @@ def main():
     model = Fnn(sizes)
     trainer = FnnTrainer()
 
-    # Create optimizer
-    optimizer = optax.adam(learning_rate=0.01)
-
     trainer.fit(
         model=model,
         x=X_true,
         y=y_true,
-        optimizer=optimizer,
+        optimizer=trainer.default_optimizer(), #the default optimizer!
         epochs=1000
     )
     print(trainer.history["train_loss"][:10])  # first 10 losses
@@ -40,6 +37,7 @@ def main():
 
     y_pred = trainer.predict(model.params, X_true)
     print("the first predictions are ", y_pred)
+
 
     print("-----------------------------------------------------------")
     bde = BdeBuilder(sizes, n_members=3, epochs=500, optimizer=optax.adam(1e-2))

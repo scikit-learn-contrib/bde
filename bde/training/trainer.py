@@ -10,6 +10,7 @@ class FnnTrainer:
         self.history = {}
         self.log_every = 100
         self.keep_best = False
+        self.default_optimizer = self.default_optimizer
 
     def _reset_history(self):
         self.history = {"train_loss": []}
@@ -114,3 +115,7 @@ class FnnTrainer:
             Model predictions of shape (n_samples, output_dim)
         """
         return self.mlp_forward(params, x)
+
+    @staticmethod
+    def default_optimizer():
+        return optax.adam(learning_rate=0.01)
