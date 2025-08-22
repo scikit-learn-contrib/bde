@@ -4,6 +4,19 @@ import matplotlib.pyplot as plt
 import os
 
 def plot_pred_vs_true(y_pred, y_true, title, savepath):
+    """
+    #TODO: documentation
+    Parameters
+    ----------
+    y_pred
+    y_true
+    title
+    savepath
+
+    Returns
+    -------
+
+    """
 
     fig, ax = plt.subplots()
     ax.scatter(y_true, y_pred, s=15, alpha=0.6, edgecolors="k", linewidths=0.2)
