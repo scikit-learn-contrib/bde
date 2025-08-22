@@ -24,8 +24,8 @@ def main():
 
 
     data = DataLoader(seed=43, n_samples=500, n_features=10) # creates automatically the gen data
-    # prep =  DataPreProcessor(data)
-    # train_set, val_set, test_set = prep.split()
+    prep =  DataPreProcessor(data)
+    train_set, val_set, test_set = prep.split()
 
 
 
@@ -44,7 +44,7 @@ def main():
 
 
     y_pred = model.predict(data.x)
-    print("the first predictions are ", y_pred)
+    # print("the first predictions are ", y_pred)
 
 
     print("-----------------------------------------------------------")
@@ -53,8 +53,8 @@ def main():
     # fit + predict
     bde.fit(x=data.x, y=data.y, optimizer=bde.optimizer, epochs=500, model=None)
     out = bde.predict_ensemble(data.x, include_members=True)
-    print(out["ensemble_mean"])
-    print(out["ensemble_var"])
+    # print(out["ensemble_mean"])
+    # print(out["ensemble_var"])
 
     print("keys:", list(out.keys()))            # ['ensemble_mean', 'ensemble_var']
     print("mean shape:", out["ensemble_mean"].shape)

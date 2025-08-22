@@ -23,35 +23,23 @@ class DataPreProcessor:
 
         pass
 
-    def split(self, test_size=0.15, val_size=0.15, random_state=42):
-        """Split dataset into train, validation, and test sets.
+    def split(self, test_size=0.15, val_size=0.15, random_state=42, stratify=False):
+        N = len(self.data)
+        idx = np.arange(N)
+        strat = (np.ravel(np.array(self.data.y)) if (stratify and self.data.y is not None) else None)
 
-        Parameters
-        ----------
-        test_size : float, optional
-            Fraction for test set.
-        val_size : float, optional
-            Fraction for validation set.
-        random_state : int, optional
-            Random seed.
+        trval_idx, te_idx = train_test_split(
+            idx, test_size=test_size, random_state=random_state, stratify=strat
+        )
 
-        Returns
-        -------
-        tuple
-            (train, val, test) as Preprocessor instances.
-        """
-        indices = np.arange(len(self.data))
+        val_rel = val_size / (1 - test_size) if (1 - test_size) > 0 else 0.0
+        strat_trval = (np.ravel(np.array(self.data.y))[trval_idx] if strat is not None else None)
+        tr_idx, val_idx = train_test_split(
+            trval_idx, test_size=val_rel, random_state=random_state, stratify=strat_trval
+        )
 
-        # Split  test set
-        train_val_idx, test_idx = train_test_split(indices, test_size=test_size, random_state=random_state)
-
-        # Split train into train + val
-        val_relative_size = val_size / (1 - test_size)
-        train_idx, val_idx = train_test_split(train_val_idx, test_size=val_relative_size, random_state=random_state)
-
-        # Create new DataPreProcessor instances
-        # TODO: figure out how to  code this!
-        def make_subset(idx):
-            return DataPreProcessor(
-                self.data[idx])
-        return make_subset(train_idx), make_subset(val_idx), make_subset(test_idx)
+        # thanks to DataLoader.__getitem__, this returns subset loaders
+        train_loader = self.data[tr_idx]
+        val_loader = self.data[val_idx]
+        test_loader = self.data[te_idx]
+        return train_loader, val_loader, test_loader

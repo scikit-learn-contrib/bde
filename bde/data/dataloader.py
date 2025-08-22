@@ -111,7 +111,10 @@ class DataLoader:
         return int(self.x.shape[1])
 
     def __getitem__(self, item):
-        return self.data[item]
+        if item in self.data:
+            return self.data[item]
+        else:
+            raise AttributeError(f"{self.__class__.__name__} has no item '{item}' !")
 
     def __len__(self) -> int:
         return int(self.x.shape[0])
@@ -120,4 +123,4 @@ class DataLoader:
         if item in self.data:
             return self.data[item]
         else:
-            raise AttributeError(f"{self.__class__.__name__} has no attribute '{item}'")
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{item}' !")
