@@ -7,6 +7,7 @@ from bde.training.trainer import FnnTrainer
 from bde.bde_builder import BdeBuilder
 from bde.viz.plotting import plot_pred_vs_true
 from bde.data.dataloader import DataLoader
+from bde.data.preprocessor import DataPreProcessor
 
 import sys
 import os
@@ -22,7 +23,11 @@ def main():
     # y_true = X_true @ true_W + 0.1 * jax.random.normal(k_eps, (1024, 1))
 
 
-    data = DataLoader(seed=43, n_samples=500, n_features=10) # creates
+    data = DataLoader(seed=43, n_samples=500, n_features=10) # creates automatically the gen data
+    # prep =  DataPreProcessor(data)
+    # train_set, val_set, test_set = prep.split()
+
+
 
     sizes = [10, 64, 64, 1]
 

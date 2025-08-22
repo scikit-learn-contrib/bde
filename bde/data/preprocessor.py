@@ -1,6 +1,6 @@
 """This class is for preprocessing data"""
 
-from dataloader import DataLoader
+from .dataloader import DataLoader
 from sklearn.model_selection import train_test_split
 import numpy as np
 
@@ -51,8 +51,7 @@ class DataPreProcessor:
 
         # Create new DataPreProcessor instances
         # TODO: figure out how to  code this!
-        # def new_inst(idx):
-        #     return DataPreProcessor(
-        #         self.data)
-        #     return new_inst(train_idx), new_inst(val_idx), new_inst(test_idx)
-        pass
+        def make_subset(idx):
+            return DataPreProcessor(
+                self.data[idx])
+        return make_subset(train_idx), make_subset(val_idx), make_subset(test_idx)

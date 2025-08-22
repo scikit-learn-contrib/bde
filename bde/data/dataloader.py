@@ -28,9 +28,10 @@ class DataLoader:
 
         # Generate data by default
         self.data = self._data_gen()
-        self.x = self.data["x"]
-        self.y = self.data["y"]
-        self.w = self.data["w"]
+        # TODO: delete below no ned for these attributes because we introduced a __getattr__
+        # self.x = self.data["x"]
+        # self.y = self.data["y"]
+        # self.w = self.data["w"]
 
         # self.task = self.infer_task() # TODO: figure out where you are going with this
 
@@ -114,3 +115,9 @@ class DataLoader:
 
     def __len__(self) -> int:
         return int(self.x.shape[0])
+
+    def __getattr__(self, item):
+        if item in self.data:
+            return self.data[item]
+        else:
+            raise AttributeError(f"{self.__class__.__name__} has no attribute '{item}'")
