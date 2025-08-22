@@ -35,6 +35,8 @@ def main():
         optimizer=optimizer,
         epochs=1000
     )
+    print(trainer.history["train_loss"][:10])  # first 10 losses
+
 
     y_pred = trainer.predict(model.params, X_true)
     print("the first predictions are ", y_pred)
