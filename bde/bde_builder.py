@@ -36,7 +36,7 @@ class BdeBuilder(Fnn, FnnTrainer):
         m.init_mlp(seed=seed)
         return m
 
-    def deep_ensemble_creator(self, base_seed: int =0) -> list[Fnn]:
+    def deep_ensemble_creator(self, base_seed: int = 0) -> list[Fnn]:
         """Create an ensemble of ``n_members`` FNN models.
 
         Each member is initialized with a different random seed to encourage
@@ -45,13 +45,11 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         Returns
         -------
-        members : list[Fnn]
+        list[Fnn]
             List of initialized FNN models comprising the ensemble.
         """
 
-        members = [self.get_model(base_seed + i) for i in range(self.n_members)]
-        self.members = members
-        return members
+        return [self.get_model(base_seed + i) for i in range(self.n_members)]
 
     def fit(self, model, x, y, optimizer, epochs=100):
         """Train each member of the ensemble
