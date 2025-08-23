@@ -1,6 +1,14 @@
 import jax
 import jax.numpy as jnp
 import optax
+from bde.loss.loss import LossMSE
+
+from typing import (
+    Any,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 
 # TODO: major restructure is needed!
@@ -11,6 +19,7 @@ class FnnTrainer:
         self.log_every = 100
         self.keep_best = False
         self.default_optimizer = self.default_optimizer
+
 
     def _reset_history(self):
         self.history = {"train_loss": []}
@@ -53,7 +62,7 @@ class FnnTrainer:
         prediction = model.forward(params, x)
         return jnp.mean((prediction - y) ** 2)
 
-    def create_train_step(self, model, optimizer):
+    def create_train_step(self, model, optimizer, loss_obj):
         """
         #TODO:documentation
 
@@ -66,12 +75,16 @@ class FnnTrainer:
         -------
 
         """
+        def loss_fn(params, x, y):
+            preds = model.forward(params, x)
+            return loss_obj.apply_reduced(y_true=y, y_pred=preds)  # scalar
+
+        value_and_grad = jax.value_and_grad(loss_fn)
 
         @jax.jit
         def train_step(params, opt_state, x, y):
             """
-            #TODO:documentation
-
+            #TODO: documentation
             Parameters
             ----------
             params
@@ -83,49 +96,49 @@ class FnnTrainer:
             -------
 
             """
-            grads = jax.grad(lambda p, x, y: self.mse_loss(model, p, x, y))(params, x, y)
+            loss_val, grads = value_and_grad(params, x, y)
             updates, opt_state = optimizer.update(grads, opt_state, params)
             params = optax.apply_updates(params, updates)
-            return params, opt_state
+            return params, opt_state, loss_val
 
         return train_step
 
-    def train(self, model, x, y, optimizer, epochs=100):
+    def train(
+            self,
+            model,
+            x,
+            y,
+            optimizer: Optional[optax.GradientTransformation] = None,
+            loss=None,  # expect Loss object; defaults to MSE if None
+            epochs: int = 100,
+    ):
         """
-        #TODO: documentation
-
-        Parameters
-        ----------
-        model
-        x
-        y
-        optimizer
-        epochs
-
-        Returns
-        -------
-
+        Generic training loop.
+        - model.forward(params, x) must exist
+        - loss must implement Loss API (apply_reduced)
         """
-        if model.params is None:
+        # lazy defaults
+        opt = optimizer or self.default_optimizer()
+        if loss is None:
+            loss = LossMSE()
+
+        # init params
+        if getattr(model, "params", None) is None:
             model.init_mlp(seed=0)
 
-        self._reset_history()  # clear history at the start of each training
+        self._reset_history()
 
-        opt_state = optimizer.init(model.params)
         params = model.params
-
-        # Create the jitted training step function
-        train_step_fn = self.create_train_step(model, optimizer)
+        opt_state = opt.init(params)
+        train_step = self.create_train_step(model, opt, loss)
 
         for step in range(epochs):
-            params, opt_state = train_step_fn(params, opt_state, x, y)
-            loss = float(self.mse_loss(model, params, x, y))
-            self.history["train_loss"].append(loss)
-
+            params, opt_state, loss_val = train_step(params, opt_state, x, y)
+            self.history["train_loss"].append(float(loss_val))
             # if step % self.log_every == 0:
-            #     print(step, loss)
-        model.params = params
+            #     print(step, float(loss_val))
 
+        model.params = params
         return model
 
     # def predict(self, params, x):

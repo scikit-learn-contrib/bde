@@ -4,6 +4,7 @@
 from abc import ABC, abstractmethod
 
 import jax
+import optax.losses
 from jax import numpy as jnp
 
 from jax.typing import ArrayLike
@@ -111,3 +112,51 @@ class Loss(ABC):
             Reconstructed loss function.
         """
         ...
+
+
+class LossMSE(Loss):
+
+    # @jax.jit
+    def __call__(
+            self,
+            y_true: ArrayLike,
+            y_pred: ArrayLike,
+            **kwargs,
+    ) -> Array:
+        r"""Evaluate the loss.
+
+        Evaluates an unreduced MSE loss, i.e. the loss is calculated separately for
+        each item in the batch.
+
+        Parameters
+        ----------
+        y_true
+            The ground truth labels.
+        y_pred
+            The predictions.
+
+        Returns
+        -------
+        Array
+            The unreduced loss value.
+        """
+        res = optax.losses.squared_error(y_pred, y_true)  # shape (N, D, ...)
+        return res.mean(axis=tuple(range(1, res.ndim)))  # -> (N,)
+
+    def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
+        """
+        #TODO:documentation
+        Returns
+        -------
+        Tuple[Sequence[ArrayLike], Any]
+
+        """
+        return tuple(), None  # children=[], aux_data=None
+
+    @classmethod
+    def tree_unflatten(
+            cls,
+            aux_data: Optional[Tuple],
+            children: Tuple,
+    ) -> "Loss":
+        return LossMSE()
