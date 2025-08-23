@@ -5,7 +5,8 @@ import os
 
 import numpy as np
 import os
-import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
 
 
 def plot_pred_vs_true(y_pred, y_true, y_pred_err, title, savepath):
@@ -42,18 +43,31 @@ def plot_pred_vs_true(y_pred, y_true, y_pred_err, title, savepath):
             err = np.sqrt(err)
         yerr = err.reshape(-1)
 
-    fig, ax = plt.subplots()
-    ax.errorbar(y_true_1d, y_pred_1d, yerr=yerr, fmt='o', color="#539ecd", alpha=0.5)
+    fig = plt.figure(figsize=(7, 7))
+    gs = gridspec.GridSpec(2, 1, height_ratios=[4, 1], hspace=0.05)
+    ax_main = plt.subplot(gs[0])
+
+    ax_main.errorbar(y_true_1d, y_pred_1d, yerr=yerr, fmt='o', color="#539ecd", alpha=0.5)
 
     lim_min = float(min(y_true_1d.min(), y_pred_1d.min()))
     lim_max = float(max(y_true_1d.max(), y_pred_1d.max()))
-    ax.plot([lim_min, lim_max], [lim_min, lim_max], "r--", linewidth=1, label="y = x")
+    ax_main.plot([lim_min, lim_max], [lim_min, lim_max], "r--", linewidth=1, label="y = x")
 
-    ax.set_xlabel("True values")
-    ax.set_ylabel("Predicted values")
-    ax.set_title(title)
-    ax.legend()
-    ax.grid(True)
+    ax_main.set_xlabel("True values")
+    ax_main.set_ylabel("Predicted values")
+    ax_main.set_title(title)
+    ax_main.legend()
+    ax_main.grid(True)
+
+    ax_res = plt.subplot(gs[1], sharex=ax_main)
+    pull = (y_pred_1d - y_true_1d) / yerr
+    ax_res.axhline(0, color="black", linestyle="--")
+    ax_res.scatter(y_true, pull, alpha=0.5, s=10)
+    # ax_res.errorbar(y_true, pull, yerr=np.std(pull))
+    ax_res.set_xlabel(r"True values")
+    ax_res.set_ylim(-2, 2)
+    ax_res.set_ylabel("Pull")
+    ax_res.grid(True)
 
     if savepath is not None:
         os.makedirs(savepath, exist_ok=True)
