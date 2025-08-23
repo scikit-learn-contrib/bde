@@ -4,6 +4,7 @@ from .dataloader import DataLoader
 from sklearn.model_selection import train_test_split
 import numpy as np
 
+
 class DataPreProcessor:
     def __init__(self, data: DataLoader):
         self.data = data

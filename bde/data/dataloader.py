@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+
 class TaskType:
     """Holder for task types."""
     REGRESSION = "regression"
@@ -48,12 +49,10 @@ class DataLoader:
         y = x @ w + jax.random.normal(k_eps, (self.n_samples, 1))
         return {"x": x, "w": w, "y": y}
 
-
     @classmethod
-    def from_dict(cls, data: dict[str, any]) -> "DataLoader":
+    def _from_dict(cls, data: dict[str, any]) -> "DataLoader":
         """Schema-agnostic constructor: any keys you like."""
         return cls(data=data)
-
 
     def infer_task(self) -> "TaskType":
         """This method is responsible for bringing the data in correct format according to the problem,
@@ -133,7 +132,7 @@ class DataLoader:
                     new_data[k] = v[item]  # row-aligned -> subset
                 else:
                     new_data[k] = v  # e.g. (D,1) weights -> keep same
-            return DataLoader.from_dict(new_data)
+            return DataLoader._from_dict(new_data)
 
         raise TypeError(f"Unsupported index type for DataLoader.__getitem__: {type(item)}")
 
