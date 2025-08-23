@@ -19,7 +19,7 @@ from typing import (
 
 @register_pytree_node_class
 class Loss(ABC):
-    r"""An abstract base class defining an API for loss function classes.
+    """An abstract base class defining an API for loss function classes.
 
     Methods
     -------
@@ -43,7 +43,7 @@ class Loss(ABC):
         y_pred: ArrayLike,
         **kwargs,
     ) -> Array:
-        r"""Evaluate the loss.
+        """Evaluate the loss.
 
         Returns an unreduced evaluation of the loss, i.e. the loss is calculated
         separately for each item in the batch.
@@ -69,7 +69,7 @@ class Loss(ABC):
         y_pred: ArrayLike,
         **kwargs,
     ) -> ArrayLike:
-        r"""Evaluate and reduces the loss.
+        """Evaluate and reduces the loss.
 
         The loss is evaluated separately for each item in the batch and the loss of
         all batches is reduced by arithmetic mean to a single value.
@@ -92,7 +92,7 @@ class Loss(ABC):
 
     @abstractmethod
     def tree_flatten(self) -> tuple[Sequence[ArrayLike], any]:
-        r"""Specify how to serialize module into a JAX PyTree.
+        """Specify how to serialize module into a JAX PyTree.
 
         Returns
         -------
@@ -109,7 +109,7 @@ class Loss(ABC):
         aux_data: Optional[Tuple],
         children: Tuple,
     ) -> "Loss":
-        r"""Specify how to build a module from a JAX PyTree.
+        """Specify how to build a module from a JAX PyTree.
 
         Parameters
         ----------
