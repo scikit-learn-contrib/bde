@@ -46,6 +46,7 @@ class LossMSE(Loss):
 
     def __call__(self, y_true: ArrayLike, y_pred: ArrayLike, **kwargs) -> Array:
         """
+        #TODO: documentation
 
         Parameters
         ----------
@@ -59,4 +60,26 @@ class LossMSE(Loss):
         """
 
         res = optax.losses.squared_error(y_pred, y_true) # (N, D, ...)
+        return res.mean(axis=tuple(range(1, res.ndim))) # (N,)
+
+
+class LossNLL(Loss):
+    """Negative Log likelihood loss"""
+
+    def __call__(self, y_true: ArrayLike, y_pred: ArrayLike, **kwargs):
+        """
+        #TODO: documentation
+        Parameters
+        ----------
+        y_true
+        y_pred
+        kwargs
+
+        Returns
+        -------
+
+        """
+        #TODO: [@SEE comment on issue]
+        jitter = 1e-8
+        res = 0.5 * jnp.log(10)
         return res.mean(axis=tuple(range(1, res.ndim))) # (N,)

@@ -44,24 +44,6 @@ class FnnTrainer:
     #     return jnp.dot(X, W) + b
 
     @staticmethod
-    def mse_loss(model, params, x, y):
-        """
-        #TODO:documentation
-        Parameters
-        ----------
-        model
-        params
-        x
-        y
-
-        Returns
-        -------
-
-        """
-        prediction = model.forward(params, x)
-        return jnp.mean((prediction - y) ** 2)
-
-    @staticmethod
     def create_train_step(model, optimizer, loss_obj):
         """
         #TODO:documentation
@@ -78,10 +60,10 @@ class FnnTrainer:
         """
 
         def loss_fn(params, x, y):
-            preds = model.forward(params, x) #(N,D)
+            preds = model.forward(params, x)  # (N,D)
             return loss_obj.mean_over_batch(y_true=y, y_pred=preds)  # scalar
 
-        value_and_grad = jax.value_and_grad(loss_fn)
+        value_and_grad = jax.value_and_grad(loss_fn) # TODO: maybe move this inside the train_step?
 
         @jax.jit
         def train_step(params, opt_state, x, y):
