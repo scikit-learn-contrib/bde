@@ -80,6 +80,7 @@ class LossNLL(Loss):
 
         """
         #TODO: [@SEE comment on issue]
-        jitter = 1e-8
-        res = 0.5 * jnp.log(10)
-        return res.mean(axis=tuple(range(1, res.ndim))) # (N,)
+        # jitter = 1e-8
+        # res = 0.5 * jnp.log(10)
+        # return res.mean(axis=tuple(range(1, res.ndim))) # (N,)
+        pass
