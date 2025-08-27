@@ -104,9 +104,9 @@ class FnnTrainer:
             x,
             y,
             optimizer: Optional[optax.GradientTransformation] = None,
-            loss=None,  # expect Loss object; defaults to MSE if None
             epochs: int = 100,
-    ):
+            loss=None,
+            ):
         """
         Generic training loop.
         - model.forward(params, x) must exist
