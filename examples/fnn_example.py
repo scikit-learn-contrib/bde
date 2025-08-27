@@ -30,41 +30,53 @@ def main():
 
     sizes = [10, 64, 64, 1]
 
-    model = Fnn(sizes)
-    trainer = FnnTrainer()
-    trainer.train(
-        model=model,
-        x=train_set.x,
-        y=train_set.y,
-        loss=LossMSE(),
-        optimizer=trainer.default_optimizer(),  # the default optimizer!
-        epochs=1000
-    )
-    print(trainer.history["train_loss"][:10])  # first 10 losses
+    # model = Fnn(sizes)
+    # trainer = FnnTrainer()
+    # trainer.train(
+    #     model=model,
+    #     x=train_set.x,
+    #     y=train_set.y,
+    #     loss=LossMSE(),
+    #     optimizer=trainer.default_optimizer(),  # the default optimizer!
+    #     epochs=1000
+    # )
+    # print(trainer.history["train_loss"][:10])  # first 10 losses
 
-    y_pred = model.predict(test_set.x)
+    # y_pred = model.predict(test_set.x)
     # print("the first predictions are ", y_pred)
 
     print("-----------------------------------------------------------")
-    bde = BdeBuilder(sizes, n_members=5, epochs=500, optimizer=optax.adam(1e-2))
-    print(len(bde.members))
+    bde = BdeBuilder(
+        sizes, 
+        n_members=10, 
+        epochs=2000, 
+        optimizer=optax.adam(1e-2)
+        )
+    
+    print("Number of FNNs in the BDE: ", len(bde.members))
     # fit + predict
-    bde.fit(x=train_set.x, y=train_set.y, epochs=500)
+    bde.fit(
+        x=train_set.x, 
+        y=train_set.y, 
+        epochs=2000
+        )
+    
     bde_pred = bde.predict_ensemble(test_set.x, include_members=True)
     # print(bde_pred["ensemble_mean"])
     # print(bde_pred["ensemble_var"])
 
     print("keys:", list(bde.keys()))  # ['ensemble_mean', 'ensemble_var']
-    print(bde.ensemble_mean[:2]) # another way to access the ensemble_mean
+    #print(bde.ensemble_mean[:2]) # another way to access the ensemble_mean
     print("mean shape:", bde_pred["ensemble_mean"].shape)
     print("var shape:", bde_pred["ensemble_var"].shape)
 
-    plot_pred_vs_true(y_pred=bde_pred["ensemble_mean"],
-                      y_true=test_set.y,
-                      y_pred_err=bde_pred["ensemble_var"],
-                      title="trial",
-                      savepath="to_be_deleted")
-
+    plot_pred_vs_true(
+        y_pred=bde_pred["ensemble_mean"],
+        y_true=test_set.y,
+        y_pred_err=bde_pred["ensemble_var"],
+        title="trial",
+        savepath="to_be_deleted"
+        )
 
 if __name__ == "__main__":
     main()
