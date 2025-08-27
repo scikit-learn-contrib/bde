@@ -5,7 +5,6 @@ from .training.trainer import FnnTrainer
 import optax
 import jax.numpy as jnp
 
-
 class BdeBuilder(Fnn, FnnTrainer):
     # TODO: build the BdeBuilderClass
     def __init__(self, sizes, n_members, epochs, optimizer, base_seed: int = 100):

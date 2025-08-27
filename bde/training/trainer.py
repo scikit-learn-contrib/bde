@@ -19,8 +19,6 @@ class FnnTrainer:
         #TODO: documentation
 
         """
-
-
         self.history = {}
         self.log_every = 100
         self.keep_best = False
@@ -131,8 +129,9 @@ class FnnTrainer:
         for step in range(epochs):
             params, opt_state, loss_val = train_step(params, opt_state, x, y)
             self.history["train_loss"].append(float(loss_val))
-            # if step % self.log_every == 0:
-            #     print(step, float(loss_val))
+            if step % self.log_every == 0:
+                print(step, float(loss_val))
+
 
         model.params = params
         return model
