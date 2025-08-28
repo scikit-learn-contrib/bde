@@ -55,6 +55,7 @@ class DataLoader:
         return cls(data=data)
 
     def _infer_task(self) -> "TaskType":
+    def _infer_task(self) -> "TaskType":
         """This method is responsible for bringing the data in correct format according to the problem,
         is it a regression or classification problem?
 
@@ -86,7 +87,7 @@ class DataLoader:
         # TODO: implement normalization & shape checks; set fields accordingly
         pass
 
-    def _validate(self):
+    def __validate(self):
         """This method ensures the shapes and the types of the data
 
 
@@ -109,7 +110,7 @@ class DataLoader:
         return list(self.data.keys())
 
     def load(self):
-        """This method loads  the correct type of data
+        """This method loads the correct type of data
         Returns
         -------
 
