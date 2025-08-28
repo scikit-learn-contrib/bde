@@ -5,7 +5,6 @@ from .training.trainer import FnnTrainer
 import optax
 import jax.numpy as jnp
 
-
 class BdeBuilder(Fnn, FnnTrainer):
     # TODO: build the BdeBuilderClass
     def __init__(self, sizes, n_members, epochs, optimizer, base_seed: int = 100):
@@ -60,7 +59,7 @@ class BdeBuilder(Fnn, FnnTrainer):
         #TODO: this should get the dataloader and the datapreprocessor
         #TODO: here comes the SAMPLING AS WELL
         for member in self.members:
-            super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs)
+            super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None)
         return self
 
     def predict_ensemble(self, x, include_members: bool = False):

@@ -19,8 +19,6 @@ class FnnTrainer:
         #TODO: documentation
 
         """
-
-
         self.history = {}
         self.log_every = 100
         self.keep_best = False
@@ -86,9 +84,9 @@ class FnnTrainer:
             x,
             y,
             optimizer: Optional[optax.GradientTransformation] = None,
-            loss=None,  # expect Loss object; defaults to MSE if None
             epochs: int = 100,
-    ):
+            loss=None,
+            ):
         """
         Generic training loop.
         - model.forward(params, x) must exist
@@ -111,8 +109,9 @@ class FnnTrainer:
         for step in range(epochs):
             params, opt_state, loss_val = train_step(params, opt_state, x, y)
             self.history["train_loss"].append(float(loss_val))
-            # if step % self.log_every == 0:
-            #     print(step, float(loss_val))
+            if step % self.log_every == 0:
+                print(step, float(loss_val))
+
 
         model.params = params
         return model

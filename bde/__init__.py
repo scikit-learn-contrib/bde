@@ -2,7 +2,9 @@
 # License: BSD 3 clause
 
 from ._template import TemplateClassifier, TemplateEstimator, TemplateTransformer
-from ._version import __version__
+#from ._version import __version__
+
+__version__ = "0.1"
 
 __all__ = [
     "TemplateEstimator",
