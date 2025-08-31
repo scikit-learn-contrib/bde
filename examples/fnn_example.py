@@ -49,8 +49,8 @@ def main():
     print("-----------------------------------------------------------")
     bde = BdeBuilder(
         sizes, 
-        n_members=10, 
-        epochs=2000, 
+        n_members=3, 
+        epochs=1000, 
         optimizer=optax.adam(1e-2)
         )
     
@@ -59,7 +59,7 @@ def main():
     bde.fit(
         x=train_set.x, 
         y=train_set.y, 
-        epochs=2000
+        epochs=1000
         )
     
     bde_pred = bde.predict_ensemble(test_set.x, include_members=True)
