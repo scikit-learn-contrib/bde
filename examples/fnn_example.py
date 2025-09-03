@@ -10,6 +10,11 @@ from bde.data.dataloader import DataLoader
 from bde.data.preprocessor import DataPreProcessor
 from bde.loss.loss import  LossMSE
 
+from bde.sampler.warmup import custom_mclmc_warmup
+from bde.sampler.probabilistic import ProbabilisticModel
+
+from bde.sampler.prior import Prior
+
 import sys
 import os
 
@@ -46,10 +51,12 @@ def main():
     # y_pred = model.predict(test_set.x)
     # print("the first predictions are ", y_pred)
 
+
+
     print("-----------------------------------------------------------")
     bde = BdeBuilder(
         sizes, 
-        n_members=3, 
+        n_members=1, 
         epochs=1000, 
         optimizer=optax.adam(1e-2)
         )
@@ -62,22 +69,41 @@ def main():
         epochs=1000
         )
     
-    bde_pred = bde.predict_ensemble(test_set.x, include_members=True)
-    # print(bde_pred["ensemble_mean"])
+    initial_params = bde.all_fnns["fnn_0"]
+    prior = Prior(loc=0.0, scale=1.0)
+    model = ProbabilisticModel(module=bde.members[0], params=initial_params, prior=prior, n_batches=1)
+
+    logdensity_fn = lambda params: model.log_unnormalized_posterior(params, x=train_set.x, y=train_set.y)
+
+    #bde_pred = bde.predict_ensemble(test_set.x, include_members=True)
+
+    warmup = custom_mclmc_warmup(
+    logdensity_fn=logdensity_fn,
+    diagonal_preconditioning=True,
+    step_size_init=0.005,
+    desired_energy_var_start=5e-4,
+    desired_energy_var_end=5e-4,
+    num_effective_samples=100
+)
+    
+    rng_key = jax.random.PRNGKey(0)
+    adaptation_results = warmup.run(rng_key, position=initial_params, num_steps=1000)
+
+    # print(bde_pred["ensemble_mean"])c
     # print(bde_pred["ensemble_var"])
 
-    print("keys:", list(bde.keys()))  # ['ensemble_mean', 'ensemble_var']
-    #print(bde.ensemble_mean[:2]) # another way to access the ensemble_mean
-    print("mean shape:", bde_pred["ensemble_mean"].shape)
-    print("var shape:", bde_pred["ensemble_var"].shape)
+    # print("keys:", list(bde.keys()))  # ['ensemble_mean', 'ensemble_var']
+    # #print(bde.ensemble_mean[:2]) # another way to access the ensemble_mean
+    # print("mean shape:", bde_pred["ensemble_mean"].shape)
+    # print("var shape:", bde_pred["ensemble_var"].shape)
 
-    plot_pred_vs_true(
-        y_pred=bde_pred["ensemble_mean"],
-        y_true=test_set.y,
-        y_pred_err=bde_pred["ensemble_var"],
-        title="trial",
-        savepath="to_be_deleted"
-        )
+    # plot_pred_vs_true(
+    #     y_pred=bde_pred["ensemble_mean"],
+    #     y_true=test_set.y,
+    #     y_pred_err=bde_pred["ensemble_var"],
+    #     title="trial",
+    #     savepath="to_be_deleted"
+    #     )
 
 if __name__ == "__main__":
     main()
