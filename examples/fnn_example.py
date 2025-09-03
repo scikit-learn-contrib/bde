@@ -62,6 +62,7 @@ def main():
         )
     
     print("Number of FNNs in the BDE: ", len(bde.members))
+    
     # fit + predict
     bde.fit(
         x=train_set.x, 
@@ -80,15 +81,19 @@ def main():
     warmup = custom_mclmc_warmup(
     logdensity_fn=logdensity_fn,
     diagonal_preconditioning=True,
-    step_size_init=0.005,
+    step_size_init=0.05,
     desired_energy_var_start=5e-4,
-    desired_energy_var_end=5e-4,
+    desired_energy_var_end=1e-4,
     num_effective_samples=100
 )
     
-    rng_key = jax.random.PRNGKey(0)
-    adaptation_results = warmup.run(rng_key, position=initial_params, num_steps=1000)
+    rng_key = jax.random.PRNGKey(1)
+    results = warmup.run(rng_key, position=initial_params, num_steps=1000)
+    print("step_size:", results.parameters.step_size)
+    print("L:", results.parameters.L)
 
+
+########
     # print(bde_pred["ensemble_mean"])c
     # print(bde_pred["ensemble_var"])
 
