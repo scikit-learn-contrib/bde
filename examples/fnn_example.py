@@ -58,7 +58,7 @@ def main():
         sizes, 
         n_members=1, 
         epochs=1000, 
-        optimizer=optax.adam(1e-2)
+        optimizer=optax.adam(1e-3)
         )
     
     print("Number of FNNs in the BDE: ", len(bde.members))
@@ -81,14 +81,17 @@ def main():
     warmup = custom_mclmc_warmup(
     logdensity_fn=logdensity_fn,
     diagonal_preconditioning=True,
-    step_size_init=0.05,
-    desired_energy_var_start=5e-4,
-    desired_energy_var_end=1e-4,
-    num_effective_samples=100
+    step_size_init=1e-3,
+    desired_energy_var_start=1e-2,
+    desired_energy_var_end=1e-3,
+    trust_in_estimate=1.5,
+    num_effective_samples=100,
 )
     
+
+    
     rng_key = jax.random.PRNGKey(1)
-    results = warmup.run(rng_key, position=initial_params, num_steps=1000)
+    results = warmup.run(rng_key, position=initial_params, num_steps=10)
     print("step_size:", results.parameters.step_size)
     print("L:", results.parameters.L)
 
