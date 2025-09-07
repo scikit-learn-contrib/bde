@@ -4,6 +4,7 @@ from .models.models import Fnn
 from .training.trainer import FnnTrainer
 import optax
 import jax.numpy as jnp
+from bde.sampler.my_types import ParamTree
 
 class BdeBuilder(Fnn, FnnTrainer):
     # TODO: build the BdeBuilderClass
@@ -17,8 +18,9 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         self.members = self.deep_ensemble_creator(base_seed=self.base_seed)
         self.optimizer = optimizer or optax.adam(learning_rate=0.01)
+        self.all_fnns = {}
         self.results = {}
-
+    
     def get_model(self, seed: int) -> Fnn:
         """Create a single Fnn model and initialize its parameters
 
@@ -58,8 +60,12 @@ class BdeBuilder(Fnn, FnnTrainer):
         """
         #TODO: this should get the dataloader and the datapreprocessor
         #TODO: here comes the SAMPLING AS WELL
-        for member in self.members:
-            super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None)
+        all_fnns: ParamTree = {} 
+        for i, member in enumerate(self.members): 
+            super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None) 
+            all_fnns[f"fnn_{i}"] = member.params 
+        
+        self.all_fnns = all_fnns 
         return self
 
     def predict_ensemble(self, x, include_members: bool = False):

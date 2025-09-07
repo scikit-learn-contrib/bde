@@ -9,17 +9,19 @@ from bde.viz.plotting import plot_pred_vs_true
 from bde.data.dataloader import DataLoader
 from bde.data.preprocessor import DataPreProcessor
 from bde.loss.loss import  LossMSE
+from bde.sampler.mile_wrapper import MileWrapper
 
 from bde.sampler.warmup import custom_mclmc_warmup
 from bde.sampler.probabilistic import ProbabilisticModel
-
 from bde.sampler.prior import Prior, PriorDist
+
+from sklearn.datasets import fetch_openml
+from sklearn.model_selection import train_test_split
 
 import sys
 import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
-
 
 def main():
     # generate True data for test purposes
@@ -30,11 +32,23 @@ def main():
     # y_true = X_true @ true_W + 0.1 * jax.random.normal(k_eps, (1024, 1))
 
     # these steps should be inside the bde builder
-    data = DataLoader(seed=43, n_samples=500, n_features=10)  # creates automatically the gen data
-    prep = DataPreProcessor(data)
-    train_set, val_set, test_set = prep.split() #TODO: we only need validation
+    data = fetch_openml(name="airfoil_self_noise", as_frame=True)
 
-    sizes = [10, 64, 64, 1] #TODO: for regression 2 nodes ( mean and var) and for classification user gives # of classes!
+    X = data.data.values   # shape (1503, 5)
+    y = data.target.values.reshape(-1, 1)  # shape (1503, 1)
+
+# Convert to JAX arrays
+    X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# Convert to JAX arrays
+    X_train = jnp.array(X_train, dtype=jnp.float32)
+    y_train = jnp.array(y_train, dtype=jnp.float32)
+    X_test = jnp.array(X_test, dtype=jnp.float32)
+    y_test = jnp.array(y_test, dtype=jnp.float32)
+
+
+    sizes = [5, 16, 16, 2] #TODO: for regression 2 nodes ( mean and var) and for classification user gives # of classes!
 
     # model = Fnn(sizes)
     # trainer = FnnTrainer()
@@ -57,44 +71,48 @@ def main():
     bde = BdeBuilder(
         sizes, 
         n_members=1, 
-        epochs=100, 
-        optimizer=optax.adam(1e-5)
+        epochs=2000, 
+        optimizer=optax.adam(4e-3)
         )
     
     print("Number of FNNs in the BDE: ", len(bde.members))
     
     # fit + predict
     bde.fit(
-        x=train_set.x, 
-        y=train_set.y, 
-        epochs=100
+        x=X_train, 
+        y=y_train, 
+        epochs=2000
         )
     
     initial_params = bde.all_fnns["fnn_0"]
     prior = PriorDist.STANDARDNORMAL.get_prior()
     model = ProbabilisticModel(module=bde.members[0], params=initial_params, prior=prior, n_batches=1)
 
-    logdensity_fn = lambda params: model.log_unnormalized_posterior(params, x=train_set.x, y=train_set.y)
-
+    logdensity_fn = lambda params: model.log_unnormalized_posterior(params, x=X_train, y=y_train)
+    print(model.log_prior(initial_params))
+    print(model.log_likelihood(initial_params, X_train, y_train))
     #bde_pred = bde.predict_ensemble(test_set.x, include_members=True)
 
     warmup = custom_mclmc_warmup(
     logdensity_fn=logdensity_fn,
-    diagonal_preconditioning=True,
-    step_size_init=1e-5,
-    desired_energy_var_start=1e-3,
-    desired_energy_var_end=1e-6,
+    diagonal_preconditioning=False,
+    step_size_init=4e-3,
+    desired_energy_var_start=0.5,
+    desired_energy_var_end=0.1,
     trust_in_estimate=1.5,
     num_effective_samples=100,
 )
-    
-
     
     rng_key = jax.random.PRNGKey(1)
     results = warmup.run(rng_key, position=initial_params, num_steps=1000)
     print("step_size:", results.parameters.step_size)
     print("L:", results.parameters.L)
-
+    post_end = logdensity_fn(results.state.position)
+    print("end-of-warmup post:", post_end)
+    
+    sampler = MileWrapper(logdensity_fn, step_size=results.parameters.step_size , L=results.parameters.L,)
+    positions, infos, state = sampler.sample(rng_key=rng_key, init_position = results.state.position, num_samples = 5, thinning=10)
+    print(infos)
 
 ########
     # print(bde_pred["ensemble_mean"])c
