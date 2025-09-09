@@ -8,7 +8,6 @@ class MileWrapper:
         self.algo = blackjax.mclmc(logdensity_fn, step_size=step_size, L=L)
 
     def init(self, position, rng_key):
-        # NOTE: position first, rng_key second
         return self.algo.init(position, rng_key)
 
     def step(self, rng_key, state):

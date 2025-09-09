@@ -9,7 +9,7 @@ import matplotlib.gridspec as gridspec
 
 
 
-def plot_pred_vs_true(y_pred, y_true, y_pred_err, title, savepath):
+def plot_pred_vs_true(y_pred, y_true, title, savepath,y_pred_err=None,):
     """
     #TODO: documentation
     Parameters

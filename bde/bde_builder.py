@@ -101,20 +101,20 @@ class BdeBuilder(Fnn, FnnTrainer):
                              "`deep_ensemble_creator` first.")
 
         # single-model forward from the trainer; avoids name collision with this method
-        member_preds = jnp.stack(
+        member_means = jnp.stack(
             [model.predict(x) for model in self.members],
             axis=0
         )  # (n_members, n_samples, output_dim)
 
-        ensemble_mean = jnp.mean(member_preds, axis=0)  # (N, D) that is the point prediction
-        ensemble_var = jnp.var(member_preds, axis=0)  # (N, D) epistemic
+        ensemble_mean = jnp.mean(member_means, axis=0)  # (N, D) that is the point prediction
+        ensemble_var = jnp.var(member_means, axis=0)  # (N, D) epistemic
 
         out = {
             "ensemble_mean": ensemble_mean,
             "ensemble_var": ensemble_var,
         }
         if include_members:
-            out["member_means"] = member_preds
+            out["member_means"] = member_means
         self.results = out
         return out
 

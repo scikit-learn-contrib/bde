@@ -71,7 +71,7 @@ def main():
     bde = BdeBuilder(
         sizes, 
         n_members=1, 
-        epochs=2000, 
+        epochs=3000, 
         optimizer=optax.adam(4e-3)
         )
     
@@ -81,7 +81,7 @@ def main():
     bde.fit(
         x=X_train, 
         y=y_train, 
-        epochs=2000
+        epochs=3000
         )
     
     initial_params = bde.all_fnns["fnn_0"]
@@ -112,24 +112,35 @@ def main():
     
     sampler = MileWrapper(logdensity_fn, step_size=results.parameters.step_size , L=results.parameters.L,)
     positions, infos, state = sampler.sample(rng_key=rng_key, init_position = results.state.position, num_samples = 5, thinning=10)
-    print(infos)
+    
+    fnn = bde.members[0]
+    fnn.params = state.position
+    
+    pred = fnn.predict(X_test)                          # (N,2)
+    mu   = pred[..., 0:1]                          # (N,1)
+    sigma= 0.5 + 10.0 * jax.nn.sigmoid(pred[...,1:2])
+    y_true = jnp.ravel(y_test)
+    y_pred = jnp.ravel(mu)
+    yerr   = jnp.ravel(sigma) 
+    print("y_true shape: ", y_true.shape, "y_pred shape: ", y_pred.shape, "yerr shape: ", yerr.shape)
+
 
 ########
-    # print(bde_pred["ensemble_mean"])c
-    # print(bde_pred["ensemble_var"])
+    #print(bde_pred["ensemble_mean"])
+    #print(bde_pred["ensemble_var"])
 
-    # print("keys:", list(bde.keys()))  # ['ensemble_mean', 'ensemble_var']
-    # #print(bde.ensemble_mean[:2]) # another way to access the ensemble_mean
-    # print("mean shape:", bde_pred["ensemble_mean"].shape)
-    # print("var shape:", bde_pred["ensemble_var"].shape)
+    #print("keys:", list(bde.keys()))  # ['ensemble_mean', 'ensemble_var']
+    ##print(bde.ensemble_mean[:2]) # another way to access the ensemble_mean
+    #print("mean shape:", bde_pred["ensemble_mean"].shape)
+    #print("var shape:", bde_pred["ensemble_var"].shape)
 
-    # plot_pred_vs_true(
-    #     y_pred=bde_pred["ensemble_mean"],
-    #     y_true=test_set.y,
-    #     y_pred_err=bde_pred["ensemble_var"],
-    #     title="trial",
-    #     savepath="to_be_deleted"
-    #     )
+    plot_pred_vs_true(
+        y_pred=y_pred,
+        y_true=y_true,
+        y_pred_err=yerr,
+        title="trial",
+        savepath="to_be_deleted"
+        )
 
 if __name__ == "__main__":
     main()
