@@ -2,37 +2,37 @@
 
 The sampler uses a Hamiltonian function
 
-\[
+$$
 H(\theta, p) = U(\theta) + K(p),
-\]
+$$
 
 where 
 
-\[
+$$
 U(\theta) = -\log p(\theta \mid \text{data})
-\]
+$$
 
 is the **potential energy** (negative log posterior), and
 
-\[
+$$
 K(p) = \frac{1}{2} p^\top M^{-1} p
-\]
+$$
 
 is the **kinetic energy**, with \(p\) an auxiliary momentum and \(M\) the mass matrix.  
 
 The sampler simulates Hamiltonian dynamics:
 
-\[
+$$
 \frac{d\theta}{dt} = \frac{\partial H}{\partial p} = M^{-1}p, 
 \quad
 \frac{dp}{dt} = -\frac{\partial H}{\partial \theta} = -\nabla_\theta U(\theta),
-\]
+$$
 
 which in theory conserves the total energy \(H(\theta,p)\). In practice, numerical integration introduces an **energy error**
 
-\[
+$$
 \Delta H = H(\theta', p') - H(\theta, p),
-\]
+$$
 
 and warmup/adaptation procedures aim to control this error.
 
@@ -43,10 +43,10 @@ Smaller step sizes correspond to more accurate numerical integration, ensuring s
 
 The discretized dynamics for one integration step are:
 
-\[
+$$
 \theta_{t+1} \approx \theta_t + \varepsilon M^{-1} p, \quad
 p_{t+1} \approx p_t - \varepsilon \nabla_\theta U(\theta_t),
-\]
+$$
 
 where \(U(\theta) = -\log p(\theta | \text{data})\) is the potential energy, and \(M\) is the mass matrix.  
 
@@ -89,9 +89,9 @@ The outputs of the *predictor* function are:
 
 Further, we introduce
 
-\[
+$$
 \xi = \frac{(\Delta H)^2}{\text{dim} \times \text{desired variance}} + 10^{-8},
-\]
+$$
 
 where \(\Delta H\) is the energy change after one integration step, \(\text{dim}\) is the number of parameters, and \(\text{desired variance}\) is the target variance for \(\Delta H\).  
 
