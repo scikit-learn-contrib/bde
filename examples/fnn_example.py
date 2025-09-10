@@ -131,7 +131,7 @@ def main():
         elif p.ndim == 1: 
             p = unravel(p)
 
-    print(p.shape)
+    # print(p.shape) # AttributeError: 'tuple' object has no attribute 'shape'
     pred  = fnn.apply({'params': p}, Xte)
     mu_n  = pred[..., 0:1]
     sigma_n = 0.5 + 10.0 * jax.nn.sigmoid(pred[..., 1:2])
