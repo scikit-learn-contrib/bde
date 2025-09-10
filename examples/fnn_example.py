@@ -1,4 +1,5 @@
 import jax
+from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 import optax
 
@@ -121,16 +122,25 @@ def main():
     
     fnn = bde.members[0]
 
-    sampled_params = positions[-1]
-    pred = fnn.apply({'params': sampled_params}, Xte)
-    mu   = pred[..., 0:1]
-    sigma= 0.5 + 10.0 * jax.nn.sigmoid(pred[..., 1:2])
-    # un-normalize
-    y_pred = jnp.ravel(mu * Ystd + Ymu)
-    y_true = jnp.ravel(yte)
-    yerr  = jnp.ravel(sigma * Ystd)
-    print("y_true shape: ", y_true.shape, "y_pred shape: ", y_pred.shape, "yerr shape: ", yerr.shape)
-    
+    _, unravel = ravel_pytree(fnn.params)
+
+    p = positions[-1]  
+    if isinstance(p, jnp.ndarray):
+        if p.ndim == 2:   
+            p = unravel(p[-1])
+        elif p.ndim == 1: 
+            p = unravel(p)
+
+    print(p.shape)
+    pred  = fnn.apply({'params': p}, Xte)
+    mu_n  = pred[..., 0:1]
+    sigma_n = 0.5 + 10.0 * jax.nn.sigmoid(pred[..., 1:2])
+
+    y_pred = jnp.ravel(mu_n * Ystd + Ymu)
+    y_err  = jnp.ravel(sigma_n * Ystd)
+    y_true = jnp.ravel(yte * Ystd + Ymu)
+
+    print("y_true shape:", y_true.shape, "y_pred shape:", y_pred.shape, "yerr shape:", y_err.shape)
     
 
 ########
@@ -145,7 +155,7 @@ def main():
     plot_pred_vs_true(
         y_pred=y_pred,
         y_true=y_true,
-        y_pred_err=yerr,
+        y_pred_err=y_err,
         title="trial",
         savepath="to_be_deleted"
         )

@@ -89,8 +89,8 @@ class ProbabilisticModel:
         return jnp.nansum(
             stats.norm.logpdf(
                 x=y,
-                loc=lvals[..., 0],
-                scale=jnp.exp(lvals[..., 1]).clip(min=1e-6, max=1e6),
+                loc=lvals[..., 0:1],
+                scale=jnp.exp(lvals[..., 1:2]).clip(min=1e-6, max=1e6),
             )
         )
         
