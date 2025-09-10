@@ -84,6 +84,7 @@ class ProbabilisticModel:
         -------
         NotImplementedError: If computation for given `task` is not implemented.
         """
+
         lvals = self.module.apply({'params': params}, x, **kwargs)
         
         return jnp.nansum(
