@@ -4,6 +4,7 @@ from .models.models import Fnn
 from .training.trainer import FnnTrainer
 import optax
 import jax.numpy as jnp
+from bde.sampler.my_types import ParamTree
 
 class BdeBuilder(Fnn, FnnTrainer):
     # TODO: build the BdeBuilderClass
@@ -17,8 +18,9 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         self.members = self.deep_ensemble_creator(base_seed=self.base_seed)
         self.optimizer = optimizer or optax.adam(learning_rate=0.01)
+        self.all_fnns = {}
         self.results = {}
-
+    
     def get_model(self, seed: int) -> Fnn:
         """Create a single Fnn model and initialize its parameters
 
@@ -58,8 +60,12 @@ class BdeBuilder(Fnn, FnnTrainer):
         """
         #TODO: this should get the dataloader and the datapreprocessor
         #TODO: here comes the SAMPLING AS WELL
-        for member in self.members:
-            super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None)
+        all_fnns: ParamTree = {} 
+        for i, member in enumerate(self.members): ## ask chatty for pmap instead of for loop, joblib
+            super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None) 
+            all_fnns[f"fnn_{i}"] = member.params
+        
+        self.all_fnns = all_fnns 
         return self
 
     def predict_ensemble(self, x, include_members: bool = False):
@@ -95,22 +101,42 @@ class BdeBuilder(Fnn, FnnTrainer):
                              "`deep_ensemble_creator` first.")
 
         # single-model forward from the trainer; avoids name collision with this method
-        member_preds = jnp.stack(
+        member_means = jnp.stack(
             [model.predict(x) for model in self.members],
             axis=0
         )  # (n_members, n_samples, output_dim)
 
-        ensemble_mean = jnp.mean(member_preds, axis=0)  # (N, D) that is the point prediction
-        ensemble_var = jnp.var(member_preds, axis=0)  # (N, D) epistemic
+        ensemble_mean = jnp.mean(member_means, axis=0)  # (N, D) that is the point prediction
+        ensemble_var = jnp.var(member_means, axis=0)  # (N, D) epistemic
 
         out = {
             "ensemble_mean": ensemble_mean,
             "ensemble_var": ensemble_var,
         }
         if include_members:
-            out["member_means"] = member_preds
+            out["member_means"] = member_means
         self.results = out
         return out
+    
+    @staticmethod
+    def predictive_accuracy(y, mu, sigma):
+    # Pulls
+        pulls = (y - mu) / sigma
+        pull_mean = jnp.mean(pulls)
+        pull_std = jnp.std(pulls)
+    
+    # Coverage
+        within_1sigma = jnp.mean(jnp.abs(y - mu) <= 1 * sigma)
+        within_2sigma = jnp.mean(jnp.abs(y - mu) <= 2 * sigma)
+        within_3sigma = jnp.mean(jnp.abs(y - mu) <= 3 * sigma)
+    
+        return {
+            "pull_mean": float(pull_mean),
+            "pull_std": float(pull_std),
+            "coverage_1σ": float(within_1sigma),
+            "coverage_2σ": float(within_2sigma),
+            "coverage_3σ": float(within_3sigma),
+        }
 
     def keys(self):
         """

@@ -59,7 +59,7 @@ class Fnn:
         """
         for (W, b) in params[:-1]:
             x = jnp.dot(x, W) + b
-            x = jnp.tanh(x)
+            x = jax.nn.relu(x)
         W, b = params[-1]
         return jnp.dot(x, W) + b
 
@@ -77,3 +77,8 @@ class Fnn:
         if self.params is None:
             raise ValueError("Model parameters not initialized!")
         return self.forward(self.params, x)
+    
+    def apply(self, variables, x, **kwargs): 
+        """Mimic Flax API: variables['params'] contains weights.""" 
+        params = variables["params"] 
+        return self.forward(params, x, **kwargs)

@@ -1,5 +1,7 @@
 import jax
 import jax.numpy as jnp
+import jax.scipy.stats as stats
+
 import optax
 from bde.loss.loss import LossMSE
 
@@ -51,8 +53,12 @@ class FnnTrainer:
         """
 
         def loss_fn(params, x, y):
-            preds = model.forward(params, x)  # (N,D)
-            return loss_obj.mean_over_batch(y_true=y, y_pred=preds)  # scalar
+            preds = model.forward(params, x)             # (N,2)
+            mu = preds[..., 0:1]
+            s_raw = preds[..., 1:2]
+            sigma = jax.nn.softplus(s_raw) + 1e-6        # or your bounded map
+            ll = stats.norm.logpdf(x=y, loc=mu, scale=sigma)
+            return -jnp.mean(ll)
 
         value_and_grad = jax.value_and_grad(loss_fn) # TODO: maybe move this inside the train_step?
 
@@ -106,12 +112,11 @@ class FnnTrainer:
         opt_state = optimizer.init(params)
         train_step = self.create_train_step(model, optimizer, loss)
 
-        for step in range(epochs):
+        for n, step in enumerate(range(epochs)):
             params, opt_state, loss_val = train_step(params, opt_state, x, y)
             self.history["train_loss"].append(float(loss_val))
             if step % self.log_every == 0:
-                print(step, float(loss_val))
-
+                print(step, float(loss_val))            
 
         model.params = params
         return model
