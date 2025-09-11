@@ -61,9 +61,9 @@ class BdeBuilder(Fnn, FnnTrainer):
         #TODO: this should get the dataloader and the datapreprocessor
         #TODO: here comes the SAMPLING AS WELL
         all_fnns: ParamTree = {} 
-        for i, member in enumerate(self.members): 
+        for i, member in enumerate(self.members): ## ask chatty for pmap instead of for loop, joblib
             super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None) 
-            all_fnns[f"fnn_{i}"] = member.params 
+            all_fnns[f"fnn_{i}"] = member.params
         
         self.all_fnns = all_fnns 
         return self
@@ -117,6 +117,26 @@ class BdeBuilder(Fnn, FnnTrainer):
             out["member_means"] = member_means
         self.results = out
         return out
+    
+    @staticmethod
+    def predictive_accuracy(y, mu, sigma):
+    # Pulls
+        pulls = (y - mu) / sigma
+        pull_mean = jnp.mean(pulls)
+        pull_std = jnp.std(pulls)
+    
+    # Coverage
+        within_1sigma = jnp.mean(jnp.abs(y - mu) <= 1 * sigma)
+        within_2sigma = jnp.mean(jnp.abs(y - mu) <= 2 * sigma)
+        within_3sigma = jnp.mean(jnp.abs(y - mu) <= 3 * sigma)
+    
+        return {
+            "pull_mean": float(pull_mean),
+            "pull_std": float(pull_std),
+            "coverage_1σ": float(within_1sigma),
+            "coverage_2σ": float(within_2sigma),
+            "coverage_3σ": float(within_3sigma),
+        }
 
     def keys(self):
         """

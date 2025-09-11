@@ -137,7 +137,7 @@ def make_L_step_size_adaptation(
         ) + desired_energy_var_end * (1 - jax.numpy.exp(-step / tau))
 
     if desired_energy_var_start > 2.0:
-        get_desired_energy_var = get_desired_energy_var_exp
+        get_desired_energy_var = get_desired_energy_var_exp #### always use linear
     else:
         get_desired_energy_var = get_desired_energy_var_linear
 
@@ -361,7 +361,7 @@ def handle_nans(previous_state, next_state, step_size, step_size_max, kinetic_ch
 
 def custom_mclmc_warmup(
     logdensity_fn: Callable,
-    diagonal_preconditioning: bool = True,
+    diagonal_preconditioning: bool = True, #cut this method out 
     desired_energy_var_start: float = 5e-4,
     desired_energy_var_end: float = 1e-4,
     trust_in_estimate: float = 1.5,
@@ -416,8 +416,8 @@ def custom_mclmc_warmup(
         initial_state = blackjax.mcmc.mclmc.init(
             position=position, logdensity_fn=logdensity_fn, rng_key=rng_key
         )
-        # TODO: Parameterize the phase ratio
-        phase_ratio = (0.8, 0.1, 0.1)
+
+        phase_ratio = (0.8, 0.1, 0.1) # might let the user change this 
 
         # find values for L and step size
         (

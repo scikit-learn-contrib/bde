@@ -58,7 +58,7 @@ class FnnTrainer:
             s_raw = preds[..., 1:2]
             sigma = jax.nn.softplus(s_raw) + 1e-6        # or your bounded map
             ll = stats.norm.logpdf(x=y, loc=mu, scale=sigma)
-            return -jnp.mean(ll) 
+            return -jnp.mean(ll)
 
         value_and_grad = jax.value_and_grad(loss_fn) # TODO: maybe move this inside the train_step?
 
