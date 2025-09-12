@@ -466,7 +466,7 @@ def warmup_bde(bde: BdeBuilder, logpost_one: Callable):
     rng = jax.random.PRNGKey(bde.seed)
     keys_e = jax.random.split(rng, bde.n_members)
 
-    num_steps = 1000  
+    num_steps = 50000
 
     states_e, mclmc_params_e = jax.vmap(
         lambda k, p: run_one(k, p, num_steps),

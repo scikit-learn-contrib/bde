@@ -57,8 +57,8 @@ class BDE:
         positions_eT, infos_eT, states_e = sampler.sample_batched(
             rng_keys_e=rng_keys_e,
             init_positions_e=init_positions_e,
-            num_samples=1000,
-            thinning=1,
+            num_samples=10000,
+            thinning=10,
             L_e=L_e,
             step_e=step_e,
             sqrt_diag_e=sqrt_diag_e,
