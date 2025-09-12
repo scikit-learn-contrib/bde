@@ -51,15 +51,19 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         return [self.get_model(base_seed + i) for i in range(self.n_members)]
 
-    def fit(self, x, y, epochs=None) -> "BdeBuilder":
+    def fit(
+            self,
+            x,
+            y,
+            epochs: int = 100,
+            ):
         """Train each member of the ensemble
 
         Parameters
         ---------
         #TODO: documentation
         """
-        #TODO: this should get the dataloader and the datapreprocessor
-        #TODO: here comes the SAMPLING AS WELL
+
         all_fnns: ParamTree = {} 
         for i, member in enumerate(self.members): ## ask chatty for pmap instead of for loop, joblib
             super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None) 
@@ -161,6 +165,7 @@ class BdeBuilder(Fnn, FnnTrainer):
             return self.results[item]
         else:
             raise AttributeError(f"{self.__class__.__name__} has no attribute '{item}' !")
+
 
     #
     # def store_ensemble_results(self, x, y=None, include_members: bool = True):

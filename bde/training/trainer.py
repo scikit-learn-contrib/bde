@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import jax.scipy.stats as stats
 
 import optax
-from bde.loss.loss import LossMSE
+from bde.loss.loss import GaussianNLL
 
 from typing import (
     Any,
@@ -36,54 +36,6 @@ class FnnTrainer:
         """
         self.history = {"train_loss": []}
 
-    @staticmethod
-    def create_train_step(model, optimizer, loss_obj):
-        """
-        #TODO:documentation
-
-        Parameters
-        ----------
-        model
-        optimizer
-        loss_obj
-
-        Returns
-        -------
-
-        """
-
-        def loss_fn(params, x, y):
-            preds = model.forward(params, x)             # (N,2)
-            mu = preds[..., 0:1]
-            s_raw = preds[..., 1:2]
-            sigma = jax.nn.softplus(s_raw) + 1e-6        # or your bounded map
-            ll = stats.norm.logpdf(x=y, loc=mu, scale=sigma)
-            return -jnp.mean(ll)
-
-        value_and_grad = jax.value_and_grad(loss_fn) # TODO: maybe move this inside the train_step?
-
-        @jax.jit
-        def train_step(params, opt_state, x, y):
-            """
-            #TODO: documentation
-            Parameters
-            ----------
-            params
-            opt_state
-            x
-            y
-
-            Returns
-            -------
-
-            """
-            loss_val, grads = value_and_grad(params, x, y)
-            updates, opt_state = optimizer.update(grads, opt_state, params)
-            params = optax.apply_updates(params, updates)
-            return params, opt_state, loss_val
-
-        return train_step
-
     def train(
             self,
             model,
@@ -98,25 +50,30 @@ class FnnTrainer:
         - model.forward(params, x) must exist
         - loss must implement Loss API (apply_reduced)
         """
-        # lazy defaults TODO this is also not needed
+
         if loss is None:
             loss = self.default_loss()
-
-        # init params #TODO: i think this is not needed
-        # if getattr(model, "params", None) is None:
-        #     model.init_mlp(seed=0)
 
         self._reset_history()
 
         params = model.params
         opt_state = optimizer.init(params)
-        train_step = self.create_train_step(model, optimizer, loss)
 
-        for n, step in enumerate(range(epochs)):
-            params, opt_state, loss_val = train_step(params, opt_state, x, y)
+        def loss_fn(p, x, y):
+            return loss(p, model, x, y)
+          
+        @jax.jit
+        def step(params, opt_state, x, y):
+            loss_val, grads = jax.value_and_grad(loss_fn)(params, x, y)
+            updates, opt_state = optimizer.update(grads, opt_state, params)
+            params = optax.apply_updates(params, updates)
+            return params, opt_state, loss_val
+
+        for epoch in range(epochs):
+            params, opt_state, loss_val = step(params, opt_state, x, y)
             self.history["train_loss"].append(float(loss_val))
-            if step % self.log_every == 0:
-                print(step, float(loss_val))            
+            if epoch % self.log_every == 0:
+                print(epoch, float(loss_val))
 
         model.params = params
         return model
@@ -127,4 +84,5 @@ class FnnTrainer:
 
     @staticmethod
     def default_loss():
-        return LossMSE()
+        return GaussianNLL()
+    
