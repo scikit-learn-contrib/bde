@@ -1,7 +1,8 @@
-"""Multiple warmup implementations for different samplers."""
+"""Multiple warmup implementations for different samplers. This is used from @MILE."""
 from functools import partial
 from pathlib import Path
 from typing import Callable
+from tqdm import tqdm
 
 import blackjax
 import blackjax.mcmc as mcmc
@@ -16,11 +17,16 @@ from blackjax.base import (
     ArrayLikeTree,
     PRNGKey,
 )
+
 from blackjax.diagnostics import effective_sample_size
 from blackjax.util import pytree_size, streaming_average_update
 from jax.flatten_util import ravel_pytree
+from jax.tree_util import tree_map
 
-from bde.sampler.callbacks import progress_bar_scan, save_position
+from bde.sampler.probabilistic import ProbabilisticModel
+from bde.sampler.prior import Prior, PriorDist
+from bde.bde_builder import BdeBuilder
+
 
 def mclmc_find_L_and_step_size(
     mclmc_kernel,
@@ -34,7 +40,7 @@ def mclmc_find_L_and_step_size(
     desired_energy_var_end: float = 5e-4,
     trust_in_estimate: float = 1.5,
     num_effective_samples: int = 150,
-    diagonal_preconditioning: bool = False,
+    tick=None
 ):
     """
     Find the optimal value of the parameters for the MCLMC algorithm.
@@ -71,14 +77,15 @@ def mclmc_find_L_and_step_size(
     A tuple containing the final state of the MCMC algorithm and the final
     hyperparameters.
     """
-    print("---Search for optimal Parameters---")
+
+
+    part1_key, part2_key = jax.random.split(rng_key, 2)
     dim = pytree_size(state.position)
     params = MCLMCAdaptationState(
         L=jnp.maximum(jnp.sqrt(dim), 15.0),
         step_size=step_size_init,
         sqrt_diag_cov=jnp.ones((dim,)),
     )
-    print("Initial L: ", params.L)
 
     part1_key, part2_key = jax.random.split(rng_key, 2)
     state, params = make_L_step_size_adaptation(
@@ -90,27 +97,27 @@ def mclmc_find_L_and_step_size(
         desired_energy_var_end=desired_energy_var_end,
         trust_in_estimate=trust_in_estimate,
         num_effective_samples=num_effective_samples,
-        diagonal_preconditioning=diagonal_preconditioning,
+        tick=tick,
     )(state, params, part1_key)
 
     if tune3_steps != 0:
         state, params = make_adaptation_L(
-            mclmc_kernel(params.sqrt_diag_cov), Lfactor=0.4
+            mclmc_kernel(params.sqrt_diag_cov), Lfactor=0.4, tick=tick,
         )(state, params, tune3_steps, part2_key)
 
     return state, params
 
 
 def make_L_step_size_adaptation(
-    kernel,
-    dim: int,
-    tune1_steps: int,
-    tune2_steps: int,
-    diagonal_preconditioning: bool,
-    desired_energy_var_start: float,
-    desired_energy_var_end: float,
-    trust_in_estimate: float,
-    num_effective_samples: int,
+        kernel,
+        dim: int,
+        tune1_steps: int,
+        tune2_steps: int,
+        desired_energy_var_start: float,
+        desired_energy_var_end: float,
+        trust_in_estimate: float,
+        num_effective_samples: int,
+    tick=None
 ):
     """
     Adapt the stepsize and L of the MCLMC kernel.
@@ -124,8 +131,8 @@ def make_L_step_size_adaptation(
         total_steps = tune1_steps + tune2_steps + 1
         progress = jax.numpy.minimum(step / total_steps, 1.0)
         return (
-            desired_energy_var_start
-            - (desired_energy_var_start - desired_energy_var_end) * progress
+                desired_energy_var_start
+                - (desired_energy_var_start - desired_energy_var_end) * progress
         )
 
     def get_desired_energy_var_exp(step: int) -> float:
@@ -137,16 +144,16 @@ def make_L_step_size_adaptation(
         ) + desired_energy_var_end * (1 - jax.numpy.exp(-step / tau))
 
     if desired_energy_var_start > 2.0:
-        get_desired_energy_var = get_desired_energy_var_exp #### always use linear
+        get_desired_energy_var = get_desired_energy_var_exp  #### always use linear
     else:
         get_desired_energy_var = get_desired_energy_var_linear
 
     def predictor(
-        previous_state,
-        params,
-        adaptive_state: MCLMCAdaptationState,
-        rng_key: jax.random.PRNGKey,
-        step_number: int,
+            previous_state,
+            params,
+            adaptive_state: MCLMCAdaptationState,
+            rng_key: jax.random.PRNGKey,
+            step_number: int,
     ):
         """
         Do one step with the dynamics and updates the prediction for the opt. stepsize.
@@ -170,31 +177,31 @@ def make_L_step_size_adaptation(
             step_size_max,
             info.energy_change,
         )
-        jax.debug.print("step {i} | ok={ok} | step_size={eps} | cap={cap} | dE={dE}",
-                i=step_number, ok=success, eps=params.step_size, cap=step_size_max, dE=energy_change)
+        # jax.debug.print("step {i} | ok={ok} | step_size={eps} | cap={cap} | dE={dE}",
+                #         i=step_number, ok=success, eps=params.step_size, cap=step_size_max, dE=energy_change)
 
         # Warning: var = 0 if there were nans, but we will give it a very small weight
         desired_energy_var = get_desired_energy_var(step_number)
         xi = (
-            jnp.square(energy_change) / (dim * desired_energy_var)
-        ) + 1e-8  # 1e-8 is added to avoid divergences in log xi
+                     jnp.square(energy_change) / (dim * desired_energy_var)
+             ) + 1e-8  # 1e-8 is added to avoid divergences in log xi
         weight = jnp.exp(
             -0.5 * jnp.square(jnp.log(xi) / (6.0 * trust_in_estimate))
         )  # the weight reduces the impact of stepsizes which are much larger
         # or much smaller than the desired one.
 
         x_average = decay_rate * x_average + weight * (
-            xi / jnp.power(params.step_size, 6.0)
+                xi / jnp.power(params.step_size, 6.0)
         )
         time = decay_rate * time + weight
         step_size = jnp.power(
             x_average / time, -1.0 / 6.0
         )  # We use the Var[E] = O(eps^6) relation here.
         step_size = (step_size < step_size_max) * step_size + (
-            step_size > step_size_max
+                step_size > step_size_max
         ) * step_size_max  # if the proposed stepsize is above the stepsize
         # where we have seen divergences
-        #step_size = jnp.maximum(step_size, 1e-7) # Additional stepsize cap?
+        # step_size = jnp.maximum(step_size, 1e-7) # Additional stepsize cap?
         params_new = params._replace(step_size=step_size)
 
         adaptive_state = (time, x_average, step_size_max)
@@ -214,6 +221,9 @@ def make_L_step_size_adaptation(
             step_number,
         )
 
+        if tick is not None:
+            jax.debug.callback(tick, jnp.array(1, dtype=jnp.int32))
+
         x = ravel_pytree(state.position)[0]
         # update the running average of x, x^2
         streaming_avg = streaming_average_update(
@@ -227,6 +237,7 @@ def make_L_step_size_adaptation(
 
     def run_steps(xs, state, params):
         step_number = jnp.arange(len(xs[0]))
+
         return jax.lax.scan(
             step,
             init=(
@@ -250,7 +261,6 @@ def make_L_step_size_adaptation(
 
         # we use the last num_steps2 to compute the diagonal preconditioner
         mask = 1 - jnp.concatenate((jnp.zeros(tune1_steps), jnp.ones(tune2_steps)))
-
         # run the steps
         state, params, _, (_, average) = run_steps(
             xs=(mask, L_step_size_adaptation_keys), state=state, params=params
@@ -264,24 +274,13 @@ def make_L_step_size_adaptation(
             variances = x_squared_average - jnp.square(x_average)
             # jax.debug.print('Average variances: {x}', x=jnp.mean(variances))
             L = jnp.sqrt(jnp.sum(variances))
-            if diagonal_preconditioning:
-                sqrt_diag_cov = jnp.sqrt(variances)
-                params = params._replace(sqrt_diag_cov=sqrt_diag_cov)
-                L = jnp.sqrt(dim)
-
-                # readjust the stepsize
-                steps = tune2_steps // 3  # we do some small number of steps
-                keys = jax.random.split(final_key, steps)
-                state, params, _, (_, average) = run_steps(
-                    xs=(jnp.ones(steps), keys), state=state, params=params
-                )
 
         return state, MCLMCAdaptationState(L, params.step_size, sqrt_diag_cov)
 
     return L_step_size_adaptation
 
 
-def make_adaptation_L(kernel, Lfactor):
+def make_adaptation_L(kernel, Lfactor, tick=None):
     """
     Determine L by the autocorrelations .
 
@@ -290,12 +289,12 @@ def make_adaptation_L(kernel, Lfactor):
     Lfactor = Lfactor
 
     def adaptation_L(
-        state,
-        params,
-        num_steps: int,
-        key: jax.random.PRNGKey,
-        fft_params_limit: int = 2000,
-        fft_samples_limit: int = 10000,
+            state,
+            params,
+            num_steps: int,
+            key: jax.random.PRNGKey,
+            fft_params_limit: int = 2000,
+            fft_samples_limit: int = 10000,
     ):
         adaptation_L_keys = jax.random.split(key, num_steps)
 
@@ -307,8 +306,11 @@ def make_adaptation_L(kernel, Lfactor):
                 step_size=params.step_size,
             )
 
-            return next_state, next_state.position
+            if tick is not None:
+                jax.debug.callback(tick, jnp.array(1, dtype=jnp.int32))
 
+            return next_state, next_state.position
+        
         state, samples = jax.lax.scan(
             f=step,
             init=state,
@@ -319,11 +321,11 @@ def make_adaptation_L(kernel, Lfactor):
         # Limit the number of samples and parameters to compute the FFT
         if flat_samples.shape[1] > fft_params_limit:
             flat_samples = flat_samples[
-                :,
-                jax.random.permutation(key, jnp.arange(flat_samples.shape[1]))[
-                    :fft_params_limit
-                ],
-            ]
+                           :,
+                           jax.random.permutation(key, jnp.arange(flat_samples.shape[1]))[
+                           :fft_params_limit
+                           ],
+                           ]
         if flat_samples.shape[0] > fft_samples_limit:
             # here not random but equally spaced (thinning)
             flat_samples = flat_samples[
@@ -360,14 +362,13 @@ def handle_nans(previous_state, next_state, step_size, step_size_max, kinetic_ch
 
 
 def custom_mclmc_warmup(
-    logdensity_fn: Callable,
-    diagonal_preconditioning: bool = True, #cut this method out 
-    desired_energy_var_start: float = 5e-4,
-    desired_energy_var_end: float = 1e-4,
-    trust_in_estimate: float = 1.5,
-    num_effective_samples: int = 100,
-    step_size_init: float = 0.005,
-    # TODO add saving_path: Path | None = None,
+        logdensity_fn: Callable,
+        desired_energy_var_start: float = 5e-4,
+        desired_energy_var_end: float = 1e-4,
+        trust_in_estimate: float = 1.5,
+        num_effective_samples: int = 100,
+        step_size_init: float = 0.005,
+        # TODO add saving_path: Path | None = None,
 ) -> AdaptationAlgorithm:
     """Warmup the initial state using MCLMC.
 
@@ -376,8 +377,6 @@ def custom_mclmc_warmup(
     logdensity_fn
         The log density probability density function from which we wish to
         sample.
-    diagonal_preconditioning
-        Whether we should use diagonal preconditioning.
     desired_energy_var_start
         The desired energy variance at the start of the linear decay schedule.
     desired_energy_var_end
@@ -393,7 +392,6 @@ def custom_mclmc_warmup(
     AdaptationResults
         The current state of the chain and the parameters for the sampler.
     """
-    diagonal_preconditioning = diagonal_preconditioning
 
     def kernel(sqrt_diag_cov):
         """Build the MCLMC kernel."""
@@ -407,17 +405,21 @@ def custom_mclmc_warmup(
         )
 
     def run(
-        rng_key: PRNGKey,
-        position: ArrayLikeTree,
-        num_steps: int = 100,
-    ):
+            rng_key: PRNGKey,
+            position: ArrayLikeTree,
+            num_steps: int = 100,
+            ) -> AdaptationResults:
         """Run the MCLMC warmup."""
-        print("---Initialize warmup---")
+        bar_warm = tqdm(total=num_steps, desc="MCLMC warmup", position=0, dynamic_ncols=True, leave=True)
+
+        def _tick(n):
+            bar_warm.update(int(n))
+
         initial_state = blackjax.mcmc.mclmc.init(
             position=position, logdensity_fn=logdensity_fn, rng_key=rng_key
         )
 
-        phase_ratio = (0.8, 0.1, 0.1) # might let the user change this 
+        phase_ratio = (0.8, 0.1, 0.1)  # might let the user change this
 
         # find values for L and step size
         (
@@ -427,7 +429,6 @@ def custom_mclmc_warmup(
             mclmc_kernel=kernel,
             state=initial_state,
             rng_key=rng_key,
-            diagonal_preconditioning=diagonal_preconditioning,
             step_size_init=step_size_init,
             tune1_steps=int(num_steps * phase_ratio[0]),
             tune2_steps=int(num_steps * phase_ratio[1]),
@@ -436,14 +437,46 @@ def custom_mclmc_warmup(
             desired_energy_var_end=desired_energy_var_end,
             trust_in_estimate=trust_in_estimate,
             num_effective_samples=num_effective_samples,
+            tick=_tick
         )
-        print("---Finalized Warmup---")
+        bar_warm.close()
         return AdaptationResults(
             blackjax_state_after_tuning,
             blackjax_mclmc_sampler_params,
         )
+
+    
     
     return AdaptationAlgorithm(run)
-    
 
 
+def warmup_bde(bde: BdeBuilder,
+               logpost_one: Callable,
+               step_size_init: float,
+               desired_energy_var_start: float = 0.5,
+               desired_energy_var_end: float = 0.1,
+               warmup_steps: int = 1000
+               ) -> AdaptationResults:
+    adapt = custom_mclmc_warmup(logdensity_fn=logpost_one,
+                                desired_energy_var_start=desired_energy_var_start,
+                                desired_energy_var_end=desired_energy_var_end,
+                                trust_in_estimate=1.5,
+                                num_effective_samples=100,
+                                step_size_init=step_size_init
+                                )
+
+    def run_one(key, position, warmup_steps):
+        ar = adapt.run(key, position, warmup_steps)
+        return ar.state, ar.parameters
+
+    rng = jax.random.PRNGKey(bde.seed)
+    keys_e = jax.random.split(rng, bde.n_members)
+
+    states_e, mclmc_params_e = jax.vmap(
+        lambda k, p: run_one(k, p, warmup_steps),
+        in_axes=(0, 0),
+        out_axes=(0, 0),
+    )(keys_e, bde.params_e)
+    return AdaptationResults(
+        states_e, mclmc_params_e
+    )

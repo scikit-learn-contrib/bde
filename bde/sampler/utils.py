@@ -1,4 +1,4 @@
-"""General utility functions for the module sandbox."""
+"""General utility functions for the module sandbox. This is used from @MILE."""
 import inspect
 import json
 import logging
@@ -14,31 +14,6 @@ import jax.numpy as jnp
 from bde.sampler.my_types import ParamTree
 
 logger = logging.getLogger(__name__)
-
-
-@contextmanager
-def measure_time(name: str):
-    """Masure execution time."""
-    start = time.perf_counter()
-    yield
-    end = time.perf_counter()
-    logger.info(f'{name} took {end - start:.2f} seconds.')
-
-
-def flatten_posterior_samples(posterior_samples: dict, prefix: str = ''):
-    """Flatten the posterior samples."""
-    flat_dict = {}
-    for k, v in posterior_samples.items():
-        if isinstance(v, dict):
-            flat_dict.update(flatten_posterior_samples(v, prefix=f'{prefix}{k}.'))
-        else:
-            flat_dict[f'{prefix}{k}'] = v
-    return flat_dict
-
-
-def pretty_string_dict(d: dict, indent: int = 3):
-    """Pretty print serializable dictionary."""
-    return json.dumps(d, indent=indent, cls=CustomJSONEncoder)
 
 
 def get_flattened_keys(d: dict, sep='.') -> list[str]:

@@ -1,32 +1,34 @@
 """this is a bde builder"""
+import jax
+import jax.numpy as jnp
+from jax.tree_util import tree_map, tree_structure
+
+import optax
 
 from .models.models import Fnn
 from .training.trainer import FnnTrainer
-import optax
-import jax.numpy as jnp
+
 from bde.sampler.my_types import ParamTree
+
 
 class BdeBuilder(Fnn, FnnTrainer):
     # TODO: build the BdeBuilderClass
-    def __init__(self, sizes, n_members, epochs, optimizer, base_seed: int = 100):
-        Fnn.__init__(self, sizes)
+    def __init__(self, sizes, n_members, seed: int = 100, act_fn="relu"):
+        Fnn.__init__(self, sizes, act_fn=act_fn)
         FnnTrainer.__init__(self)
         self.sizes = sizes
         self.n_members = n_members
-        self.epochs = epochs
-        self.base_seed = base_seed
+        self.seed = seed
+        self.params_e = None  # will be set after training
+        self.members = self.deep_ensemble_creator(seed=self.seed, act_fn=act_fn)
 
-        self.members = self.deep_ensemble_creator(base_seed=self.base_seed)
-        self.optimizer = optimizer or optax.adam(learning_rate=0.01)
-        self.all_fnns = {}
-        self.results = {}
-    
-    def get_model(self, seed: int) -> Fnn:
+    def get_model(self, seed: int, *, act_fn) -> Fnn:
         """Create a single Fnn model and initialize its parameters
 
         Parameters
         ----------
         seed : int
+        act_fn:
             #TODO: complete documentation
 
         Returns
@@ -34,9 +36,9 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         """
 
-        return Fnn(self.sizes, init_seed=seed)
+        return Fnn(self.sizes, init_seed=seed, act_fn=act_fn)
 
-    def deep_ensemble_creator(self, base_seed: int = 0) -> list[Fnn]:
+    def deep_ensemble_creator(self, seed: int = 0, *, act_fn) -> list[Fnn]:
         """Create an ensemble of ``n_members`` FNN models.
 
         Each member is initialized with a different random seed to encourage
@@ -49,94 +51,41 @@ class BdeBuilder(Fnn, FnnTrainer):
             List of initialized FNN models comprising the ensemble.
         """
 
-        return [self.get_model(base_seed + i) for i in range(self.n_members)]
+        return [self.get_model(seed + i, act_fn=act_fn) for i in range(self.n_members)]
 
-    def fit(self, x, y, epochs=None) -> "BdeBuilder":
-        """Train each member of the ensemble
+    def fit_members(self, x, y, epochs, optimizer=None, loss=None):
+        members = self.members
 
-        Parameters
-        ---------
-        #TODO: documentation
-        """
-        #TODO: this should get the dataloader and the datapreprocessor
-        #TODO: here comes the SAMPLING AS WELL
-        all_fnns: ParamTree = {} 
-        for i, member in enumerate(self.members): ## ask chatty for pmap instead of for loop, joblib
-            super().train(model=member, x=x, y=y, optimizer=self.optimizer, epochs=epochs,loss=None) 
-            all_fnns[f"fnn_{i}"] = member.params
-        
-        self.all_fnns = all_fnns 
-        return self
+        opt = optimizer or self.default_optimizer()
+        loss_obj = loss or self.default_loss()
 
-    def predict_ensemble(self, x, include_members: bool = False):
-        """
-        Ensemble prediction.
+        # Stack params across ensemble axis E
+        params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0),
+                            *[m.params for m in members])  # (E, ...)
 
-        Parameters
-        ----------
-        x : jnp.ndarray
-            Input data of shape (n_samples, n_features).
-        include_members : bool, optional
-            If True, also return the stacked member predictions with shape
-            (n_members, n_samples, output_dim).
+        # All members share the same architecture; use one model for forward()
+        proto_model = members[0]
 
-        Returns
-        -------
-        tuple
-            If return_members is False:
-                (mean_pred, var_pred)
-            Shapes:
-                mean_pred: (n_samples, output_dim)
-                var_pred: (n_samples, output_dim)
-            If return_members is True:
-                (mean_pred, var_pred, member_preds)
-            where member_preds has shape (n_members, n_samples, output_dim).
-        """
-        #TODO: sklearn predict functions ... ??
-        #TODO: we do not only need point predictions but interval prediction
-        #TODO: predict(type_of_pred : interval, point ...
-        #TODO: we can also use https://docs.jax.dev/en/latest/_autosummary/jax.random.normal.html
-        if not self.members:
-            raise ValueError("Ensemble has no members. Call `fit` or "
-                             "`deep_ensemble_creator` first.")
+        loss_fn = FnnTrainer.make_loss_fn(proto_model, loss_obj)
+        step_one = FnnTrainer.make_step(loss_fn, opt)
+        vstep = FnnTrainer.make_vstep(step_one)
 
-        # single-model forward from the trainer; avoids name collision with this method
-        member_means = jnp.stack(
-            [model.predict(x) for model in self.members],
-            axis=0
-        )  # (n_members, n_samples, output_dim)
+        opt_state_e = jax.vmap(opt.init)(params_e)
 
-        ensemble_mean = jnp.mean(member_means, axis=0)  # (N, D) that is the point prediction
-        ensemble_var = jnp.var(member_means, axis=0)  # (N, D) epistemic
+        self._reset_history()
+        for epoch in range(epochs):
+            params_e, opt_state_e, lvals_e = vstep(params_e, opt_state_e, x, y)
+            mean_loss = float(jnp.mean(lvals_e))
+            self.history["train_loss"].append(mean_loss)
+            if epoch % self.log_every == 0:
+                print(epoch, mean_loss)
 
-        out = {
-            "ensemble_mean": ensemble_mean,
-            "ensemble_var": ensemble_var,
-        }
-        if include_members:
-            out["member_means"] = member_means
-        self.results = out
-        return out
-    
-    @staticmethod
-    def predictive_accuracy(y, mu, sigma):
-    # Pulls
-        pulls = (y - mu) / sigma
-        pull_mean = jnp.mean(pulls)
-        pull_std = jnp.std(pulls)
-    
-    # Coverage
-        within_1sigma = jnp.mean(jnp.abs(y - mu) <= 1 * sigma)
-        within_2sigma = jnp.mean(jnp.abs(y - mu) <= 2 * sigma)
-        within_3sigma = jnp.mean(jnp.abs(y - mu) <= 3 * sigma)
-    
-        return {
-            "pull_mean": float(pull_mean),
-            "pull_std": float(pull_std),
-            "coverage_1σ": float(within_1sigma),
-            "coverage_2σ": float(within_2sigma),
-            "coverage_3σ": float(within_3sigma),
-        }
+        for i, m in enumerate(members):
+            m.params = tree_map(lambda a: a[i], params_e)
+
+        self.params_e = params_e
+
+        return members
 
     def keys(self):
         """
