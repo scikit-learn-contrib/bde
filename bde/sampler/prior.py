@@ -1,4 +1,4 @@
-"""Priors."""
+"""Priors. This is used from @MILE."""
 from typing import Callable, NamedTuple
 
 import jax

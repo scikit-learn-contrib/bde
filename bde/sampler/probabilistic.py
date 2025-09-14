@@ -1,4 +1,4 @@
-"""Convert frequentist Flax modules to Bayesian NNs."""
+"""Convert frequentist Flax modules to Bayesian NNs. This is used from @MILE."""
 import logging
 
 import flax.linen as nn

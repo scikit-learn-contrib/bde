@@ -1,4 +1,4 @@
-"""Adapted from (...) Type definitions for the mile module."""
+"""Adapted from (...) Type definitions for the mile module. This is used from @MILE."""
 import typing
 from pathlib import Path
 from typing import (
