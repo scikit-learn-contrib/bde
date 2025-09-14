@@ -39,9 +39,9 @@ class FnnTrainer:
     @staticmethod
     def make_loss_fn(model, loss_obj):
         # returns (params, x, y) -> scalar
-        def loss_fn(p, xb, yb):
-            return loss_obj(p, model, xb, yb)  # loss must call model.forward(p, xb)
-
+        def loss_fn(p, x, y):
+            preds = model.forward(p, x)
+            return loss_obj(preds, y) # loss must call model.forward(p, xb)
         return loss_fn
 
     @staticmethod
@@ -64,68 +64,70 @@ class FnnTrainer:
                             out_axes=(0, 0, 0))(p_e, os_e, xb, yb)
 
         return vstep
+    
+    #TODO: decide if we want to keep this generic trainer method'
 
-    def fit_model(self, model, x, y, optimizer=None, epochs=100, loss=None):
-        opt = optimizer or self.default_optimizer()
-        loss_obj = loss or self.default_loss()
+    # def fit_model(self, model, x, y, optimizer=None, epochs=100, loss=None):
+    #     opt = optimizer or self.default_optimizer()
+    #     loss_obj = loss or self.default_loss()
 
-        self._reset_history()
-        params = model.params
-        opt_state = opt.init(params)
+    #     self._reset_history()
+    #     params = model.params
+    #     opt_state = opt.init(params)
 
-        loss_fn = self.make_loss_fn(model, loss_obj)
-        step_one = self.make_step(loss_fn, opt)
+    #     loss_fn = self.make_loss_fn(model, loss_obj)
+    #     step_one = self.make_step(loss_fn, opt)
 
-        for epoch in range(epochs):
-            params, opt_state, lval = step_one(params, opt_state, x, y)
-            self.history["train_loss"].append(float(lval))
-            if epoch % self.log_every == 0:
-                print(epoch, float(lval))
+    #     for epoch in range(epochs):
+    #         params, opt_state, lval = step_one(params, opt_state, x, y)
+    #         self.history["train_loss"].append(float(lval))
+    #         if epoch % self.log_every == 0:
+    #             print(epoch, float(lval))
 
-        model.params = params
-        return model
+    #     model.params = params
+    #     return model
 
-    def train(
-            self,
-            model,
-            x,
-            y,
-            optimizer: Optional[optax.GradientTransformation] = None,
-            epochs: int = 100,
-            loss=None,
-    ):
-        """
-        Generic training loop.
-        - model.forward(params, x) must exist
-        - loss must implement Loss API (apply_reduced)
-        """
+    # def train(
+    #         self,
+    #         model,
+    #         x,
+    #         y,
+    #         optimizer: Optional[optax.GradientTransformation] = None,
+    #         epochs: int = 100,
+    #         loss=None,
+    # ):
+    #     """
+    #     Generic training loop.
+    #     - model.forward(params, x) must exist
+    #     - loss must implement Loss API (apply_reduced)
+    #     """
 
-        if loss is None:
-            loss = self.default_loss()
+    #     if loss is None:
+    #         loss = self.default_loss()
 
-        self._reset_history()
+    #     self._reset_history()
 
-        params = model.params
-        opt_state = optimizer.init(params)
+    #     params = model.params
+    #     opt_state = optimizer.init(params)
 
-        def loss_fn(p, x, y):
-            return loss(p, model, x, y)
+    #     def loss_fn(p, x, y):
+    #         return loss(p, model, x, y)
 
-        @jax.jit
-        def step(params, opt_state, x, y):
-            loss_val, grads = jax.value_and_grad(loss_fn)(params, x, y)
-            updates, opt_state = optimizer.update(grads, opt_state, params)
-            params = optax.apply_updates(params, updates)
-            return params, opt_state, loss_val
+    #     @jax.jit
+    #     def step(params, opt_state, x, y):
+    #         loss_val, grads = jax.value_and_grad(loss_fn)(params, x, y)
+    #         updates, opt_state = optimizer.update(grads, opt_state, params)
+    #         params = optax.apply_updates(params, updates)
+    #         return params, opt_state, loss_val
 
-        for epoch in range(epochs):
-            params, opt_state, loss_val = step(params, opt_state, x, y)
-            self.history["train_loss"].append(float(loss_val))
-            if epoch % self.log_every == 0:
-                print(epoch, float(loss_val))
+    #     for epoch in range(epochs):
+    #         params, opt_state, loss_val = step(params, opt_state, x, y)
+    #         self.history["train_loss"].append(float(loss_val))
+    #         if epoch % self.log_every == 0:
+    #             print(epoch, float(loss_val))
 
-        model.params = params
-        return model
+    #     model.params = params
+    #     return model
 
     @staticmethod
     def default_optimizer():

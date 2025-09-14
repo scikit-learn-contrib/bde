@@ -1,4 +1,4 @@
-"""Multiple warmup implementations for different samplers."""
+"""Multiple warmup implementations for different samplers. This is used from @MILE."""
 from functools import partial
 from pathlib import Path
 from typing import Callable
@@ -17,6 +17,7 @@ from blackjax.base import (
     ArrayLikeTree,
     PRNGKey,
 )
+
 from blackjax.diagnostics import effective_sample_size
 from blackjax.util import pytree_size, streaming_average_update
 from jax.flatten_util import ravel_pytree
@@ -407,10 +408,7 @@ def custom_mclmc_warmup(
             rng_key: PRNGKey,
             position: ArrayLikeTree,
             num_steps: int = 100,
-        rng_key: PRNGKey,
-        position: ArrayLikeTree,
-        num_steps: int = 1000,
-    ):
+            ) -> AdaptationResults:
         """Run the MCLMC warmup."""
         bar_warm = tqdm(total=num_steps, desc="MCLMC warmup", position=0, dynamic_ncols=True, leave=True)
 

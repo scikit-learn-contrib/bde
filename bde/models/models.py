@@ -62,21 +62,6 @@ class Fnn:
             x = jax.nn.relu(x)
         W, b = params[-1]
         return jnp.dot(x, W) + b
-
-    def predict(self, x):
-        """
-        #TODO: documentation
-        Parameters
-        ----------
-        x
-
-        Returns
-        -------
-
-        """
-        if self.params is None:
-            raise ValueError("Model parameters not initialized!")
-        return self.forward(self.params, x)
     
     def apply(self, variables, x, **kwargs): 
         """Mimic Flax API: variables['params'] contains weights.""" 

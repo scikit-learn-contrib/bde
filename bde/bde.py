@@ -24,6 +24,7 @@ class BDE:
         self.seed = seed
         self.bde = BdeBuilder(sizes, n_members, seed)
         self.members = self.bde.members
+        self.positions_eT = None  # will be set after training + sampling
 
     def train(self,
               X,

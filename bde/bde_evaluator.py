@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
-class BDEPredictor:
+class BDEPredictor: #TODO: [@question] Maybe merge with BDE Builder class
     def __init__(self, model, positions_eT, Xte):
 
         self.model = model
@@ -42,3 +42,23 @@ class BDEPredictor:
         var_epi_e = jnp.var(mu, axis=1)                      # (E, N)
         std_total_e = jnp.sqrt(var_ale_e + var_epi_e)        # (E, N)
         return mu_mean_e, std_total_e
+    
+    @staticmethod
+    def predictive_accuracy(y, mu, sigma):
+        # Pulls
+        pulls = (y - mu) / sigma
+        pull_mean = jnp.mean(pulls)
+        pull_std = jnp.std(pulls)
+
+        # Coverage
+        within_1sigma = jnp.mean(jnp.abs(y - mu) <= 1 * sigma)
+        within_2sigma = jnp.mean(jnp.abs(y - mu) <= 2 * sigma)
+        within_3sigma = jnp.mean(jnp.abs(y - mu) <= 3 * sigma)
+
+        return {
+            "pull_mean": float(pull_mean),
+            "pull_std": float(pull_std),
+            "coverage_1σ": float(within_1sigma),
+            "coverage_2σ": float(within_2sigma),
+            "coverage_3σ": float(within_3sigma),
+        }

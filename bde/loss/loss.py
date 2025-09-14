@@ -12,11 +12,9 @@ class GaussianNLL():
         self.min_sigma = min_sigma
         self.map_fn = map_fn
 
-    def __call__(self, params, model, x, y):  # TODO:[@suggestion] maybe change to (preds, y_true)
-        preds = model.forward(params,
-                              x)  # TODO: [@suggestion] we should not call again the model.forward, we should just pass the predictions
+    def __call__(self, preds, y_true):
         mu = preds[..., 0:1]
         sigma = self.map_fn(preds[..., 1:2]) + self.min_sigma
-        resid = (y - mu) / sigma
+        resid = (y_true - mu) / sigma
         nll = 0.5 * (jnp.log(2 * jnp.pi) + 2 * jnp.log(sigma) + resid ** 2)
         return jnp.mean(nll)

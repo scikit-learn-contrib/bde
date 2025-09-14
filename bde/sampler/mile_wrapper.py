@@ -13,7 +13,7 @@ class MileWrapper:
             integrator=blackjax.mcmc.integrators.isokinetic_mclachlan,
             sqrt_diag_cov=sqrt_diag_cov,
         )
-
+        
     def init(self, position, rng_key):
         return blackjax.mcmc.mclmc.init(position=position,
                                         logdensity_fn=self.logdensity_fn,

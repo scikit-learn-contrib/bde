@@ -43,57 +43,23 @@ def save_position(position: ParamTree, base: Path, idx: jnp.ndarray, n: int):
     )
     return position
 
-
-from functools import partial
-from tqdm.auto import tqdm
-import jax
-import jax.numpy as jnp
-
 def progress_bar_scan(n_steps: int, name: str, position: int, leave: bool = True) -> Callable:
-    """Progress bar designed for lax.scan.
-
-    Parameters:
-    -----------
-    n_steps: int
-        Number of steps in the scan to show progress for.
-    name: str
-        Name of the progress bar to display.
-
-    Notes:
-    -----
-    - This function is used to create a progress bar for a scan operation.
-    - It is used in sampling to track the progress how many samples have been
-        generated and how many are left.
-    """
-    progress_bar = tqdm(total=n_steps, desc=name)
-
-    def _update_progress_bar(iter_num: int):
-        # Update the progress bar
-        _ = jax.lax.cond(
-            iter_num >= 0,
-            lambda _: jax.debug.callback(partial(progress_bar.update, 1)),
-            lambda _: None,
-            operand=None,
-        )
-
-        _ = jax.lax.cond(
-            iter_num == n_steps - 1,
-            lambda _: jax.debug.callback(partial(progress_bar.close)),
-            lambda _: None,
-            operand=None,
-        )
+    pbar = tqdm(total=int(n_steps), desc=name, position=position, leave=leave)
 
     def _progress_bar_scan(f: Callable):
         def inner(carry, xs):
-            if isinstance(xs, tuple):
-                n, *_ = xs
-            else:
-                n = xs
-            result = f(carry, xs)
-            _update_progress_bar(n)
-            return result
-
+            i = xs[0] if isinstance(xs, tuple) else xs
+            carry2, ys = f(carry, xs)
+            jax.debug.callback(lambda _i: pbar.update(1), i, ordered=True)
+            return carry2, ys
         return inner
 
+    def finish(x):
+        jax.block_until_ready(x)
+        pbar.close()
+        return x
+
+    _progress_bar_scan.finish = finish
     return _progress_bar_scan
+
 

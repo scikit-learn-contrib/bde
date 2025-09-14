@@ -19,6 +19,7 @@ class BdeBuilder(Fnn, FnnTrainer):
         self.sizes = sizes
         self.n_members = n_members
         self.seed = seed
+        self.params_e = None  # will be set after training
 
         self.members = self.deep_ensemble_creator(seed=self.seed)
 
@@ -82,79 +83,9 @@ class BdeBuilder(Fnn, FnnTrainer):
         for i, m in enumerate(members):
             m.params = tree_map(lambda a: a[i], params_e)
 
-        self.params_e = params_e  # TODO: [@suggestion] add this in the __init__ we never create this attribute apart from here
+        self.params_e = params_e
 
         return members
-
-    def predict_ensemble(self, x, include_members: bool = False):
-        """
-        Ensemble prediction.
-
-        Parameters
-        ----------
-        x : jnp.ndarray
-            Input data of shape (n_samples, n_features).
-        include_members : bool, optional
-            If True, also return the stacked member predictions with shape
-            (n_members, n_samples, output_dim).
-
-        Returns
-        -------
-        tuple
-            If return_members is False:
-                (mean_pred, var_pred)
-            Shapes:
-                mean_pred: (n_samples, output_dim)
-                var_pred: (n_samples, output_dim)
-            If return_members is True:
-                (mean_pred, var_pred, member_preds)
-            where member_preds has shape (n_members, n_samples, output_dim).
-        """
-        # TODO: sklearn predict functions ... ??
-        # TODO: we do not only need point predictions but interval prediction
-        # TODO: predict(type_of_pred : interval, point ...
-        # TODO: we can also use https://docs.jax.dev/en/latest/_autosummary/jax.random.normal.html
-        if not self.members:
-            raise ValueError("Ensemble has no members. Call `fit` or "
-                             "`deep_ensemble_creator` first.")
-
-        # single-model forward from the trainer; avoids name collision with this method
-        member_means = jnp.stack(
-            [model.predict(x) for model in self.members],
-            axis=0
-        )  # (n_members, n_samples, output_dim)
-
-        ensemble_mean = jnp.mean(member_means, axis=0)  # (N, D) that is the point prediction
-        ensemble_var = jnp.var(member_means, axis=0)  # (N, D) epistemic
-
-        out = {
-            "ensemble_mean": ensemble_mean,
-            "ensemble_var": ensemble_var,
-        }
-        if include_members:
-            out["member_means"] = member_means
-        self.results = out
-        return out
-
-    @staticmethod
-    def predictive_accuracy(y, mu, sigma):
-        # Pulls
-        pulls = (y - mu) / sigma
-        pull_mean = jnp.mean(pulls)
-        pull_std = jnp.std(pulls)
-
-        # Coverage
-        within_1sigma = jnp.mean(jnp.abs(y - mu) <= 1 * sigma)
-        within_2sigma = jnp.mean(jnp.abs(y - mu) <= 2 * sigma)
-        within_3sigma = jnp.mean(jnp.abs(y - mu) <= 3 * sigma)
-
-        return {
-            "pull_mean": float(pull_mean),
-            "pull_std": float(pull_std),
-            "coverage_1σ": float(within_1sigma),
-            "coverage_2σ": float(within_2sigma),
-            "coverage_3σ": float(within_3sigma),
-        }
 
     def keys(self):
         """
