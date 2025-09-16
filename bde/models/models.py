@@ -60,8 +60,8 @@ class Fnn:
         """
         for (W, b) in params[:-1]:
             x = jnp.dot(x, W) + b
-            # x = jax.nn.relu(x)
-            x = self.act_fn(x)
+            x = jax.nn.relu(x)
+            #x = self.act_fn(x)
         W, b = params[-1]
         return jnp.dot(x, W) + b
 

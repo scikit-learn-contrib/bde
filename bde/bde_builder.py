@@ -1,5 +1,5 @@
 """this is a bde builder"""
-import jax
+import jax, jaxlib
 import jax.numpy as jnp
 from jax.tree_util import tree_map, tree_structure
 
@@ -53,39 +53,66 @@ class BdeBuilder(Fnn, FnnTrainer):
 
         return [self.get_model(seed + i, act_fn=act_fn) for i in range(self.n_members)]
 
+
     def fit_members(self, x, y, epochs, optimizer=None, loss=None):
         members = self.members
+        E = len(members)
+        print("backend:", jax.default_backend())
+        print("devices:", jax.devices())
+        print("local_device_count:", jax.local_device_count())
+        D = jax.local_device_count()
+        print("Kernel devices:", D)
+        if E % D != 0:
+            raise ValueError(f"E={E} must be divisible by #devices D={D} (pad or change ensemble size).")
+        E_per = E // D
 
         opt = optimizer or self.default_optimizer()
         loss_obj = loss or self.default_loss()
 
-        # Stack params across ensemble axis E
-        params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0),
-                            *[m.params for m in members])  # (E, ...)
-
-        # All members share the same architecture; use one model for forward()
+    # Stack params across ensemble axis E
+        params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0), *[m.params for m in members])  # (E, ...)
         proto_model = members[0]
+        loss_fn = FnnTrainer.make_loss_fn(proto_model, loss_obj)   # (params, x, y) -> scalar
+        step_one = FnnTrainer.make_step(loss_fn, opt)              # (params, opt_state, x, y) -> (params, opt_state, loss)
 
-        loss_fn = FnnTrainer.make_loss_fn(proto_model, loss_obj)
-        step_one = FnnTrainer.make_step(loss_fn, opt)
-        vstep = FnnTrainer.make_vstep(step_one)
+    # Reshape to (D, E_per, ...)
+        def to_devices(a):
+            return a.reshape((E_per, *a.shape[1:])) \
+                    .reshape((D, E_per, *a.shape[1:]))  # two-step for clarity
+        params_de = tree_map(lambda a: a.reshape(D, E_per, *a.shape[1:]), params_e)
 
-        opt_state_e = jax.vmap(opt.init)(params_e)
+    # Per-device init of optimizer states (vectorized over local chunk)
+        def init_chunk(params_chunk):
+            return jax.vmap(opt.init)(params_chunk)  # (E_per, ...)
+        opt_state_de = jax.pmap(init_chunk, in_axes=0, out_axes=0)(params_de)
+
+    # One device does a local vmap over its chunk
+        def step_chunk(params_chunk, opt_state_chunk, x_b, y_b):
+            def step_member(p, s):
+                return step_one(p, s, x_b, y_b)  # pure, no host I/O
+            new_params, new_states, losses = jax.vmap(step_member)(params_chunk, opt_state_chunk)
+            return new_params, new_states, losses
+
+    # pmapped step across devices; broadcast data to all devices (in_axes=None)
+        pstep = jax.pmap(step_chunk, in_axes=(0, 0, None, None), out_axes=(0, 0, 0))
 
         self._reset_history()
         for epoch in range(epochs):
-            params_e, opt_state_e, lvals_e = vstep(params_e, opt_state_e, x, y)
-            mean_loss = float(jnp.mean(lvals_e))
+            params_de, opt_state_de, lvals_de = pstep(params_de, opt_state_de, x, y)
+        # lvals_de shape: (D, E_per). Log mean loss (host side)
+            mean_loss = float(jnp.mean(jax.device_get(lvals_de)))
             self.history["train_loss"].append(mean_loss)
             if epoch % self.log_every == 0:
                 print(epoch, mean_loss)
 
+    # Stitch back to (E, ...) then write into members
+        params_e_final = tree_map(lambda a: a.reshape(E, *a.shape[2:]), params_de)
         for i, m in enumerate(members):
-            m.params = tree_map(lambda a: a[i], params_e)
+            m.params = tree_map(lambda a: a[i], params_e_final)
 
-        self.params_e = params_e
-
+        self.params_e = params_e_final
         return members
+
 
     def keys(self):
         """
