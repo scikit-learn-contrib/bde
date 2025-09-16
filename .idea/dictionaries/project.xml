@@ -4,6 +4,7 @@
       <w>jitable</w>
       <w>pred</w>
       <w>preds</w>
+      <w>rmse</w>
       <w>savepath</w>
     </words>
   </dictionary>

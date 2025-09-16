@@ -19,6 +19,17 @@ class BaseLoss(ABC):
         ...
 
 
+class Rmse(BaseLoss):
+    @property
+    def name(self) -> str:
+        return "rmse"
+
+    def __call__(self, preds, y_true):
+        mu = preds[..., 0:1]
+        rmse = (mu - y_true) ** 2
+        return jnp.mean(rmse)
+
+
 class GaussianNLL(BaseLoss):
     def __init__(self, min_sigma=1e-6,
                  map_fn=jax.nn.softplus):  # TODO: [@question] why do we use softplus for the sigma??

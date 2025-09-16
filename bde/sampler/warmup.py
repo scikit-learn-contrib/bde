@@ -472,32 +472,32 @@ def warmup_bde(
         ar = adapt.run(key, position, warmup_steps)
         return ar.state, ar.parameters  # return plain pytrees (pmap-friendly)
 
-    E = bde.n_members
-    D = jax.local_device_count()
+    n_members = bde.n_members
+    n_devices = jax.local_device_count()
 
-    # Stack member params if needed (expect (E, ...) leaves)
+    # Stack member params if needed (expect (n_members, ...) leaves)
     params_e = getattr(bde, "params_e", None)
     if params_e is None:
         params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0),
                             *[m.params for m in bde.members])
 
-    # Pad to multiple of D (so we can reshape to (D, E_per, ...))
-    pad = (D - (E % D)) % D
+    # Pad to multiple of n_devices (so we can reshape to (n_devices, n_members_per, ...))
+    pad = (n_devices - (n_members % n_devices)) % n_devices
     if pad:
         params_e = tree_map(
             lambda a: jnp.concatenate([a, jnp.repeat(a[:1], pad, axis=0)], axis=0),
             params_e,
         )
-    E_pad = E + pad
-    E_per = E_pad // max(D, 1)
+    n_members_pad = n_members + pad
+    n_members_per = n_members_pad // max(n_devices, 1)
 
-    # RNG keys: (E_pad, 2) -> (D, E_per, 2)
+    # RNG keys: (n_members_pad, 2) -> (n_devices, n_members_per, 2)
     rng = jax.random.PRNGKey(bde.seed)
-    keys_e = jax.random.split(rng, E_pad)
-    keys_de = keys_e.reshape(D, E_per, 2) if D > 0 else keys_e.reshape(1, E_pad, 2)
+    keys_e = jax.random.split(rng, n_members_pad)
+    keys_de = keys_e.reshape(n_devices, n_members_per, 2) if n_devices > 0 else keys_e.reshape(1, n_members_pad, 2)
 
-    # Shard params to (D, E_per, ...)
-    params_de = tree_map(lambda a: a.reshape(D, E_per, *a.shape[1:]), params_e)
+    # Shard params to (D, n_members_per, ...)
+    params_de = tree_map(lambda a: a.reshape(n_devices, n_members_per, *a.shape[1:]), params_e)
 
     # Per-device function: vmap over local chunk
     def run_chunk(keys_chunk, positions_chunk):
@@ -508,15 +508,15 @@ def warmup_bde(
         run_chunk, in_axes=(0, 0), out_axes=(0, 0)
     )(keys_de, params_de)
 
-    # Back to (E_pad, ...)
+    # Back to (n_members_pad, ...)
     states_e, mclmc_params_e = tree_map(
-        lambda a: a.reshape(E_pad, *a.shape[2:]),
+        lambda a: a.reshape(n_members_pad, *a.shape[2:]),
         (states_de, mclmc_params_de),
     )
 
     # Drop padding
     if pad:
-        states_e = tree_map(lambda a: a[:E], states_e)
-        mclmc_params_e = tree_map(lambda a: a[:E], mclmc_params_e)
+        states_e = tree_map(lambda a: a[:n_members], states_e)
+        mclmc_params_e = tree_map(lambda a: a[:n_members], mclmc_params_e)
 
     return AdaptationResults(states_e, mclmc_params_e)

@@ -1,5 +1,6 @@
 from bde.bde_builder import BdeBuilder
 from bde.bde_evaluator import BDEPredictor
+from bde.loss.loss import BaseLoss
 from bde.sampler.probabilistic import ProbabilisticModel
 from bde.sampler.prior import PriorDist
 from bde.sampler.warmup import warmup_bde
@@ -8,7 +9,7 @@ from bde.sampler.mile_wrapper import MileWrapper
 import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map, tree_leaves
-
+from bde.task import TaskType
 from functools import partial
 import optax
 
@@ -18,11 +19,16 @@ class BDE:
                  n_members,
                  sizes,
                  seed,
+                 task : TaskType,
+                 loss : BaseLoss,
                  activation: str = "relu"
                  ):
         self.sizes = sizes
         self.n_members = n_members
         self.seed = seed
+        self.task = task
+        self.task.validate_loss(loss)
+
         self.bde = BdeBuilder(sizes, n_members, seed, act_fn=activation)
         self.members = self.bde.members
         self.positions_eT = None  # will be set after training + sampling
