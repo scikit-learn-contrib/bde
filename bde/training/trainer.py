@@ -3,7 +3,6 @@ import jax.numpy as jnp
 import jax.scipy.stats as stats
 
 import optax
-from bde.models.models import BaseModel
 from bde.data.dataloader import TaskType
 from bde.loss.loss import *
 
@@ -39,7 +38,7 @@ class FnnTrainer:
         self.history = {"train_loss": []}
 
     @staticmethod
-    def make_loss_fn(model: BaseModel, loss_obj : BaseLoss):
+    def make_loss_fn(model, loss_obj : BaseLoss):
         # returns (params, x, y) -> scalar
         def loss_fn(p, x, y):
             preds = model.forward(p, x)

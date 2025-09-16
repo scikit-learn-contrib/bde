@@ -53,7 +53,7 @@ class BDE:
 
         prior = PriorDist.STANDARDNORMAL.get_prior()
         proto = self.bde.members[0]
-        pm = ProbabilisticModel(module=proto, params=proto.params, prior=prior)
+        pm = ProbabilisticModel(module=proto, params=proto.params, prior=prior, task=self.task)
 
         logpost_one = partial(pm.log_unnormalized_posterior, x=X, y=y)
 
@@ -86,5 +86,5 @@ class BDE:
         self.positions_eT = positions_eT  # TODO: [@suggestion] maybe we should create this attribute in the __init__
 
     def evaluate(self, Xte):
-        predictor = BDEPredictor(self.bde, self.positions_eT, Xte=Xte)
+        predictor = BDEPredictor(self.bde, self.positions_eT, Xte=Xte, task=self.task)
         return predictor.get_preds()

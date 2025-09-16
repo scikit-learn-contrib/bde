@@ -10,14 +10,16 @@ from jax.flatten_util import ravel_pytree
 from bde.sampler.my_types import ParamTree
 from bde.sampler.my_types import BaseStrEnum
 
+
 class PriorDist(BaseStrEnum):
-    NORMAL = "Normal" # allow changing the normal for the user
-    STANDARDNORMAL = "StandardNormal" # maybe remove
+    NORMAL = "Normal"  # allow changing the normal for the user
+    STANDARDNORMAL = "StandardNormal"  # maybe remove
     LAPLACE = "Laplace"
 
     def get_prior(self, **parameters):
         """Return a prior class."""
         return Prior.from_name(self, **parameters)
+
 
 class Prior(NamedTuple):
     """Base Class for Priors."""
