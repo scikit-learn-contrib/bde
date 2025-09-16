@@ -9,6 +9,7 @@ from .models.models import Fnn
 from .training.trainer import FnnTrainer
 
 from bde.sampler.my_types import ParamTree
+from bde.sampler.utils import _infer_dim_from_position_example, _pad_axis0, _reshape_to_devices
 
 
 class BdeBuilder(Fnn, FnnTrainer):
@@ -62,9 +63,6 @@ class BdeBuilder(Fnn, FnnTrainer):
         print("local_device_count:", jax.local_device_count())
         D = jax.local_device_count()
         print("Kernel devices:", D)
-        if E % D != 0:
-            raise ValueError(f"E={E} must be divisible by #devices D={D} (pad or change ensemble size).")
-        E_per = E // D
 
         opt = optimizer or self.default_optimizer()
         loss_obj = loss or self.default_loss()
@@ -75,15 +73,16 @@ class BdeBuilder(Fnn, FnnTrainer):
         loss_fn = FnnTrainer.make_loss_fn(proto_model, loss_obj)   # (params, x, y) -> scalar
         step_one = FnnTrainer.make_step(loss_fn, opt)              # (params, opt_state, x, y) -> (params, opt_state, loss)
 
-    # Reshape to (D, E_per, ...)
-        def to_devices(a):
-            return a.reshape((E_per, *a.shape[1:])) \
-                    .reshape((D, E_per, *a.shape[1:]))  # two-step for clarity
+        pad = (D - (E% max(D, 1))) % max(D, 1)
+        E_pad = E + pad
+        E_per = E_pad // max(D, 1)
+        params_e = tree_map(lambda a: _pad_axis0(a, pad), params_e)
         params_de = tree_map(lambda a: a.reshape(D, E_per, *a.shape[1:]), params_e)
 
     # Per-device init of optimizer states (vectorized over local chunk)
         def init_chunk(params_chunk):
-            return jax.vmap(opt.init)(params_chunk)  # (E_per, ...)
+            return jax.vmap(opt.init)(params_chunk) 
+        
         opt_state_de = jax.pmap(init_chunk, in_axes=0, out_axes=0)(params_de)
 
     # One device does a local vmap over its chunk
@@ -106,13 +105,12 @@ class BdeBuilder(Fnn, FnnTrainer):
                 print(epoch, mean_loss)
 
     # Stitch back to (E, ...) then write into members
-        params_e_final = tree_map(lambda a: a.reshape(E, *a.shape[2:]), params_de)
+        params_e_final = tree_map(lambda a: a.reshape(E_pad, *a.shape[2:])[:E], params_de)
         for i, m in enumerate(members):
             m.params = tree_map(lambda a: a[i], params_e_final)
 
         self.params_e = params_e_final
         return members
-
 
     def keys(self):
         """

@@ -10,6 +10,8 @@ from json.encoder import JSONEncoder
 
 import jax
 import jax.numpy as jnp
+from jax.tree_util import tree_map
+from jax.flatten_util import ravel_pytree
 
 from bde.sampler.my_types import ParamTree
 
@@ -92,3 +94,15 @@ def count_nan(params: ParamTree) -> ParamTree:
 def impute_nan(params: ParamTree, value: float = 0.0) -> ParamTree:
     """Impute NaNs in the parameter tree with a value."""
     return jax.tree.map(lambda x: jnp.where(jnp.isnan(x), value, x), params)
+
+def _infer_dim_from_position_example(pos_e):
+    ex = tree_map(lambda a: a[0], pos_e)       
+    flat, _ = ravel_pytree(ex)
+    return flat.shape[0]
+
+def _pad_axis0(a, pad):
+    if pad == 0: return a
+    return jnp.concatenate([a, jnp.repeat(a[:1], pad, axis=0)], axis=0)
+
+def _reshape_to_devices(a, D, E_per):
+    return a.reshape(D, E_per, *a.shape[1:])

@@ -4,18 +4,7 @@ import blackjax
 from jax.tree_util import tree_map
 from jax.flatten_util import ravel_pytree
 from bde.sampler.callbacks import progress_bar_scan
-
-def _infer_dim_from_position_example(pos_e):
-    ex = tree_map(lambda a: a[0], pos_e)           # take member 0
-    flat, _ = ravel_pytree(ex)
-    return flat.shape[0]
-
-def _pad_axis0(a, pad):
-    if pad == 0: return a
-    return jnp.concatenate([a, jnp.repeat(a[:1], pad, axis=0)], axis=0)
-
-def _reshape_to_devices(a, D, E_per):
-    return a.reshape(D, E_per, *a.shape[1:])
+from bde.sampler.utils import _infer_dim_from_position_example, _pad_axis0, _reshape_to_devices
 
 class MileWrapper:
     def __init__(self, logdensity_fn):
@@ -73,6 +62,7 @@ class MileWrapper:
 
         # --- pad to multiple of devices
         pad = (D - (E % max(D, 1))) % max(D, 1)
+
         E_pad = E + pad
         E_per = E_pad // max(D, 1)
 
