@@ -19,14 +19,20 @@ class BDE:
                  n_members,
                  sizes,
                  seed,
-                 task : TaskType,
+                 *,
+                 task : TaskType =None,
                  loss : BaseLoss,
                  activation: str = "relu"
                  ):
         self.sizes = sizes
         self.n_members = n_members
         self.seed = seed
+
+        #TODO: this of a better way to write this
         self.task = task
+        if task is None:
+            self.task = TaskType.infer_task
+
         self.task.validate_loss(loss)
 
         self.bde = BdeBuilder(sizes, n_members, seed, act_fn=activation)
