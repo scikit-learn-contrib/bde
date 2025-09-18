@@ -107,7 +107,7 @@ class _BdeCore:
                 out["mean"] = mu_mean
                 out["std"] = std_total
             if credible_intervals:
-                qs = jnp.quantile(mu, q=credible_intervals, axis=(0, 1))
+                qs = jnp.quantile(mu, q=jnp.array(credible_intervals), axis=(0, 1))
                 out["credible_intervals"] = qs
             if raw:
                 out["raw"] = raw_preds

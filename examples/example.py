@@ -61,9 +61,24 @@ def regression_example():
         y_true=yte,
         y_pred_err=sigmas,
         title="trial",
-        savepath="to_be_deleted"
+        savepath="plots_regression"
     )
 
+    mean, intervals = regressor.predict(Xte, credible_intervals=[0.9, 0.95])
+
+    print("Credible intervals shape:", intervals.shape)  # (len(q), N)
+
+    # for plotting, pick the 95% interval
+    lower = intervals[0]  # q=0.9 or 0.95 depending on order
+    upper = intervals[1]  # if you asked for 2 quantiles
+
+    plot_pred_vs_true(
+        y_pred=means,
+        y_true=yte,
+        y_pred_err=(upper - lower) / 2,  # approx half-width as "sigma"
+        title="trial_with_intervals",
+        savepath="plots_regression",
+    )
 
 def classification_example():
     iris = load_iris()
@@ -131,5 +146,5 @@ def classification_example():
 
 
 if __name__ == "__main__":
-    # regression_example()
-    classification_example()
+    regression_example()
+    # classification_example()
