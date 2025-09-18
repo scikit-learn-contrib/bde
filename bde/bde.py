@@ -12,8 +12,10 @@ from jax.tree_util import tree_map, tree_leaves
 from bde.task import TaskType
 from functools import partial
 import optax
+from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 
-#TODO: [@task] Integration tests for BDERegressor and BDEClassifier
+
+# TODO: [@task] Integration tests for BDERegressor and BDEClassifier
 class BDE:
     def __init__(self,
                  n_members,
@@ -30,9 +32,6 @@ class BDE:
 
         # TODO: this of a better way to write this
         self.task = task
-        if task is None:
-            self.task = TaskType.infer_task
-
         self.loss = loss
         self.task.validate_loss(self.loss)
 
@@ -89,54 +88,100 @@ class BDE:
         predictor = BDEPredictor(self.bde, self.positions_eT, Xte=Xte, task=self.task)
         return predictor.get_preds()
 
-class BDERegressor(BDE):
+
+
+class BdeRegressor(BaseEstimator, RegressorMixin):
     def __init__(self,
-                 n_members,
-                 sizes,
-                 seed,
-                 *,
-                 task: TaskType = None,
-                 loss: BaseLoss,
-                 activation: str = "relu"
-                 ):
-        self.sizes = sizes
+                 n_members: int = 5,
+                 sizes: list[int] = None,
+                 seed: int = 0,
+                 loss: BaseLoss = None,
+                 activation: str = "relu",
+                 epochs: int = 100,
+                 n_samples: int = 100,
+                 warmup_steps: int = 50,
+                 lr: float = 1e-3,
+                 n_thinning: int = 10):
         self.n_members = n_members
+        self.sizes = sizes
         self.seed = seed
-
-        # TODO: this of a better way to write this
-        self.task = task
-        if task is None:
-            self.task = TaskType.infer_task
-
         self.loss = loss
-        self.task.validate_loss(self.loss)
+        self.activation = activation
+        self._bde = None
+        self.epochs = epochs
+        self.n_samples = n_samples
+        self.warmup_steps = warmup_steps
+        self.lr = lr
+        self.n_thinning = n_thinning
 
-        self.bde = BdeBuilder(self.sizes, self.n_members, self.task, self.seed, act_fn=activation)
-        self.members = self.bde.members
-        self.positions_eT = None  # will be set after training + sampling
+    def fit(self, x, y):
+        self._bde = BDE(
+            n_members=self.n_members,
+            sizes=self.sizes,
+            seed=self.seed,
+            task=TaskType.REGRESSION,
+            loss=self.loss,
+            activation=self.activation
+        )
+        self._bde.train(x,
+                        y,
+                        epochs=self.epochs,
+                        n_samples=self.n_samples,
+                        warmup_steps=self.warmup_steps,
+                        lr=self.lr,
+                        n_thinning=self.n_thinning
+                        )
+        return self
 
-class BDEClassifier(BDE):
+    def predict(self,x):
+        return self._bde.evaluate(x)
+
+
+class BdeClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self,
-                 n_members,
-                 sizes,
-                 seed,
-                 *,
-                 task: TaskType = None,
-                 loss: BaseLoss,
-                 activation: str = "relu"
-                 ):
-        self.sizes = sizes
+                 n_members: int = 5,
+                 sizes: list[int] = None,
+                 seed: int = 0,
+                 loss: BaseLoss = None,
+                 activation: str = "relu",
+                 epochs: int = 100,
+                 n_samples: int = 100,
+                 warmup_steps: int = 50,
+                 lr: float = 1e-3,
+                 n_thinning: int = 10):
         self.n_members = n_members
+        self.sizes = sizes
         self.seed = seed
-
-        # TODO: this of a better way to write this
-        self.task = task
-        if task is None:
-            self.task = TaskType.infer_task
-
         self.loss = loss
-        self.task.validate_loss(self.loss)
+        self.activation = activation
+        self._bde = None
+        self.epochs = epochs
+        self.n_samples = n_samples
+        self.warmup_steps = warmup_steps
+        self.lr = lr
+        self.n_thinning = n_thinning
 
-        self.bde = BdeBuilder(self.sizes, self.n_members, self.task, self.seed, act_fn=activation)
-        self.members = self.bde.members
-        self.positions_eT = None  # will be set after training + sampling
+    def fit(self, x, y):
+        self._bde = BDE(
+            n_members=self.n_members,
+            sizes=self.sizes,
+            seed=self.seed,
+            task=TaskType.CLASSIFICATION,
+            loss=self.loss,
+            activation=self.activation
+        )
+        self._bde.train(x,
+                        y,
+                        epochs=self.epochs,
+                        n_samples=self.n_samples,
+                        warmup_steps=self.warmup_steps,
+                        lr=self.lr,
+                        n_thinning=self.n_thinning
+                        )
+        return self
+
+    def predict(self,x):
+        return self._bde.evaluate(x)
+
+    def predict_proba(self,x):
+        pass
