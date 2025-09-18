@@ -1,7 +1,7 @@
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 import jax.numpy as jnp
-from bde.bde import BDE
+from bde._bdecore import _BdeCore
 from bde.task import TaskType
 from bde.loss.loss import CategoricalCrossEntropy
 
@@ -19,7 +19,7 @@ ytr, yte = jnp.array(y_train), jnp.array(y_test)
 # Define network: 4 inputs, hidden, 3 outputs (classes)
 sizes = [4, 16, 16, 3]
 
-bde = BDE(
+bde = _BdeCore(
     n_members=5,
     sizes=sizes,
     seed=0,
