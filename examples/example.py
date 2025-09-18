@@ -80,6 +80,8 @@ def regression_example():
         savepath="plots_regression",
     )
 
+    score = regressor.score(Xtr, ytr)
+    print(f"the sklearn score is {score}")
 
 def classification_example():
     iris = load_iris()
@@ -145,7 +147,9 @@ def classification_example():
         savepath=savepath,
     )
 
+    score = classifier.score(Xtr,ytr)
+    print(f"the sklearn score is {score}")
 
 if __name__ == "__main__":
-    # regression_example()
-    classification_example()
+    regression_example()
+    # classification_example()
