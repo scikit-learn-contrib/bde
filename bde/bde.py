@@ -19,7 +19,7 @@ from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 
 class Bde(BaseEstimator):
     def __init__(self, n_members=5,
-                 sizes=None,
+                 hidden_layers=None,
                  seed=0,
                  task: TaskType = None,
                  loss: BaseLoss = None,
@@ -32,7 +32,7 @@ class Bde(BaseEstimator):
                  ):
 
         self.n_members = n_members
-        self.sizes = sizes
+        self.hidden_layers = hidden_layers
         self.seed = seed
         self.task = task
         self.loss = loss
@@ -44,13 +44,13 @@ class Bde(BaseEstimator):
         self.lr = lr
         self.n_thinning = n_thinning
 
-        if self.sizes is not None:
+        if self.hidden_layers is not None:
             self._build_bde()
 
         self.positions_eT = None  # will be set after training + sampling
 
     def _build_bde(self):
-        self.bde = BdeBuilder(self.sizes, self.n_members, self.task, self.seed, act_fn=self.activation)
+        self.bde = BdeBuilder(self.hidden_layers, self.n_members, self.task, self.seed, act_fn=self.activation)
         self.members = self.bde.members
 
     def fit(self, X, y, ):
@@ -97,7 +97,7 @@ class Bde(BaseEstimator):
                  credible_intervals: list[float] | None = None,
                  raw: bool = False,
                  probabilities: bool = False):
-        predictor = BDEPredictor(self.bde, self.positions_eT, Xte=Xte, task=self.task)
+        predictor = BDEPredictor(self.bde.members[0], self.positions_eT, Xte=Xte, task=self.task) #TODO: [@angelos] think of somehting better I dont think that works fine
         raw_preds = predictor.get_raw_preds()
         if self.task == TaskType.REGRESSION:
             mu = raw_preds[..., 0]
@@ -141,7 +141,7 @@ class Bde(BaseEstimator):
 class BdeRegressor(Bde, RegressorMixin):
     def __init__(self,
                  n_members=5,
-                 sizes=None,
+                 hidden_layers=None,
                  seed=0,
                  loss: BaseLoss = None,
                  activation="relu",
@@ -152,7 +152,7 @@ class BdeRegressor(Bde, RegressorMixin):
                  n_thinning=10):
         super().__init__(
             n_members=n_members,
-            sizes=sizes,
+            hidden_layers=hidden_layers,
             seed=seed,
             task=TaskType.REGRESSION,  # fixed
             loss=loss,
@@ -192,7 +192,7 @@ class BdeRegressor(Bde, RegressorMixin):
 class BdeClassifier(Bde, ClassifierMixin):
     def __init__(self,
                  n_members=5,
-                 sizes=None,
+                 hidden_layers=None,
                  seed=0,
                  loss: BaseLoss = None,
                  activation="relu",
@@ -203,7 +203,7 @@ class BdeClassifier(Bde, ClassifierMixin):
                  n_thinning=10):
         super().__init__(
             n_members=n_members,
-            sizes=sizes,
+            hidden_layers=hidden_layers,
             seed=seed,
             task=TaskType.CLASSIFICATION,  # fixed
             loss=loss,

@@ -37,20 +37,21 @@ def regression_example():
     ytr = (y_train - Ymu) / Ystd
     yte = (y_test - Ymu) / Ystd
 
-    sizes = [5, 16, 16, 2]  # TODO: [@later] allow user to configure only hidden layers\
+    sizes = [5, 16, 16, 2]  # TODO: [@later] allow user to configure only hidden layers\ -> this is done
 
     regressor = BdeRegressor(
+        hidden_layers=[16, 16],
         n_members=11,
-        sizes=sizes,
         seed=0,
         loss=GaussianNLL(),
         epochs=100,
         lr=1e-3,
         warmup_steps=500,
         n_samples=100,
-        n_thinning=10
+        n_thinning=10,
     )
-    print(f"the params are {regressor.get_params()}") # get_params is from sk learn!!
+
+    print(f"the params are {regressor.get_params()}")  # get_params is from sk learn!!
     regressor.fit(X=Xtr, y=ytr)
 
     means, sigmas = regressor.predict(Xte, mean_and_std=True)
@@ -83,6 +84,7 @@ def regression_example():
     score = regressor.score(Xtr, ytr)
     print(f"the sklearn score is {score}")
 
+
 def classification_example():
     iris = load_iris()
     X = iris.data.astype("float32")
@@ -94,12 +96,9 @@ def classification_example():
     Xtr, Xte = jnp.array(X_train), jnp.array(X_test)
     ytr, yte = jnp.array(y_train), jnp.array(y_test)
 
-    # Define network: 4 inputs, hidden, 3 outputs (classes)
-    sizes = [4, 16, 16, 3]
-
     classifier = BdeClassifier(
         n_members=5,
-        sizes=sizes,
+        hidden_layers=[16, 16],
         seed=0,
         loss=CategoricalCrossEntropy(),
         activation="relu",
@@ -147,9 +146,10 @@ def classification_example():
         savepath=savepath,
     )
 
-    score = classifier.score(Xtr,ytr)
+    score = classifier.score(Xtr, ytr)
     print(f"the sklearn score is {score}")
 
+
 if __name__ == "__main__":
-    regression_example()
-    # classification_example()
+    # regression_example()
+    classification_example()
