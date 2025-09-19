@@ -21,8 +21,6 @@ class BdeBuilder(FnnTrainer):
                  task: TaskType,
                  seed: int = 100,
                  act_fn: str = "relu"):
-
-        # Fnn.__init__(self, hidden_layers=hidden_sizes, act_fn=act_fn)
         FnnTrainer.__init__(self)
         self.hidden_sizes = hidden_sizes
         self.n_members = n_members
@@ -72,46 +70,45 @@ class BdeBuilder(FnnTrainer):
         return [self.get_model(seed + i, act_fn=act_fn, sizes=sizes) for i in range(self.n_members)]
 
     def fit_members(self, x, y, epochs, optimizer=None, loss=None):
-        def eval_chunk(params_chunk, x_b, y_b):
-            def loss_member(p):
-                return loss_fn(p, x_b, y_b)
-            return jax.vmap(loss_member)(params_chunk)
-        
-        x_train, x_val, y_train, y_val = super().split_train_val(x, y)
-        
-        n_features = x.shape[1]
+        # Setup task
         if self.task == TaskType.REGRESSION:
             n_outputs = 2
         elif self.task == TaskType.CLASSIFICATION:
             n_outputs = int(y.max()) + 1
         else:
             raise ValueError(f"Unknown task {self.task} !")
-
+        
+        #Setup FNN sizes
+        n_features = x.shape[1]
         full_sizes = [n_features] + self.hidden_sizes + [n_outputs]
-
+        
+        #Setup members
         if self.members is None:
             self.members = self.deep_ensemble_creator(seed=self.seed, act_fn=self.act_fn, sizes=full_sizes)
 
-        E = len(self.members)
-        print("backend:", jax.default_backend())
-        print("devices:", jax.devices())
-        print("local_device_count:", jax.local_device_count())
-        D = jax.local_device_count()
-        print("Kernel devices:", D)
+        #train and validation sets for early stopping
+        x_train, x_val, y_train, y_val = super().split_train_val(x, y)    
 
+        #Setup training objects
+        proto_model = self.members[0]
         opt = optimizer or self.default_optimizer()
         loss_obj = loss or self.default_loss(self.task)
-        
-        peval = jax.pmap(eval_chunk, in_axes=(0, None, None), out_axes=0)
-        # Stack params across ensemble axis E
-        params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0), *[m.params for m in self.members])  # (E, ...)
-        proto_model = self.members[0]
         loss_fn = FnnTrainer.make_loss_fn(proto_model, loss_obj)  # (params, x, y) -> scalar
         step_one = FnnTrainer.make_step(loss_fn, opt)  # (params, opt_state, x, y) -> (params, opt_state, loss)
+
+        # Setup paramtree
+        params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0), *[m.params for m in self.members])  # (E, ...)
+
+        #Distribute members to devices via padding
+        E = len(self.members)
+        D = jax.local_device_count()
+
+        print("Kernel devices:", D)
 
         pad = (D - (E % max(D, 1))) % max(D, 1)
         E_pad = E + pad
         E_per = E_pad // max(D, 1)
+
         params_e = tree_map(lambda a: _pad_axis0(a, pad), params_e)
         params_de = tree_map(lambda a: a.reshape(D, E_per, *a.shape[1:]), params_e)
 
@@ -121,15 +118,10 @@ class BdeBuilder(FnnTrainer):
 
         opt_state_de = jax.pmap(init_chunk, in_axes=0, out_axes=0)(params_de)
 
-        best_metric_de = jnp.full((D, E_per), jnp.inf)
-        epochs_no_improve_de = jnp.zeros((D, E_per), dtype=jnp.int32)
-        stopped_de = jnp.zeros((D, E_per), dtype=bool)
-        stop_epoch_de = -jnp.ones((D, E_per), dtype=jnp.int32)
-
         # One device does a local vmap over its chunk
         def step_chunk(params_chunk, opt_state_chunk, x_b, y_b, stopped_chunk):
             def step_member(p, s):
-                return step_one(p, s, x_b, y_b)  # pure, no host I/O
+                return step_one(p, s, x_b, y_b)
             
             new_params, new_states, losses = jax.vmap(step_member)(params_chunk, opt_state_chunk)
 
@@ -142,13 +134,23 @@ class BdeBuilder(FnnTrainer):
             new_states = jax.tree_util.tree_map(freeze, new_states, opt_state_chunk)
             return new_params, new_states, losses
         
-        pstep = jax.pmap(step_chunk, in_axes=(0, 0, None, None, 0), out_axes=(0, 0, 0))
-
-        self._reset_history()
-        best_metric = float("inf")
-        best_params_de = params_de  # keep sharded copy
-        epochs_no_improve = 0
+        def eval_chunk(params_chunk, x_b, y_b):
+            def loss_member(p):
+                return loss_fn(p, x_b, y_b)
+            return jax.vmap(loss_member)(params_chunk)
         
+        pstep = jax.pmap(step_chunk, in_axes=(0, 0, None, None, 0), out_axes=(0, 0, 0))
+        peval = jax.pmap(eval_chunk, in_axes=(0, None, None), out_axes=0)
+
+        #Setup training loop
+        self._reset_history()
+        best_params_de = params_de
+        best_metric_de = jnp.full((D, E_per), jnp.inf)
+        epochs_no_improve_de = jnp.zeros((D, E_per), dtype=jnp.int32)
+        stopped_de = jnp.zeros((D, E_per), dtype=bool)
+        stop_epoch_de = -jnp.ones((D, E_per), dtype=jnp.int32)
+        
+        # Training loop
         for epoch in range(epochs):
             params_de, opt_state_de, lvals_de = pstep(params_de, opt_state_de, x_train, y_train, stopped_de)
             train_mean = float(jnp.mean(jax.device_get(lvals_de)))
@@ -158,38 +160,36 @@ class BdeBuilder(FnnTrainer):
 
             if (x_val is not None) and (y_val is not None) and (epoch % self.eval_every == 0):
                 val_lvals_de = peval(params_de, x_val, y_val)
-                metric = float(jnp.mean(jax.device_get(val_lvals_de)))
 
-                improved = val_lvals_de < (best_metric_de - self.min_delta)
+                improved = val_lvals_de < (best_metric_de - self.min_delta)   # (D, E_per)
                 best_metric_de       = jnp.where(improved, val_lvals_de, best_metric_de)
                 epochs_no_improve_de = jnp.where(improved, 0, epochs_no_improve_de + 1)
-                newly_stopped        = (epochs_no_improve_de >= self.patience) & (~stopped_de)
-                stopped_de           = stopped_de | newly_stopped
-                stop_epoch_de        = jnp.where(newly_stopped, jnp.int32(epoch), stop_epoch_de)
-        
+
+                def select_best(new_leaf, old_leaf):
+                    expand = (None,) * (new_leaf.ndim - improved.ndim)  # broadcast (D, E_per) over leaf
+                    mask = improved[(...,) + expand]
+                    return jnp.where(mask, new_leaf, old_leaf) 
+                best_params_de = jax.tree_util.tree_map(select_best, params_de, best_params_de)
+
+                newly_stopped = (epochs_no_improve_de >= self.patience) & (~stopped_de)
+                stopped_de = stopped_de | newly_stopped
+                stop_epoch_de = jnp.where(newly_stopped, jnp.int32(epoch), stop_epoch_de)
+
+                #Note: This output considers the dummy members aswell, which will be later neglected
+                if epoch % 100 == 0:
+                    n_active = int(jnp.sum(~stopped_de))
+                    print(f"[epoch {epoch}] active members: {n_active}")
+
                 if bool(jnp.all(stopped_de)):
                     print(f"All members stopped by epoch {epoch}.")
                     break
-
-            else:
-                metric = train_mean
-            
-            if metric < best_metric - self.min_delta:
-                best_metric = metric
-                best_params_de = params_de
-                epochs_no_improve = 0
-            else:
-                epochs_no_improve += 1
-                if epochs_no_improve >= self.patience:
-                    print(f"Collective early stop at epoch {epoch} | best_metric={best_metric:.6f}")
-                    if self.keep_best:
-                        params_de = best_params_de
-                    break
+        
+        #Output stop epochs
         stop_epoch_e = stop_epoch_de.reshape(E_pad)[:E]
         for m_id, ep in enumerate(list(map(int, jax.device_get(stop_epoch_e)))):
             print(f"member {m_id}: {'stopped at epoch '+str(ep) if ep >= 0 else 'ran full training'}")
         
-        params_e_final = tree_map(lambda a: a.reshape(E_pad, *a.shape[2:])[:E], params_de)
+        params_e_final = tree_map(lambda a: a.reshape(E_pad, *a.shape[2:])[:E], best_params_de)
         for i, m in enumerate(self.members):
             m.params = tree_map(lambda a: a[i], params_e_final)
         self.params_e = params_e_final

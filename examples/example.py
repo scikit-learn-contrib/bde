@@ -41,7 +41,7 @@ def regression_example():
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
-        n_members=8,
+        n_members=24,
         seed=0,
         loss=GaussianNLL(),
         epochs=10000,
