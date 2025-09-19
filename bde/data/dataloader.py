@@ -54,17 +54,6 @@ class DataLoader:
         """Schema-agnostic constructor: any keys you like."""
         return cls(data=data)
 
-    def _infer_task(self) -> "TaskType":
-        """This method is responsible for bringing the data in correct format according to the problem,
-        is it a regression or classification problem?
-
-        Returns
-        -------
-
-        """
-        # TODO: user decides the task
-        pass
-
     @classmethod
     def from_arrays(
             cls,

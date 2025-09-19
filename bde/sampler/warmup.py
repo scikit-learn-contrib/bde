@@ -135,19 +135,6 @@ def make_L_step_size_adaptation(
                 - (desired_energy_var_start - desired_energy_var_end) * progress
         )
 
-    def get_desired_energy_var_exp(step: int) -> float:
-        """Exponentially decrease desired_energy_var from start to end."""
-        total_steps = tune1_steps + tune2_steps + 1
-        tau = total_steps / 4
-        return desired_energy_var_start * jax.numpy.exp(
-            -step / tau
-        ) + desired_energy_var_end * (1 - jax.numpy.exp(-step / tau))
-
-    if desired_energy_var_start > 2.0:
-        get_desired_energy_var = get_desired_energy_var_exp  #TODO: [@task] always use linear
-    else:
-        get_desired_energy_var = get_desired_energy_var_linear
-
     def predictor(
             previous_state,
             params,
@@ -179,7 +166,7 @@ def make_L_step_size_adaptation(
         )
 
         # Warning: var = 0 if there were nans, but we will give it a very small weight
-        desired_energy_var = get_desired_energy_var(step_number)
+        desired_energy_var = get_desired_energy_var_linear(step_number)
         xi = (
                      jnp.square(energy_change) / (dim * desired_energy_var)
              ) + 1e-8  # 1e-8 is added to avoid divergences in log xi
@@ -398,9 +385,6 @@ def custom_mclmc_warmup(
         """Build the MCLMC kernel."""
         return mcmc.mclmc.build_kernel(
             logdensity_fn=logdensity_fn,
-            # TODO integrator should be parameterized in config
-            # TODO blackjax build_kernel should be changed to accept the integrator
-            # integrator=mcmc.integrators.velocity_verlet,
             integrator=mcmc.integrators.isokinetic_mclachlan,
             sqrt_diag_cov=sqrt_diag_cov,
         )
@@ -455,7 +439,7 @@ def warmup_bde(
     bde: BdeBuilder,
     logpost_one,
     step_size_init: float,
-    desired_energy_var_start: float, #TODO: [@task] Include in user input
+    desired_energy_var_start: float,
     desired_energy_var_end: float,
     warmup_steps: int,
 ) -> AdaptationResults:

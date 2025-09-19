@@ -14,13 +14,14 @@ from bde.task import TaskType
 
 
 class BdeBuilder(FnnTrainer):
-    # TODO: build the BdeBuilderClass
     def __init__(self,
                  hidden_sizes,
                  n_members,
                  task: TaskType,
-                 seed: int = 100,
-                 act_fn: str = "relu"):
+                 seed: int,
+                 act_fn: str,
+                 patience: int
+                 ):
         FnnTrainer.__init__(self)
         self.hidden_sizes = hidden_sizes
         self.n_members = n_members
@@ -30,10 +31,9 @@ class BdeBuilder(FnnTrainer):
         self.members = None  #
         self.act_fn = act_fn
         
-        #Early stopping params #TODO: [@task] Think about user input 
+        self.patience = patience
         self.eval_every = 1 # Check epochs for early stopping
         self.keep_best = True
-        self.patience = 5
         self.min_delta = 1e-9
         
         self.results = {}

@@ -26,6 +26,7 @@ class Bde(BaseEstimator):
                  loss: BaseLoss = None,
                  activation="relu",
                  epochs=100,
+                 patience=25,
                  n_samples=100,
                  warmup_steps=50,
                  lr=1e-3,
@@ -43,6 +44,7 @@ class Bde(BaseEstimator):
         self.task.validate_loss(self.loss)  # validate loss function
         self.activation = activation
         self.epochs = epochs
+        self.patience = patience
         self.n_samples = n_samples
         self.warmup_steps = warmup_steps
         self.lr = lr
@@ -57,7 +59,15 @@ class Bde(BaseEstimator):
         self.positions_eT = None  # will be set after training + sampling
 
     def _build_bde(self):
-        self.bde = BdeBuilder(self.hidden_layers, self.n_members, self.task, self.seed, act_fn=self.activation)
+        self.bde = BdeBuilder(
+            hidden_sizes=self.hidden_layers, 
+            patience=self.patience, 
+            n_members=self.n_members, 
+            task=self.task, 
+            seed=self.seed, 
+            act_fn=self.activation
+            )
+        
         self.members = self.bde.members
 
     def fit(self, X, y):

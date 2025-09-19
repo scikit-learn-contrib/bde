@@ -24,7 +24,7 @@ class PriorDist(BaseStrEnum):
 class Prior(NamedTuple):
     """Base Class for Priors."""
 
-    f_init: Callable  # TODO: Callable[[KeyArray, ParamTree], jax.Array]
+    f_init: Callable
     log_prior: Callable[[ParamTree], jax.Array]
     name: str
 
