@@ -2,7 +2,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
-os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=5"
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
 from bde.bde import BdeRegressor, BdeClassifier
 from bde.task import TaskType
@@ -41,10 +41,10 @@ def regression_example():
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
-        n_members=11,
+        n_members=8,
         seed=0,
         loss=GaussianNLL(),
-        epochs=100,
+        epochs=10000,
         lr=1e-3,
         warmup_steps=500,
         n_samples=100,
@@ -152,4 +152,4 @@ def classification_example():
 
 if __name__ == "__main__":
     # regression_example()
-    classification_example()
+    regression_example()

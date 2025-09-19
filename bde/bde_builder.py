@@ -31,7 +31,13 @@ class BdeBuilder(FnnTrainer):
         self.params_e = None  # will be set after training
         self.members = None  #
         self.act_fn = act_fn
-
+        
+        #Early stopping params #TODO: [@task] Think about user input 
+        self.eval_every = 1 # Check epochs for early stopping
+        self.keep_best = True
+        self.patience = 5
+        self.min_delta = 1e-9
+        
         self.results = {}
 
     def get_model(self, seed: int, *, act_fn, sizes) -> Fnn:
@@ -66,6 +72,13 @@ class BdeBuilder(FnnTrainer):
         return [self.get_model(seed + i, act_fn=act_fn, sizes=sizes) for i in range(self.n_members)]
 
     def fit_members(self, x, y, epochs, optimizer=None, loss=None):
+        def eval_chunk(params_chunk, x_b, y_b):
+            def loss_member(p):
+                return loss_fn(p, x_b, y_b)
+            return jax.vmap(loss_member)(params_chunk)
+        
+        x_train, x_val, y_train, y_val = super().split_train_val(x, y)
+        
         n_features = x.shape[1]
         if self.task == TaskType.REGRESSION:
             n_outputs = 2
@@ -88,7 +101,8 @@ class BdeBuilder(FnnTrainer):
 
         opt = optimizer or self.default_optimizer()
         loss_obj = loss or self.default_loss(self.task)
-
+        
+        peval = jax.pmap(eval_chunk, in_axes=(0, None, None), out_axes=0)
         # Stack params across ensemble axis E
         params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0), *[m.params for m in self.members])  # (E, ...)
         proto_model = self.members[0]
@@ -107,31 +121,77 @@ class BdeBuilder(FnnTrainer):
 
         opt_state_de = jax.pmap(init_chunk, in_axes=0, out_axes=0)(params_de)
 
+        best_metric_de = jnp.full((D, E_per), jnp.inf)
+        epochs_no_improve_de = jnp.zeros((D, E_per), dtype=jnp.int32)
+        stopped_de = jnp.zeros((D, E_per), dtype=bool)
+        stop_epoch_de = -jnp.ones((D, E_per), dtype=jnp.int32)
+
         # One device does a local vmap over its chunk
-        def step_chunk(params_chunk, opt_state_chunk, x_b, y_b):
+        def step_chunk(params_chunk, opt_state_chunk, x_b, y_b, stopped_chunk):
             def step_member(p, s):
                 return step_one(p, s, x_b, y_b)  # pure, no host I/O
-
+            
             new_params, new_states, losses = jax.vmap(step_member)(params_chunk, opt_state_chunk)
-            return new_params, new_states, losses
 
-        # pmapped step across devices; broadcast data to all devices (in_axes=None)
-        pstep = jax.pmap(step_chunk, in_axes=(0, 0, None, None), out_axes=(0, 0, 0))
+            def freeze(new, old):
+                expand = (None,) * (new.ndim - stopped_chunk.ndim)
+                mask = stopped_chunk[(...,) + expand]
+                return jnp.where(mask, old, new)
+            
+            new_params = jax.tree_util.tree_map(freeze, new_params, params_chunk)
+            new_states = jax.tree_util.tree_map(freeze, new_states, opt_state_chunk)
+            return new_params, new_states, losses
+        
+        pstep = jax.pmap(step_chunk, in_axes=(0, 0, None, None, 0), out_axes=(0, 0, 0))
 
         self._reset_history()
+        best_metric = float("inf")
+        best_params_de = params_de  # keep sharded copy
+        epochs_no_improve = 0
+        
         for epoch in range(epochs):
-            params_de, opt_state_de, lvals_de = pstep(params_de, opt_state_de, x, y)
-            # lvals_de shape: (D, E_per). Log mean loss (host side)
-            mean_loss = float(jnp.mean(jax.device_get(lvals_de)))
-            self.history["train_loss"].append(mean_loss)
+            params_de, opt_state_de, lvals_de = pstep(params_de, opt_state_de, x_train, y_train, stopped_de)
+            train_mean = float(jnp.mean(jax.device_get(lvals_de)))
+            self.history["train_loss"].append(train_mean)
             if epoch % self.log_every == 0:
-                print(epoch, mean_loss)
+                print(epoch, train_mean)
 
-        # Stitch back to (E, ...) then write into members
+            if (x_val is not None) and (y_val is not None) and (epoch % self.eval_every == 0):
+                val_lvals_de = peval(params_de, x_val, y_val)
+                metric = float(jnp.mean(jax.device_get(val_lvals_de)))
+
+                improved = val_lvals_de < (best_metric_de - self.min_delta)
+                best_metric_de       = jnp.where(improved, val_lvals_de, best_metric_de)
+                epochs_no_improve_de = jnp.where(improved, 0, epochs_no_improve_de + 1)
+                newly_stopped        = (epochs_no_improve_de >= self.patience) & (~stopped_de)
+                stopped_de           = stopped_de | newly_stopped
+                stop_epoch_de        = jnp.where(newly_stopped, jnp.int32(epoch), stop_epoch_de)
+        
+                if bool(jnp.all(stopped_de)):
+                    print(f"All members stopped by epoch {epoch}.")
+                    break
+
+            else:
+                metric = train_mean
+            
+            if metric < best_metric - self.min_delta:
+                best_metric = metric
+                best_params_de = params_de
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+                if epochs_no_improve >= self.patience:
+                    print(f"Collective early stop at epoch {epoch} | best_metric={best_metric:.6f}")
+                    if self.keep_best:
+                        params_de = best_params_de
+                    break
+        stop_epoch_e = stop_epoch_de.reshape(E_pad)[:E]
+        for m_id, ep in enumerate(list(map(int, jax.device_get(stop_epoch_e)))):
+            print(f"member {m_id}: {'stopped at epoch '+str(ep) if ep >= 0 else 'ran full training'}")
+        
         params_e_final = tree_map(lambda a: a.reshape(E_pad, *a.shape[2:])[:E], params_de)
         for i, m in enumerate(self.members):
             m.params = tree_map(lambda a: a[i], params_e_final)
-
         self.params_e = params_e_final
         return self.members
 

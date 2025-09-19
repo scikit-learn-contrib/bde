@@ -144,7 +144,7 @@ def make_L_step_size_adaptation(
         ) + desired_energy_var_end * (1 - jax.numpy.exp(-step / tau))
 
     if desired_energy_var_start > 2.0:
-        get_desired_energy_var = get_desired_energy_var_exp  #### always use linear
+        get_desired_energy_var = get_desired_energy_var_exp  #TODO: [@task] always use linear
     else:
         get_desired_energy_var = get_desired_energy_var_linear
 
@@ -177,8 +177,6 @@ def make_L_step_size_adaptation(
             step_size_max,
             info.energy_change,
         )
-        jax.debug.print("step {i} | ok={ok} | step_size={eps} | dE={dE}",
-                        i=step_number, ok=success, eps=params.step_size, dE=energy_change)
 
         # Warning: var = 0 if there were nans, but we will give it a very small weight
         desired_energy_var = get_desired_energy_var(step_number)
@@ -205,6 +203,9 @@ def make_L_step_size_adaptation(
         params_new = params._replace(step_size=step_size)
 
         adaptive_state = (time, x_average, step_size_max)
+        
+        jax.debug.print("step {i} | ok={ok} | step_size={eps} | dE={dE}",
+                        i=step_number, ok=success, eps=params.step_size, dE=energy_change)
 
         return state, params_new, adaptive_state, success
 
@@ -232,7 +233,7 @@ def make_L_step_size_adaptation(
             weight=(1 - mask) * success * params.step_size,
             zero_prevention=mask,
         )
-
+        
         return (state, params, adaptive_state, streaming_avg), None
 
     def run_steps(xs, state, params):

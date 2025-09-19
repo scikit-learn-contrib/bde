@@ -6,6 +6,8 @@ import optax
 from bde.data.dataloader import TaskType
 from bde.loss.loss import *
 
+from sklearn.model_selection import train_test_split
+
 from typing import (
     Any,
     Optional,
@@ -65,6 +67,35 @@ class FnnTrainer:
                             out_axes=(0, 0, 0))(p_e, os_e, xb, yb)
 
         return vstep
+    
+    @staticmethod
+    def split_train_val(X, y, *, train_size=0.85, val_size=0.15, random_state=42, stratify=False, shuffle=True):
+        """
+        Split X, y into train/validation sets.
+
+        Returns
+        -------
+        X_train, X_val, y_train, y_val
+        """
+        # prefer val_size; keep train_size for backward-compat
+        if val_size is None and train_size is not None:
+            val_size = 1.0 - train_size
+        elif val_size is None:
+            val_size = 0.15
+
+        if not (0.0 < val_size < 1.0):
+            raise ValueError("val_size must be in (0, 1).")
+
+        strat = y if stratify else None
+
+        X_train, X_val, y_train, y_val = train_test_split(
+            X, y,
+            test_size=val_size,
+            random_state=random_state,
+            stratify=strat,
+            shuffle=shuffle,
+        )
+        return X_train, X_val, y_train, y_val
     
     #TODO: decide if we want to keep this generic trainer method'
 
