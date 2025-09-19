@@ -177,8 +177,8 @@ def make_L_step_size_adaptation(
             step_size_max,
             info.energy_change,
         )
-        # jax.debug.print("step {i} | ok={ok} | step_size={eps} | cap={cap} | dE={dE}",
-                #         i=step_number, ok=success, eps=params.step_size, cap=step_size_max, dE=energy_change)
+        jax.debug.print("step {i} | ok={ok} | step_size={eps} | dE={dE}",
+                        i=step_number, ok=success, eps=params.step_size, dE=energy_change)
 
         # Warning: var = 0 if there were nans, but we will give it a very small weight
         desired_energy_var = get_desired_energy_var(step_number)
