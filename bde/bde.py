@@ -130,10 +130,9 @@ class Bde(BaseEstimator):
         if not getattr(self.bde, "members", None):
             raise RuntimeError("BDE members are not initialized; ensure 'fit' has been executed successfully.")
 
-        forward_fn = self.bde.members[0].forward
         return BdePredictor(
-            forward_fn,
-            self.positions_eT,
+            forward_fn=self.bde.members[0].forward,
+            positions_eT=self.positions_eT,
             xte=x,
             task=self.task,
         )
