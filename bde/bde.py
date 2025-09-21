@@ -70,14 +70,16 @@ class Bde(BaseEstimator):
 
         self.members = self.bde.members
 
-    def fit(self, x: ArrayLike, y: ArrayLike):
-        self.bde.fit_members(x=x, y=y, optimizer=optax.adam(self.lr), epochs=self.epochs, loss=self.loss)
-
+    def _build_log_post(self, x: ArrayLike, y: ArrayLike):
         prior = PriorDist.STANDARDNORMAL.get_prior()
         proto = self.bde.members[0]
         pm = ProbabilisticModel(module=proto, params=proto.params, prior=prior, task=self.task)
+        return partial(pm.log_unnormalized_posterior, x=x, y=y)
 
-        logpost_one = partial(pm.log_unnormalized_posterior, x=x, y=y)
+    def fit(self, x: ArrayLike, y: ArrayLike):
+        self.bde.fit_members(x=x, y=y, optimizer=optax.adam(self.lr), epochs=self.epochs, loss=self.loss)
+
+        logpost_one = self._build_log_post(x, y)
 
         warm = warmup_bde(
             self.bde,
