@@ -3,7 +3,7 @@ from abc import abstractclassmethod
 from pandas.core.window.doc import kwargs_scipy
 
 from bde.bde_builder import BdeBuilder
-from bde.bde_evaluator import BDEPredictor
+from bde.bde_evaluator import BdePredictor
 from bde.loss.loss import BaseLoss
 from bde.sampler.probabilistic import ProbabilisticModel
 from bde.sampler.prior import PriorDist
@@ -37,7 +37,6 @@ class Bde(BaseEstimator):
                  desired_energy_var_end: float = 0.1,
                  step_size_init: int = None
                  ):
-
         self.n_members = n_members
         self.hidden_layers = hidden_layers
         self.seed = seed
@@ -122,8 +121,21 @@ class Bde(BaseEstimator):
         )
         return positions_eT
 
-    def fit(self, x: ArrayLike, y: ArrayLike):
+    def _make_predictor(self, x: ArrayLike) -> BdePredictor:
+        if self.positions_eT is None:
+            raise RuntimeError("Call 'fit' before requesting predictions.")
+        if not getattr(self.bde, "members", None):
+            raise RuntimeError("BDE members are not initialized; ensure 'fit' has been executed successfully.")
 
+        forward_fn = self.bde.members[0].forward
+        return BdePredictor(
+            forward_fn,
+            self.positions_eT,
+            xte=x,
+            task=self.task,
+        )
+
+    def fit(self, x: ArrayLike, y: ArrayLike):
         self.bde.fit_members(x=x, y=y, optimizer=optax.adam(self.lr), epochs=self.epochs, loss=self.loss)
 
         logpost_one = self._build_log_post(x, y)
@@ -150,55 +162,44 @@ class Bde(BaseEstimator):
                  credible_intervals: list[float] | None = None,
                  raw: bool = False,
                  probabilities: bool = False):
-        predictor = BDEPredictor(self.bde.members[0], self.positions_eT, Xte=xte,
-                                 task=self.task)  # TODO: [@angelos] think of somehting better I dont think that works fine
-        raw_preds = predictor.get_raw_preds()
-        if self.task == TaskType.REGRESSION:
-            mu = raw_preds[..., 0]
-            sigma = jax.nn.softplus(raw_preds[..., 1]) + 1e-6
-            mu_mean = jnp.mean(mu, axis=(0, 1))
-            var_ale = jnp.mean(sigma ** 2, axis=(0, 1))
-            var_epi = jnp.var(mu, axis=(0, 1))
-            std_total = jnp.sqrt(var_ale + var_epi)
+        """
 
-            out = {"mean": mu_mean}
-            if mean_and_std:
-                out["mean"] = mu_mean
-                out["std"] = std_total
-            if credible_intervals:
-                qs = jnp.quantile(mu, q=jnp.array(credible_intervals), axis=(0, 1))
-                out["credible_intervals"] = qs
-            if raw:
-                out["raw"] = raw_preds
-            return out
+        Parameters
+        ----------
+        xte
+        mean_and_std
+        credible_intervals
+        raw
+        probabilities
 
+        Returns
+        -------
 
-        elif self.task == TaskType.CLASSIFICATION:
-            logits = raw_preds  # (E, T, N, C)
-            probs = jax.nn.softmax(logits, axis=-1)
-            mean_probs = jnp.mean(probs, axis=(0, 1))  # (N, C)
-            preds_cls = jnp.argmax(mean_probs, axis=-1)
+        """
+        predictor = self._make_predictor(xte)
+        return predictor.predict(
+            mean_and_std=mean_and_std,
+            credible_intervals=credible_intervals,
+            raw=raw,
+            probabilities=probabilities,
+        )
 
-            out = {}
-            if probabilities:
-                out["probs"] = mean_probs
-            out["labels"] = preds_cls
-            if raw:
-                out["raw"] = raw_preds
-            return out
-
-        else:
-            raise ValueError(f"Unknown task {self.task}")
+    def get_raw_predictions(self, x: ArrayLike):
+        """Return raw ensemble predictions for a given input batch."""
+        return self.evaluate(x, raw=True)["raw"]
 
 
 # TODO: [@angelos] maybe put them in another file?
 class BdeRegressor(Bde, RegressorMixin):
     def __init__(self, **kwargs):
+        if "task" in kwargs:
+            raise TypeError("'task' cannot be overridden for BdeRegressor; it is fixed to regression.")
         super().__init__(task=TaskType.REGRESSION, **kwargs)
 
     def predict(self,
-                x: ArrayLike, mean_and_std: bool = False,
-                credible_intervals: list[float] = None,
+                x: ArrayLike,
+                mean_and_std: bool = False,
+                credible_intervals: list[float] | None = None,
                 raw: bool = False):
         out = self.evaluate(
             x,
@@ -208,7 +209,7 @@ class BdeRegressor(Bde, RegressorMixin):
         )
         if mean_and_std:
             return out["mean"], out["std"]
-        elif credible_intervals:
+        if credible_intervals:
             return out["mean"], out["credible_intervals"]
         return out["mean"]
 
@@ -221,20 +222,21 @@ class BdeRegressor(Bde, RegressorMixin):
           - N = number of test points
           - 2 = (mu, sigma_param)
         """
-        return self.evaluate(x, raw=True)["raw"]
+
+        return super().get_raw_predictions(x)
 
 
 class BdeClassifier(Bde, ClassifierMixin):
     def __init__(self, **kwargs):
+        if "task" in kwargs:
+            raise TypeError("'task' cannot be overridden for BdeClassifier; it is fixed to classification.")
         super().__init__(task=TaskType.CLASSIFICATION, **kwargs)
 
     def predict(self, x: ArrayLike):
-        out = self.evaluate(x)
-        return out["labels"]
+        return self.evaluate(x)["labels"]
 
     def predict_proba(self, x: ArrayLike):
-        out = self.evaluate(x, probabilities=True)
-        return out["probs"]
+        return self.evaluate(x, probabilities=True)["probs"]
 
     def get_raw_predictions(self, x: ArrayLike):
         """Return raw ensemble predictions.
@@ -245,4 +247,4 @@ class BdeClassifier(Bde, ClassifierMixin):
           - N = number of test points
           - C = number of classes (logits before softmax)
         """
-        return self.evaluate(x, raw=True)["raw"]
+        return super().get_raw_predictions(x)
