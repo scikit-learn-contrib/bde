@@ -69,7 +69,8 @@ class BdeBuilder(FnnTrainer):
 
         self.results = {}
 
-    def get_model(self, seed: int, *, act_fn, sizes) -> Fnn:
+    @staticmethod
+    def get_model(seed: int, *, act_fn, sizes) -> Fnn:
         """Create a single Fnn model and initialize its parameters
 
         Parameters
@@ -77,6 +78,7 @@ class BdeBuilder(FnnTrainer):
         seed : int
         act_fn:
             #TODO: complete documentation
+        sizes:
 
         Returns
         -------
@@ -85,7 +87,7 @@ class BdeBuilder(FnnTrainer):
 
         return Fnn(sizes=sizes, init_seed=seed, act_fn=act_fn)
 
-    def deep_ensemble_creator(self, seed: int = 0, *, act_fn, sizes: list[int] = None) -> list[Fnn]:
+    def _deep_ensemble_creator(self, seed: int = 0, *, act_fn, sizes: list[int] = None) -> list[Fnn]:
         """Create an ensemble of ``n_members`` FNN models.
 
         Each member is initialized with a different random seed to encourage
@@ -114,7 +116,7 @@ class BdeBuilder(FnnTrainer):
 
     def _ensure_member_initialization(self, full_sizes: list):
         if self.members is None:
-            self.members = self.deep_ensemble_creator(seed=self.seed, act_fn=self.act_fn, sizes=full_sizes)
+            self.members = self._deep_ensemble_creator(seed=self.seed, act_fn=self.act_fn, sizes=full_sizes)
 
     def _create_training_components(self, optimizer, loss: BaseLoss):
         proto_model = self.members[0]

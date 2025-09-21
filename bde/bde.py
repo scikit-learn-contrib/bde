@@ -7,7 +7,6 @@ from bde.sampler.probabilistic import ProbabilisticModel
 from bde.sampler.prior import PriorDist
 from bde.sampler.warmup import warmup_bde
 from bde.sampler.mile_wrapper import MileWrapper
-from bde.task import TaskType
 import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map, tree_leaves
