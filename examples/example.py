@@ -41,10 +41,10 @@ def regression_example():
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
-        n_members=24,
+        n_members=4,
         seed=0,
         loss=GaussianNLL(),
-        epochs=10000,
+        epochs=1000,
         lr=1e-3,
         warmup_steps=500,
         n_samples=100,
@@ -52,7 +52,7 @@ def regression_example():
     )
 
     print(f"the params are {regressor.get_params()}")  # get_params is from sk learn!!
-    regressor.fit(X=Xtr, y=ytr)
+    regressor.fit(x=Xtr, y=ytr)
 
     means, sigmas = regressor.predict(Xte, mean_and_std=True)
 
@@ -109,7 +109,7 @@ def classification_example():
         n_thinning=5
     )
 
-    classifier.fit(X=Xtr, y=ytr)
+    classifier.fit(x=Xtr, y=ytr)
 
     preds = classifier.predict(Xte)
     probs = classifier.predict_proba(Xte)
@@ -151,5 +151,5 @@ def classification_example():
 
 
 if __name__ == "__main__":
-    # regression_example()
+    # classification_example()
     regression_example()

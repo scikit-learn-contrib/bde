@@ -33,14 +33,14 @@ class Fnn(BaseModel):
         """
         super().__init__()  # init the trainer side (history, etc.)
         self.sizes = sizes
-        self.params = self.init_mlp(seed=init_seed)
+        self.params = self._init_mlp(seed=init_seed)
         self.act_fn = self._get_activation(act_fn)
 
     @property
     def name(self) -> str:
         return "Fnn"
 
-    def init_mlp(self, seed):
+    def _init_mlp(self, seed):
         """
         #TODO:documentation
         Parameters
@@ -82,7 +82,7 @@ class Fnn(BaseModel):
         W, b = params[-1]
         return jnp.dot(x, W) + b
 
-    def apply(self, variables, x, **kwargs): #TODO: this is not used somewhere relevant!
+    def apply(self, variables, x, **kwargs): #TODO[@angelos, @vyron]: this is not used somewhere relevant!
         """Mimic Flax API: variables['params'] contains weights."""
         params = variables["params"]
         return self.forward(params, x, **kwargs)

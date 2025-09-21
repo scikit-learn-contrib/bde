@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import jax.scipy.stats as stats
 
 import optax
-from bde.data.dataloader import TaskType
+from bde.task import TaskType
 from bde.loss.loss import *
 
 from sklearn.model_selection import train_test_split
@@ -69,7 +69,7 @@ class FnnTrainer:
     @staticmethod
     def split_train_val(X, y, *, train_size=0.85, val_size=0.15, random_state=42, stratify=False, shuffle=True):
         """
-        Split X, y into train/validation sets.
+        Split x, y into train/validation sets.
 
         Returns
         -------
