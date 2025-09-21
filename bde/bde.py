@@ -1,7 +1,3 @@
-from abc import abstractclassmethod
-
-from pandas.core.window.doc import kwargs_scipy
-
 from bde.bde_builder import BdeBuilder
 from bde.bde_evaluator import BdePredictor
 from bde.loss.loss import BaseLoss
@@ -17,6 +13,13 @@ from bde.task import TaskType
 from functools import partial
 import optax
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
+from typing import Any, Protocol, cast
+
+
+class _WarmupState(Protocol):
+    """Protocol for warmup states exposing the current position."""
+
+    position: Any
 
 
 class Bde(BaseEstimator):
@@ -86,8 +89,8 @@ class Bde(BaseEstimator):
             desired_energy_var_start=self.desired_energy_var_start,
             desired_energy_var_end=self.desired_energy_var_end,
         )
-
-        return warm.state.position, warm.parameters  # (pytree with leading E,  MCLMCAdaptationState)
+        warm_state = cast(_WarmupState, warm.state)
+        return warm_state.position, warm.parameters  # (pytree with leading E,  MCLMCAdaptationState)
 
     def _generate_rng_keys(self, num_chains: int):
         rng = jax.random.PRNGKey(int(self.seed))
