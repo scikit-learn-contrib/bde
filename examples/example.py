@@ -1,3 +1,10 @@
+"""
+Minimal Example
+===============
+
+This example demonstrates a simple usage of the BDE package.
+"""
+
 import sys
 import os
 
