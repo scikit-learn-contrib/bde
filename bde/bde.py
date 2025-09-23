@@ -67,6 +67,12 @@ class Bde:
         self.is_fitted = False
 
     def _build_bde(self):
+        """
+
+        Returns
+        -------
+
+        """
         self.bde = BdeBuilder(
             hidden_sizes=self.hidden_layers,
             patience=self.patience,
@@ -79,12 +85,33 @@ class Bde:
         self.members = self.bde.members
 
     def _build_log_post(self, x: ArrayLike, y: ArrayLike):
+        """
+
+        Parameters
+        ----------
+        x
+        y
+
+        Returns
+        -------
+
+        """
         prior = PriorDist.STANDARDNORMAL.get_prior()
         proto = self.bde.members[0]
         pm = ProbabilisticModel(module=proto, params=proto.params, prior=prior, task=self.task)
         return partial(pm.log_unnormalized_posterior, x=x, y=y)
 
     def _warmup_sampler(self, logpost):
+        """
+
+        Parameters
+        ----------
+        logpost
+
+        Returns
+        -------
+
+        """
         warm = warmup_bde(
             self.bde,
             logpost,
@@ -97,11 +124,32 @@ class Bde:
         return warm_state.position, warm.parameters  # (pytree with leading E,  MCLMCAdaptationState)
 
     def _generate_rng_keys(self, num_chains: int):
+        """
+
+        Parameters
+        ----------
+        num_chains
+
+        Returns
+        -------
+
+        """
         rng = jax.random.PRNGKey(int(self.seed))
         return jax.vmap(lambda i: jax.random.fold_in(rng, i))(jnp.arange(num_chains))
 
     @staticmethod
     def _normalize_tuned_parameters(tuned, num_chains: int):
+        """
+
+        Parameters
+        ----------
+        tuned
+        num_chains
+
+        Returns
+        -------
+
+        """
         L_e = tuned.L if jnp.ndim(tuned.L) == 1 else jnp.full((num_chains,), tuned.L)
         step_e = tuned.step_size if jnp.ndim(tuned.step_size) == 1 else jnp.full((num_chains,), tuned.step_size)
         sqrt_diag_e = tuned.sqrt_diag_cov
@@ -115,6 +163,21 @@ class Bde:
                       step_e,
                       sqrt_diag_e,
                       ):
+        """
+
+        Parameters
+        ----------
+        logpost
+        rng_keys_e
+        init_positions_e
+        L_e
+        step_e
+        sqrt_diag_e
+
+        Returns
+        -------
+
+        """
         sampler = MileWrapper(logpost)
         positions_eT, _, _ = sampler.sample_batched(
             rng_keys_e=rng_keys_e,
@@ -129,6 +192,16 @@ class Bde:
         return positions_eT
 
     def _make_predictor(self, x: ArrayLike) -> BdePredictor:
+        """
+
+        Parameters
+        ----------
+        x
+
+        Returns
+        -------
+
+        """
         if self.positions_eT is None:
             raise RuntimeError("Call 'fit' before requesting predictions.")
         if not getattr(self.bde, "members", None):
@@ -142,6 +215,18 @@ class Bde:
         )
 
     def fit(self, x: ArrayLike, y: ArrayLike):
+        """
+
+        Parameters
+        ----------
+        x
+        y
+
+        Returns
+        -------
+
+        """
+
         x_np, y_np = validate_fit_data(self, x, y)
         x_checked = jnp.asarray(x_np)
         y_checked = jnp.asarray(y_np)
@@ -216,21 +301,21 @@ class Bde:
 # TODO: [@angelos] maybe put them in another file?
 class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
     def __init__(
-        self,
-        n_members: int = 2,
-        hidden_layers: list[int] | None = None,
-        seed: int = 0,
-        loss: BaseLoss | None = None,
-        activation: str = "relu",
-        epochs: int = 20,
-        patience: int = 25,
-        n_samples: int = 10,
-        warmup_steps: int = 50,
-        lr: float = 1e-3,
-        n_thinning: int = 2,
-        desired_energy_var_start: float = 0.5,
-        desired_energy_var_end: float = 0.1,
-        step_size_init: float | None = None,
+            self,
+            n_members: int = 2,
+            hidden_layers: list[int] | None = None,
+            seed: int = 0,
+            loss: BaseLoss | None = None,
+            activation: str = "relu",
+            epochs: int = 20,
+            patience: int = 25,
+            n_samples: int = 10,
+            warmup_steps: int = 50,
+            lr: float = 1e-3,
+            n_thinning: int = 2,
+            desired_energy_var_start: float = 0.5,
+            desired_energy_var_end: float = 0.1,
+            step_size_init: float | None = None,
     ):
         super().__init__(
             n_members=n_members,
@@ -282,21 +367,21 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
 
 class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
     def __init__(
-        self,
-        n_members: int = 2,
-        hidden_layers: list[int] | None = None,
-        seed: int = 0,
-        loss: BaseLoss | None = None,
-        activation: str = "relu",
-        epochs: int = 20,
-        patience: int = 25,
-        n_samples: int = 10,
-        warmup_steps: int = 50,
-        lr: float = 1e-3,
-        n_thinning: int = 2,
-        desired_energy_var_start: float = 0.5,
-        desired_energy_var_end: float = 0.1,
-        step_size_init: float | None = None,
+            self,
+            n_members: int = 2,
+            hidden_layers: list[int] | None = None,
+            seed: int = 0,
+            loss: BaseLoss | None = None,
+            activation: str = "relu",
+            epochs: int = 20,
+            patience: int = 25,
+            n_samples: int = 10,
+            warmup_steps: int = 50,
+            lr: float = 1e-3,
+            n_thinning: int = 2,
+            desired_energy_var_start: float = 0.5,
+            desired_energy_var_end: float = 0.1,
+            step_size_init: float | None = None,
     ):
         super().__init__(
             n_members=n_members,
