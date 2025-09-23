@@ -194,19 +194,19 @@ class BdeBuilder(FnnTrainer):
             params_de, opt_state_de, lvals_de = state.pstep(params_de, opt_state_de, x_train, y_train, stopped_de)
             train_mean = float(jnp.mean(jax.device_get(lvals_de)))
             self.history["train_loss"].append(train_mean)
-            if epoch % self.log_every == 0:
-                print(epoch, train_mean)
+            # if epoch % self.log_every == 0:
+            #     print(epoch, train_mean)
 
             should_eval = (x_val is not None) and (y_val is not None) and callback.should_evaluate(epoch)
             if should_eval:
                 val_lvals_de = state.peval(params_de, x_val, y_val)
                 callback_state = callback.update(callback_state, epoch, params_de, val_lvals_de)
-                if epoch % 100 == 0:
-                    n_active = callback.active_members(callback_state)
-                    print(f"[epoch {epoch}] active members: {n_active}")
+                # if epoch % 100 == 0:
+                #     n_active = callback.active_members(callback_state)
+                #     print(f"[epoch {epoch}] active members: {n_active}")
 
                 if callback.all_stopped(callback_state):
-                    print(f"All members stopped by epoch {epoch}.")
+                    # print(f"All members stopped by epoch {epoch}.")
                     break
         return TrainingLoopResult(params_de, opt_state_de, callback_state)
 
@@ -233,8 +233,8 @@ class BdeBuilder(FnnTrainer):
             epochs,
         )
         stop_epoch_e = callback.stop_epochs(loop_result.callback_state, ensemble_size=state.ensemble_size)
-        for m_id, ep in enumerate(list(map(int, jax.device_get(stop_epoch_e)))):
-            print(f"member {m_id}: {'stopped at epoch ' + str(ep) if ep >= 0 else 'ran full training'}")
+        # for m_id, ep in enumerate(list(map(int, jax.device_get(stop_epoch_e)))):
+        #     print(f"member {m_id}: {'stopped at epoch ' + str(ep) if ep >= 0 else 'ran full training'}")
 
         params_e_final = callback.best_params(loop_result.callback_state, ensemble_size=state.ensemble_size)
         for i, m in enumerate(self.members):

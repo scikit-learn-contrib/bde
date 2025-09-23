@@ -15,6 +15,11 @@ import optax
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 from typing import Any, Protocol, cast
 
+from bde.data.utils import (
+    validate_fit_data,
+    validate_predict_data,
+)
+
 
 class _WarmupState(Protocol):
     """Protocol for warmup states exposing the current position."""
@@ -59,6 +64,7 @@ class Bde:
         self.desired_energy_var_end = desired_energy_var_end
 
         # self.positions_eT = None  # will be set after training + sampling TODO: [@remove]
+        self.is_fitted = False
 
     def _build_bde(self):
         self.bde = BdeBuilder(
@@ -136,17 +142,27 @@ class Bde:
         )
 
     def fit(self, x: ArrayLike, y: ArrayLike):
-        self._build_bde()
-        self.bde.fit_members(x=x, y=y, optimizer=optax.adam(self.lr), epochs=self.epochs, loss=self.loss)
+        x_np, y_np = validate_fit_data(self, x, y)
+        x_checked = jnp.asarray(x_np)
+        y_checked = jnp.asarray(y_np)
 
-        logpost_one = self._build_log_post(x, y)
+        self._build_bde()
+        self.bde.fit_members(
+            x=x_checked,
+            y=y_checked,
+            optimizer=optax.adam(self.lr),
+            epochs=self.epochs,
+            loss=self.loss,
+        )
+
+        logpost_one = self._build_log_post(x_checked, y_checked)
         init_positions_e, tuned = self._warmup_sampler(logpost_one)
 
         num_chains = tree_leaves(init_positions_e)[0].shape[0]
         rng_keys_e = self._generate_rng_keys(num_chains)
         L_e, step_e, sqrt_diag_e = self._normalize_tuned_parameters(tuned, num_chains)
 
-        self.positions_eT = self._draw_samples(
+        samples = self._draw_samples(
             logpost_one,
             rng_keys_e,
             init_positions_e,
@@ -154,17 +170,20 @@ class Bde:
             step_e,
             sqrt_diag_e,
         )
+        self.positions_eT = tree_map(lambda arr: jnp.asarray(arr), samples)
 
         self.is_fitted = True
 
         return self
 
-    def evaluate(self,
-                 xte: ArrayLike,
-                 mean_and_std: bool = False,
-                 credible_intervals: list[float] | None = None,
-                 raw: bool = False,
-                 probabilities: bool = False):
+    def evaluate(
+            self,
+            xte: ArrayLike,
+            mean_and_std: bool = False,
+            credible_intervals: list[float] | None = None,
+            raw: bool = False,
+            probabilities: bool = False,
+    ):
         """
 
         Parameters
@@ -179,7 +198,9 @@ class Bde:
         -------
 
         """
-        predictor = self._make_predictor(xte)
+        xte_np = validate_predict_data(self, xte)
+        xte_jnp = jnp.asarray(xte_np)
+        predictor = self._make_predictor(xte_jnp)
         return predictor.predict(
             mean_and_std=mean_and_std,
             credible_intervals=credible_intervals,
@@ -194,10 +215,40 @@ class Bde:
 
 # TODO: [@angelos] maybe put them in another file?
 class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
-    def __init__(self, **kwargs):
-        if "task" in kwargs:
-            raise TypeError("'task' cannot be overridden for BdeRegressor; it is fixed to regression.")
-        super().__init__(task=TaskType.REGRESSION, **kwargs)
+    def __init__(
+        self,
+        n_members: int = 2,
+        hidden_layers: list[int] | None = None,
+        seed: int = 0,
+        loss: BaseLoss | None = None,
+        activation: str = "relu",
+        epochs: int = 20,
+        patience: int = 25,
+        n_samples: int = 10,
+        warmup_steps: int = 50,
+        lr: float = 1e-3,
+        n_thinning: int = 2,
+        desired_energy_var_start: float = 0.5,
+        desired_energy_var_end: float = 0.1,
+        step_size_init: float | None = None,
+    ):
+        super().__init__(
+            n_members=n_members,
+            hidden_layers=hidden_layers,
+            seed=seed,
+            task=TaskType.REGRESSION,
+            loss=loss,
+            activation=activation,
+            epochs=epochs,
+            patience=patience,
+            n_samples=n_samples,
+            warmup_steps=warmup_steps,
+            lr=lr,
+            n_thinning=n_thinning,
+            desired_energy_var_start=desired_energy_var_start,
+            desired_energy_var_end=desired_energy_var_end,
+            step_size_init=step_size_init,
+        )
 
     def predict(self,
                 x: ArrayLike,
@@ -230,10 +281,40 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
 
 
 class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
-    def __init__(self, **kwargs):
-        if "task" in kwargs:
-            raise TypeError("'task' cannot be overridden for BdeClassifier; it is fixed to classification.")
-        super().__init__(task=TaskType.CLASSIFICATION, **kwargs)
+    def __init__(
+        self,
+        n_members: int = 2,
+        hidden_layers: list[int] | None = None,
+        seed: int = 0,
+        loss: BaseLoss | None = None,
+        activation: str = "relu",
+        epochs: int = 20,
+        patience: int = 25,
+        n_samples: int = 10,
+        warmup_steps: int = 50,
+        lr: float = 1e-3,
+        n_thinning: int = 2,
+        desired_energy_var_start: float = 0.5,
+        desired_energy_var_end: float = 0.1,
+        step_size_init: float | None = None,
+    ):
+        super().__init__(
+            n_members=n_members,
+            hidden_layers=hidden_layers,
+            seed=seed,
+            task=TaskType.CLASSIFICATION,
+            loss=loss,
+            activation=activation,
+            epochs=epochs,
+            patience=patience,
+            n_samples=n_samples,
+            warmup_steps=warmup_steps,
+            lr=lr,
+            n_thinning=n_thinning,
+            desired_energy_var_start=desired_energy_var_start,
+            desired_energy_var_end=desired_energy_var_end,
+            step_size_init=step_size_init,
+        )
 
     def predict(self, x: ArrayLike):
         return self.evaluate(x)["labels"]
