@@ -15,9 +15,11 @@ from functools import partial
 import optax
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
 from sklearn.utils.validation import check_is_fitted
-from typing import Any, Protocol, cast
+from typing import Any, Protocol, TYPE_CHECKING, cast
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
+
+if TYPE_CHECKING:
+    from sklearn.preprocessing import LabelEncoder
 
 from bde.data.utils import (
     validate_fit_data,
@@ -36,6 +38,8 @@ class Bde:
     positions_eT_: ParamTree
     is_fitted_: bool
     members_: list[BaseModel]
+    hidden_layers: list[int] | None
+    step_size_init: float | None
 
     def __init__(self,
                  n_members: int = 2,
@@ -55,7 +59,7 @@ class Bde:
                  step_size_init: float = None
                  ):
         self.n_members = n_members
-        self.hidden_layers = [4, 4] if hidden_layers is None else hidden_layers
+        self.hidden_layers = hidden_layers
         self.seed = seed
         self.task = task
         self.loss = loss
@@ -70,7 +74,12 @@ class Bde:
         self.n_thinning = n_thinning
         self.desired_energy_var_start = desired_energy_var_start
         self.desired_energy_var_end = desired_energy_var_end
-        self.step_size_init = step_size_init if step_size_init is not None else lr
+        self.step_size_init = step_size_init
+
+        # Internal caches resolved during fit
+        self._resolved_hidden_layers = None
+        self._resolved_step_size_init = None
+        self._bde: BdeBuilder | None = None
 
     def _build_bde(self):
         """
@@ -79,8 +88,11 @@ class Bde:
         -------
 
         """
-        self.bde = BdeBuilder(
-            hidden_sizes=self.hidden_layers,
+        hidden_layers = self.hidden_layers if self.hidden_layers is not None else [4, 4]
+        self._resolved_hidden_layers = list(hidden_layers)
+
+        self._bde = BdeBuilder(
+            hidden_sizes=self._resolved_hidden_layers,
             patience=self.patience,
             n_members=self.n_members,
             task=self.task,
@@ -88,7 +100,7 @@ class Bde:
             act_fn=self.activation
         )
 
-        self.members_ = self.bde.members
+        self.members_ = self._bde.members
 
     def _build_log_post(self, x: ArrayLike, y: ArrayLike):
         """
@@ -103,7 +115,7 @@ class Bde:
 
         """
         prior = PriorDist.STANDARDNORMAL.get_prior()
-        proto = self.bde.members[0]
+        proto = self._bde.members[0]
         pm = ProbabilisticModel(module=proto, params=proto.params, prior=prior, task=self.task)
         return partial(pm.log_unnormalized_posterior, x=x, y=y)
 
@@ -119,9 +131,9 @@ class Bde:
 
         """
         warm = warmup_bde(
-            self.bde,
+            self._bde,
             logpost,
-            step_size_init=self.step_size_init,
+            step_size_init=self._resolved_step_size_init,
             warmup_steps=self.warmup_steps,
             desired_energy_var_start=self.desired_energy_var_start,
             desired_energy_var_end=self.desired_energy_var_end,
@@ -209,11 +221,11 @@ class Bde:
 
         """
         check_is_fitted(self)
-        if not getattr(self.bde, "members", None):
+        if not getattr(self._bde, "members", None):
             raise RuntimeError("BDE members are not initialized; ensure 'fit' has been executed successfully.")
 
         return BdePredictor(
-            forward_fn=self.bde.members[0].forward,
+            forward_fn=self._bde.members[0].forward,
             positions_eT=self.positions_eT_,
             xte=x,
             task=self.task,
@@ -254,8 +266,12 @@ class Bde:
         y_checked = jnp.asarray(y_prepared)
 
 
+        self._resolved_step_size_init = (
+            self.step_size_init if self.step_size_init is not None else self.lr
+        )
+
         self._build_bde()
-        self.bde.fit_members(
+        self._bde.fit_members(
             x=x_checked,
             y=y_checked,
             optimizer=optax.adam(self.lr),
@@ -283,6 +299,13 @@ class Bde:
         self.is_fitted_ = True
 
         return self
+
+    # scikit-learn compatibility tags
+    def _more_tags(self):
+        return {
+            "poor_score": True,  # training can be stochastic and heavy
+            "multioutput": False,
+        }
 
     def evaluate(
             self,
@@ -389,7 +412,7 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
 
 
 class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
-    label_encoder_: LabelEncoder
+    label_encoder_: "LabelEncoder"
 
     def __init__(
             self,
@@ -427,6 +450,8 @@ class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
         )
 
     def _prepare_targets(self, y_checked):
+        from sklearn.preprocessing import LabelEncoder
+
         encoder = LabelEncoder()
         encoded = encoder.fit_transform(np.asarray(y_checked))
         self.label_encoder_ = encoder

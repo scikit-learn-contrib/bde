@@ -1,6 +1,9 @@
 """Validation helpers shared across estimators and data utilities."""
 
+import warnings
+
 import numpy as np
+from sklearn.exceptions import DataConversionWarning
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import check_array, check_is_fitted, check_X_y
 
@@ -11,6 +14,12 @@ def validate_fit_data(estimator, X, y):
     """Run sklearn-style checks for training data and update estimator metadata."""
     y_array = np.asarray(y)
     if y_array.ndim > 1 and y_array.shape[1] == 1:
+        warnings.warn(
+            DataConversionWarning(
+                "A column-vector y was passed when a 1d array was expected."
+            ),
+            stacklevel=3,
+        )
         y_array = y_array.reshape(-1)
 
     feature_names = getattr(X, "columns", None)

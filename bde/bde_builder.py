@@ -251,17 +251,9 @@ class BdeBuilder(FnnTrainer):
         return list(self.results.keys())
 
     def __getattr__(self, item):
-        """
-        #TODO: dcoumentation
-        Parameters
-        ----------
-        item
+        """Fallback to cached results when available."""
 
-        Returns
-        -------
-
-        """
-        if item in self.results:
-            return self.results[item]
-        else:
-            raise AttributeError(f"{self.__class__.__name__} has no attribute '{item}' !")
+        results = self.__dict__.get("results")
+        if results is not None and item in results:
+            return results[item]
+        raise AttributeError(f"{self.__class__.__name__} has no attribute '{item}' !")

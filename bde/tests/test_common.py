@@ -7,8 +7,9 @@ from bde.utils.discovery import all_estimators
 from bde.bde import Bde  # import the base class
 
 FAST_BDE_KWARGS = dict(
-    n_members=1,
-    epochs=1,
+    n_members=2,
+    hidden_layers = [2,2],
+    epochs=2,
     warmup_steps=5,
     n_samples=1,
     n_thinning=1,
