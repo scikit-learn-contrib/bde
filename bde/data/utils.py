@@ -1,7 +1,5 @@
 """Validation helpers shared across estimators and data utilities."""
 
-from __future__ import annotations
-
 import numpy as np
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import check_array, check_is_fitted, check_X_y
@@ -23,7 +21,7 @@ def validate_fit_data(estimator, X, y):
         ensure_2d=True,
         ensure_min_samples=1,
         force_all_finite=True,
-        y_numeric=(estimator.task == TaskType.REGRESSION), # only Treu for regression
+        y_numeric=(estimator.task == TaskType.REGRESSION),  # only Treu for regression
     )
 
     if feature_names is not None:
@@ -71,4 +69,3 @@ def validate_predict_data(estimator, X):
             raise ValueError("Feature names of X do not match those seen during fit.")
 
     return X_checked
-
