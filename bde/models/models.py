@@ -22,7 +22,7 @@ class BaseModel(ABC):
 class Fnn(BaseModel):
     """Single FNN that can optionally train itself on init."""
 
-    def __init__(self, sizes, init_seed=0, *, act_fn):
+    def __init__(self, sizes, init_seed: int =0, *, act_fn: str):
         """
         #TODO: documentation
 
@@ -34,7 +34,8 @@ class Fnn(BaseModel):
         super().__init__()  # init the trainer side (history, etc.)
         self.sizes = sizes
         self.params = self._init_mlp(seed=init_seed)
-        self.act_fn = self._get_activation(act_fn)
+        self.activation_name = act_fn
+        # self.act_fn = self._get_activation(act_fn) TODO: [@delete] because it is non pickable and raises errors in test
 
     @property
     def name(self) -> str:
@@ -75,10 +76,9 @@ class Fnn(BaseModel):
 
         """
         # TODO: [@later] have a validation of input layer and number of features
+        act_fn = self._get_activation(self.activation_name)
         for (W, b) in params[:-1]:
-            x = jnp.dot(x, W) + b
-            # x = jax.nn.relu(x)
-            x = self.act_fn(x)
+            x = act_fn(jnp.dot(x, W) + b)
         W, b = params[-1]
         return jnp.dot(x, W) + b
 

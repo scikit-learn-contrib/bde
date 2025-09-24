@@ -1,6 +1,7 @@
 from bde.bde_builder import BdeBuilder
 from bde.bde_evaluator import BdePredictor
 from bde.loss.loss import BaseLoss
+from bde.models.models import BaseModel
 from bde.sampler.probabilistic import ProbabilisticModel
 from bde.sampler.prior import PriorDist
 from bde.sampler.warmup import warmup_bde
@@ -13,12 +14,16 @@ from bde.task import TaskType
 from functools import partial
 import optax
 from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
+from sklearn.utils.validation import check_is_fitted
 from typing import Any, Protocol, cast
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
 from bde.data.utils import (
     validate_fit_data,
     validate_predict_data,
 )
+from bde.sampler.my_types import ParamTree
 
 
 class _WarmupState(Protocol):
@@ -28,6 +33,10 @@ class _WarmupState(Protocol):
 
 
 class Bde:
+    positions_eT_: ParamTree
+    is_fitted_: bool
+    members_: list[BaseModel]
+
     def __init__(self,
                  n_members: int = 2,
                  hidden_layers: list[int] | None = None,
@@ -43,7 +52,7 @@ class Bde:
                  n_thinning: int = 2,
                  desired_energy_var_start: float = 0.5,
                  desired_energy_var_end: float = 0.1,
-                 step_size_init: int = None
+                 step_size_init: float = None
                  ):
         self.n_members = n_members
         self.hidden_layers = [4, 4] if hidden_layers is None else hidden_layers
@@ -59,12 +68,9 @@ class Bde:
         self.warmup_steps = warmup_steps
         self.lr = lr
         self.n_thinning = n_thinning
-        self.step_size_init = step_size_init if step_size_init is not None else lr
         self.desired_energy_var_start = desired_energy_var_start
         self.desired_energy_var_end = desired_energy_var_end
-
-        # self.positions_eT = None  # will be set after training + sampling TODO: [@remove]
-        self.is_fitted = False
+        self.step_size_init = step_size_init if step_size_init is not None else lr
 
     def _build_bde(self):
         """
@@ -82,7 +88,7 @@ class Bde:
             act_fn=self.activation
         )
 
-        self.members = self.bde.members
+        self.members_ = self.bde.members
 
     def _build_log_post(self, x: ArrayLike, y: ArrayLike):
         """
@@ -202,17 +208,31 @@ class Bde:
         -------
 
         """
-        if self.positions_eT is None:
-            raise RuntimeError("Call 'fit' before requesting predictions.")
+        check_is_fitted(self)
         if not getattr(self.bde, "members", None):
             raise RuntimeError("BDE members are not initialized; ensure 'fit' has been executed successfully.")
 
         return BdePredictor(
             forward_fn=self.bde.members[0].forward,
-            positions_eT=self.positions_eT,
+            positions_eT=self.positions_eT_,
             xte=x,
             task=self.task,
         )
+
+    @staticmethod
+    def _prepare_targets(y_checked: ArrayLike) -> ArrayLike:
+        """This method is to be overwritten in the BdeClassifier class in order to prepare the labels for classification
+
+        Parameters
+        ----------
+        y_checked
+
+        Returns
+        -------
+
+        """
+
+        return y_checked
 
     def fit(self, x: ArrayLike, y: ArrayLike):
         """
@@ -228,8 +248,11 @@ class Bde:
         """
 
         x_np, y_np = validate_fit_data(self, x, y)
+        y_prepared = self._prepare_targets(y_np)
+
         x_checked = jnp.asarray(x_np)
-        y_checked = jnp.asarray(y_np)
+        y_checked = jnp.asarray(y_prepared)
+
 
         self._build_bde()
         self.bde.fit_members(
@@ -255,9 +278,9 @@ class Bde:
             step_e,
             sqrt_diag_e,
         )
-        self.positions_eT = tree_map(lambda arr: jnp.asarray(arr), samples)
+        self.positions_eT_ = tree_map(lambda arr: jnp.asarray(arr), samples)
 
-        self.is_fitted = True
+        self.is_fitted_ = True
 
         return self
 
@@ -366,6 +389,8 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
 
 
 class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
+    label_encoder_: LabelEncoder
+
     def __init__(
             self,
             n_members: int = 2,
@@ -401,11 +426,22 @@ class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
             step_size_init=step_size_init,
         )
 
+    def _prepare_targets(self, y_checked):
+        encoder = LabelEncoder()
+        encoded = encoder.fit_transform(np.asarray(y_checked))
+        self.label_encoder_ = encoder
+        self.classes_ = np.asarray(encoder.classes_)
+        return encoded.astype(np.int32)
+
     def predict(self, x: ArrayLike):
-        return self.evaluate(x)["labels"]
+        labels = np.asarray(self.evaluate(x)["labels"])
+        if not hasattr(self, "label_encoder_"):
+            return labels
+        return self.label_encoder_.inverse_transform(labels.astype(int))
 
     def predict_proba(self, x: ArrayLike):
-        return self.evaluate(x, probabilities=True)["probs"]
+        probs = np.asarray(self.evaluate(x, probabilities=True)["probs"])
+        return probs
 
     def get_raw_predictions(self, x: ArrayLike):
         """Return raw ensemble predictions.
