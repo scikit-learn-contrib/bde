@@ -74,6 +74,8 @@ def all_estimators(type_filter=None):
             module_parts = module_name.split(".")
             if any(part in _MODULE_TO_IGNORE for part in module_parts):
                 continue
+            if module_name.startswith("bde.bde"):
+                continue
             module = import_module(module_name)
             classes = inspect.getmembers(module, inspect.isclass)
             classes = [
@@ -140,12 +142,12 @@ def all_displays():
     >>> displays = all_displays()
     """
     all_classes = []
-    root = str(Path(__file__).parent.parent)  # bde package
+    root = str(Path(__file__).parent)  # bde.utils package
     # Ignore deprecation warnings triggered at import time and from walking
     # packages
     with ignore_warnings(category=FutureWarning):
         for _, module_name, _ in pkgutil.walk_packages(
-            path=[root], prefix="bde."
+            path=[root], prefix="bde.utils."
         ):
             module_parts = module_name.split(".")
             if any(part in _MODULE_TO_IGNORE for part in module_parts):
@@ -190,28 +192,9 @@ def all_functions():
     >>> from bde.utils.discovery import all_functions
     >>> functions = all_functions()
     """
-    all_functions = []
-    root = str(Path(__file__).parent.parent)  # bde package
-    # Ignore deprecation warnings triggered at import time and from walking
-    # packages
-    with ignore_warnings(category=FutureWarning):
-        for _, module_name, _ in pkgutil.walk_packages(
-            path=[root], prefix="bde."
-        ):
-            module_parts = module_name.split(".")
-            if any(part in _MODULE_TO_IGNORE for part in module_parts):
-                continue
-
-            module = import_module(module_name)
-            functions = inspect.getmembers(module, _is_checked_function)
-            functions = [
-                (func.__name__, func)
-                for name, func in functions
-                if not name.startswith("_")
-            ]
-            all_functions.extend(functions)
-
-    # drop duplicates, sort for reproducibility
-    # itemgetter is used to ensure the sort does not extend to the 2nd item of
-    # the tuple
-    return sorted(set(all_functions), key=itemgetter(0))
+    module = import_module(__name__)
+    functions = inspect.getmembers(module, inspect.isfunction)
+    filtered = [
+        (name, func) for name, func in functions if _is_checked_function(func)
+    ]
+    return sorted(filtered, key=itemgetter(0))

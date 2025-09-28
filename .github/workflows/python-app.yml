@@ -3,7 +3,8 @@ name: Unit Tests
 on:
   push:
     branches:
-    - main
+      - main
+      - 46-docs-dependencies-pipeline
   pull_request:
     branches:
       - main
@@ -12,14 +13,14 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-12]
-        environment: [test]
+        os: [ windows-latest, ubuntu-latest, macos-latest]
+        environment: [ test ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: prefix-dev/setup-pixi@v0.9.0
         with:
-          pixi-version: v0.23.0
+#          pixi-version: v0.23.0
           environments: ${{ matrix.environment }}
           frozen: true
 

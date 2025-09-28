@@ -32,7 +32,7 @@ def regression_example():
 
     # Convert to JAX arrays
     X_train = jnp.array(X_train, dtype=jnp.float32)
-    y_train = jnp.array(y_train, dtype=jnp.float32)
+    y_train = jnp.array(y_train, dtype=jnp.float32).ravel()
     X_test = jnp.array(X_test, dtype=jnp.float32)
     y_test = jnp.array(y_test, dtype=jnp.float32)
 
@@ -51,11 +51,11 @@ def regression_example():
         n_members=4,
         seed=0,
         loss=GaussianNLL(),
-        epochs=1000,
+        epochs=20,
         lr=1e-3,
-        warmup_steps=500,
-        n_samples=100,
-        n_thinning=10,
+        warmup_steps=50,
+        n_samples=10,
+        n_thinning=1,
     )
 
     print(f"the params are {regressor.get_params()}")  # get_params is from sk learn!!
@@ -95,7 +95,7 @@ def regression_example():
 def classification_example():
     iris = load_iris()
     X = iris.data.astype("float32")
-    y = iris.target.astype("int32")  # 0, 1, 2
+    y = iris.target.astype("int32").ravel()  # 0, 1, 2
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -104,16 +104,16 @@ def classification_example():
     ytr, yte = jnp.array(y_train), jnp.array(y_test)
 
     classifier = BdeClassifier(
-        n_members=5,
+        n_members=2,
         hidden_layers=[16, 16],
         seed=0,
         loss=CategoricalCrossEntropy(),
         activation="relu",
-        epochs=50,
+        epochs=4,
         lr=1e-3,
-        warmup_steps=200,
-        n_samples=50,
-        n_thinning=5
+        warmup_steps=50,
+        n_samples=2,
+        n_thinning=1
     )
 
     classifier.fit(x=Xtr, y=ytr)
@@ -158,5 +158,5 @@ def classification_example():
 
 
 if __name__ == "__main__":
-    # classification_example()
+    classification_example()
     regression_example()
