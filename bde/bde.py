@@ -1,31 +1,29 @@
-from bde.bde_builder import BdeBuilder
-from bde.bde_evaluator import BdePredictor
-from bde.loss.loss import BaseLoss
-from bde.models.models import BaseModel
-from bde.sampler.probabilistic import ProbabilisticModel
-from bde.sampler.prior import PriorDist
-from bde.sampler.warmup import warmup_bde
-from bde.sampler.mile_wrapper import MileWrapper
+from functools import partial
+from typing import TYPE_CHECKING, Any, Protocol, cast
+
 import jax
 import jax.numpy as jnp
-from jax.typing import ArrayLike
-from jax.tree_util import tree_map, tree_leaves
-from bde.task import TaskType
-from functools import partial
-import optax
-from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
-from sklearn.utils.validation import check_is_fitted
-from typing import Any, Protocol, TYPE_CHECKING, cast
 import numpy as np
+import optax
+from jax.tree_util import tree_leaves, tree_map
+from jax.typing import ArrayLike
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+from sklearn.utils.validation import check_is_fitted
+
+from .bde_builder import BdeBuilder
+from .bde_evaluator import BdePredictor
+from .data.utils import validate_fit_data, validate_predict_data
+from .loss import BaseLoss
+from .models import BaseModel
+from .sampler.mile_wrapper import MileWrapper
+from .sampler.probabilistic import ProbabilisticModel
+from .sampler.prior import PriorDist
+from .sampler.types import ParamTree
+from .sampler.warmup import warmup_bde
+from .task import TaskType
 
 if TYPE_CHECKING:
     from sklearn.preprocessing import LabelEncoder
-
-from bde.data.utils import (
-    validate_fit_data,
-    validate_predict_data,
-)
-from bde.sampler.types import ParamTree
 
 
 class _WarmupState(Protocol):
