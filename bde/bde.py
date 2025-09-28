@@ -1,3 +1,5 @@
+"""High-level scikit-learn style estimators for Bayesian deep ensembles."""
+
 from functools import partial
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
@@ -33,6 +35,11 @@ class _WarmupState(Protocol):
 
 
 class Bde:
+    """Base estimator that orchestrates training and sampling of deep ensembles.
+
+    The class follows the scikit-learn API and is specialised by regression and
+    classification mixins.
+    """
     positions_eT_: ParamTree
     is_fitted_: bool
     members_: list[BaseModel]
@@ -56,6 +63,42 @@ class Bde:
                  desired_energy_var_end: float = 0.1,
                  step_size_init: float = None
                  ):
+        """Initialise the estimator with architectural and sampling settings.
+
+        Parameters
+        ----------
+        n_members : int
+            Number of networks in the deep ensemble.
+        hidden_layers : list[int] | None
+            Hidden-layer widths; defaults to `[4, 4]` when `None`.
+        seed : int
+            Random seed shared across ensemble and sampling routines.
+        task : TaskType | None
+            Task identifier; subclasses set this automatically.
+        loss : BaseLoss | None
+            Optional user-provided loss function.
+        activation : str
+            Activation function passed to each network.
+        epochs : int
+            Maximum training epochs for each ensemble member.
+        patience : int
+            Early-stopping patience forwarded to the builder.
+        n_samples : int
+            Number of posterior samples per ensemble member.
+        warmup_steps : int
+            Warmup iterations for the sampler.
+        lr : float
+            Learning rate for the default Adam optimizer.
+        n_thinning : int
+            Thinning factor applied to MCMC samples.
+        desired_energy_var_start : float
+            Initial target energy variance for warmup.
+        desired_energy_var_end : float
+            Final target energy variance for warmup.
+        step_size_init : float | None
+            Optional initial step size for the sampler.
+        """
+
         self.n_members = n_members
         self.hidden_layers = hidden_layers
         self.seed = seed
@@ -80,12 +123,8 @@ class Bde:
         self._bde: BdeBuilder | None = None
 
     def _build_bde(self):
-        """
+        """Instantiate the builder and ensemble members based on current settings."""
 
-        Returns
-        -------
-
-        """
         hidden_layers = self.hidden_layers if self.hidden_layers is not None else [4, 4]
         self._resolved_hidden_layers = list(hidden_layers)
 
@@ -121,16 +160,19 @@ class Bde:
         return partial(pm.log_unnormalized_posterior, x=x, y=y)
 
     def _warmup_sampler(self, logpost):
-        """
+        """Run the adaptive warmup phase for the MCMC sampler.
 
         Parameters
         ----------
-        logpost
+        logpost : Callable
+            Unnormalised log posterior accepting parameter trees.
 
         Returns
         -------
-
+        tuple[ParamTree, Any]
+            Warmed-up starting positions and adaptation metadata.
         """
+
         warm = warmup_bde(
             self._bde,
             logpost,
@@ -143,32 +185,39 @@ class Bde:
         return warm_state.position, warm.parameters  # (pytree with leading E,  MCLMCAdaptationState)
 
     def _generate_rng_keys(self, num_chains: int):
-        """
+        """Construct distinct PRNG keys for each MCMC chain.
 
         Parameters
         ----------
-        num_chains
+        num_chains : int
+            Number of independent chains required.
 
         Returns
         -------
-
+        jax.Array
+            Array of shape (num_chains, 2) containing PRNG keys.
         """
+
         rng = jax.random.PRNGKey(int(self.seed))
         return jax.vmap(lambda i: jax.random.fold_in(rng, i))(jnp.arange(num_chains))
 
     @staticmethod
     def _normalize_tuned_parameters(tuned, num_chains: int):
-        """
+        """Broadcast tuned sampler parameters to the number of chains.
 
         Parameters
         ----------
-        tuned
-        num_chains
+        tuned : Any
+            Object returned by warmup containing `L`, `step_size`, `sqrt_diag_cov`.
+        num_chains : int
+            Number of chains requested for sampling.
 
         Returns
         -------
-
+        tuple[jax.Array, jax.Array, jax.Array]
+            Tuple of inverse mass matrix diagonals, step sizes, and covariance square roots.
         """
+
         L_e = tuned.L if jnp.ndim(tuned.L) == 1 else jnp.full((num_chains,), tuned.L)
         step_e = tuned.step_size if jnp.ndim(tuned.step_size) == 1 else jnp.full((num_chains,), tuned.step_size)
         sqrt_diag_e = tuned.sqrt_diag_cov
@@ -182,21 +231,29 @@ class Bde:
                       step_e,
                       sqrt_diag_e,
                       ):
-        """
+        """Generate posterior samples for each ensemble member.
 
         Parameters
         ----------
-        logpost
-        rng_keys_e
-        init_positions_e
-        L_e
-        step_e
-        sqrt_diag_e
+        logpost : Callable
+            Log posterior callable produced by `_build_log_post`.
+        rng_keys_e : jax.Array
+            PRNG keys for each chain.
+        init_positions_e : ParamTree
+            Warmed-up starting positions with leading ensemble axis.
+        L_e : jax.Array
+            Inverse mass matrix factors per chain.
+        step_e : jax.Array
+            Step sizes per chain.
+        sqrt_diag_e : jax.Array
+            Square root of diagonal covariance estimates.
 
         Returns
         -------
-
+        ParamTree
+            Posterior samples with leading axes (ensemble, samples, ...).
         """
+
         sampler = MileWrapper(logpost)
         positions_eT, _, _ = sampler.sample_batched(
             rng_keys_e=rng_keys_e,
@@ -419,6 +476,9 @@ class Bde:
 
 # TODO: [@angelos] maybe put them in another file?
 class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
+    """Regression-friendly wrapper exposing scikit-learn style API.
+    """
+
     def __init__(
             self,
             n_members: int = 2,
@@ -485,6 +545,9 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
 
 
 class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
+    """Classification wrapper with label encoding helpers.
+    """
+
     label_encoder_: "LabelEncoder"
 
     def __init__(

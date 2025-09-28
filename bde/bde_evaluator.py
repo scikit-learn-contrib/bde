@@ -1,25 +1,44 @@
+"""Prediction utilities for trained Bayesian deep ensembles."""
+
+from typing import Callable
+
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
-from bde.task import TaskType
-from .models.models import BaseModel
 from jax.typing import ArrayLike
 
+from .sampler.types import ParamTree
+from .task import TaskType
 
-class BdePredictor:  # TODO: [@question] Maybe merge with BDE Builder class
-    def __init__(self, forward_fn, positions_eT, xte, task: TaskType):
+
+class BdePredictor:
+    """Lightweight wrapper that aggregates ensemble predictions on demand.
+
+    Parameters
+    ----------
+    forward_fn : Callable
+        Function accepting `(params, x)` and returning model outputs.
+    positions_eT : ParamTree
+        Posterior samples with leading ensemble and sample axes.
+    xte : ArrayLike
+        Feature matrix to evaluate.
+    task : TaskType
+        Task associated with the ensemble (regression or classification).
+    """
+
+    def __init__(self, forward_fn: Callable[[ParamTree, ArrayLike], jax.Array], positions_eT: ParamTree, xte: ArrayLike, task: TaskType):
         self._forward = forward_fn
         self.positions = positions_eT  # (E, T, ...)
         self.xte = xte
         self.task = task
-        self._raw_preds: jax.vmap = None
+        self._raw_preds: jax.Array | None = None
 
-    def get_raw_preds(self):
-        """
+    def get_raw_preds(self) -> jax.Array:
+        """Materialise ensemble predictions with leading axes (E, T, N, *).
 
         Returns
         -------
-
+        jax.Array
+            Cached logits or regression outputs for every ensemble member and sample.
         """
 
         if self._raw_preds is None:
@@ -34,25 +53,29 @@ class BdePredictor:  # TODO: [@question] Maybe merge with BDE Builder class
 
         return self._raw_preds
 
-    def _regression_mu_sigma(self):
-        """
+    def _regression_mu_sigma(self) -> tuple[jax.Array, jax.Array]:
+        """Split regression outputs into mean and scale tensors.
 
         Returns
         -------
-        mu, sigma:
+        tuple[jax.Array, jax.Array]
+            Predictive means and softplus-transformed scales with shape (E, T, N).
         """
+
         preds = self.get_raw_preds()  # (E, T, N, 2)
         mu = preds[..., 0]
         sigma = jax.nn.softplus(preds[..., 1]) + 1e-6
         return mu, sigma
 
-    def get_preds_per_member(self):
-        """
+    def get_preds_per_member(self) -> tuple[jax.Array, jax.Array]:
+        """Summarise each ensemble member by mean prediction and total uncertainty.
 
         Returns
         -------
-
+        tuple[jax.Array, jax.Array]
+            Tuple of mean predictions and standard deviations shaped (E, N).
         """
+
         mu, sigma = self._regression_mu_sigma()
         mu_mean_e = jnp.mean(mu, axis=1)
         var_ale_e = jnp.mean(sigma ** 2, axis=1)
@@ -60,19 +83,22 @@ class BdePredictor:  # TODO: [@question] Maybe merge with BDE Builder class
         std_total_e = jnp.sqrt(var_ale_e + var_epi_e)
         return mu_mean_e, std_total_e
 
-    def _predict_regression(self, *, mean_and_std: bool, credible_intervals: list[float], raw: bool) -> dict:
-        """
+    def _predict_regression(self, *, mean_and_std: bool, credible_intervals: list[float] | None, raw: bool) -> dict[str, jax.Array]:
+        """Aggregate regression predictions under different output modalities.
 
         Parameters
         ----------
-        mean_and_std: bool
-        credible_intervals : list[float]
-        raw: bool
+        mean_and_std : bool
+            Whether to include total predictive standard deviation.
+        credible_intervals : list[float] | None
+            Optional quantile levels evaluated over the predictive distribution.
+        raw : bool
+            When `True`, include the cached raw ensemble outputs.
 
         Returns
         -------
-        out: dict
-
+        dict[str, jax.Array]
+            Mapping of requested statistics (mean, std, credible_intervals, raw).
         """
 
         mu, sigma = self._regression_mu_sigma()
@@ -90,19 +116,22 @@ class BdePredictor:  # TODO: [@question] Maybe merge with BDE Builder class
             out["raw"] = self.get_raw_preds()
         return out
 
-    def _predict_classification(self, *, probabilities: bool, raw: bool) -> dict:
-        """
+    def _predict_classification(self, *, probabilities: bool, raw: bool) -> dict[str, jax.Array]:
+        """Aggregate classification logits into labels and probabilities.
 
         Parameters
         ----------
-        probabilities: bool
-        raw: bool
+        probabilities : bool
+            Whether to include mean class probabilities.
+        raw : bool
+            When `True`, include raw logits for every sample.
 
         Returns
         -------
-        out : dict
-
+        dict[str, jax.Array]
+            Mapping containing `labels`, optionally `probs` and `raw`.
         """
+
         logits = self.get_raw_preds()
         probs = jax.nn.softmax(logits, axis=-1)
         mean_probs = jnp.mean(probs, axis=(0, 1))
@@ -116,6 +145,20 @@ class BdePredictor:  # TODO: [@question] Maybe merge with BDE Builder class
         return out
 
     def predict(self, *, mean_and_std=False, credible_intervals=None, raw=False, probabilities=False):
+        """Return prediction artefacts appropriate for the configured task.
+
+        Parameters
+        ----------
+        mean_and_std : bool
+            Regression-only flag to include predictive standard deviation.
+        credible_intervals : list[float] | None
+            Regression-only quantile levels.
+        raw : bool
+            Include raw ensemble outputs.
+        probabilities : bool
+            Classification-only flag to return class probabilities.
+        """
+
         if self.task == TaskType.REGRESSION:
             return self._predict_regression(
                 mean_and_std=mean_and_std,
@@ -128,6 +171,23 @@ class BdePredictor:  # TODO: [@question] Maybe merge with BDE Builder class
 
     @staticmethod
     def predictive_accuracy(y, mu, sigma):
+        """Compute calibration diagnostics for regression predictions.
+
+        Parameters
+        ----------
+        y : ArrayLike
+            Ground-truth targets.
+        mu : ArrayLike
+            Predictive mean.
+        sigma : ArrayLike
+            Predictive standard deviation.
+
+        Returns
+        -------
+        dict[str, float]
+            Pull statistics and empirical coverage within 1σ, 2σ, 3σ.
+        """
+
         # Pulls
         pulls = (y - mu) / sigma
         pull_mean = jnp.mean(pulls)

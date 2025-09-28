@@ -1,18 +1,18 @@
-"""this is a bde builder"""
+"""Utilities for constructing and training Bayesian deep ensembles."""
 import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 import optax
 from typing import Any, Callable
-from .models.models import Fnn
+from .models import Fnn
 from .training.trainer import FnnTrainer
 from .training.callbacks import EarlyStoppingCallback
 
 from bde.sampler.types import ParamTree
-from bde.sampler.utils import _infer_dim_from_position_example, _pad_axis0, _reshape_to_devices
+from bde.sampler.utils import _pad_axis0
 from bde.task import TaskType
-from .loss.loss import BaseLoss
+from .loss import BaseLoss
 
 from dataclasses import dataclass
 from jax.typing import ArrayLike
@@ -45,6 +45,12 @@ class TrainingLoopResult:
 
 
 class BdeBuilder(FnnTrainer):
+    """Helper that instantiates ensemble members and coordinates their training.
+
+    The builder keeps lightweight references to the underlying `Fnn` instances and
+    exposes utilities used by the high-level estimator.
+    """
+
     def __init__(self,
                  hidden_sizes: list,
                  n_members: int,
@@ -53,6 +59,24 @@ class BdeBuilder(FnnTrainer):
                  act_fn: str,
                  patience: int
                  ):
+        """Configure the builder with architectural and training defaults.
+
+        Parameters
+        ----------
+        hidden_sizes : list[int]
+            Width of each hidden layer shared across ensemble members.
+        n_members : int
+            Number of FNN members in the ensemble.
+        task : TaskType
+            Task specification (`REGRESSION` or `CLASSIFICATION`).
+        seed : int
+            Base random seed used for member initialization.
+        act_fn : str
+            Activation function name understood by `Fnn`.
+        patience : int
+            Early stopping patience measured in validation evaluations.
+        """
+
         FnnTrainer.__init__(self)
         self.hidden_sizes = hidden_sizes
         self.n_members = n_members
@@ -70,19 +94,22 @@ class BdeBuilder(FnnTrainer):
         self.results = {}
 
     @staticmethod
-    def get_model(seed: int, *, act_fn, sizes) -> Fnn:
-        """Create a single Fnn model and initialize its parameters
+    def get_model(seed: int, *, act_fn: str, sizes: list[int]) -> Fnn:
+        """Instantiate a single fully-connected network.
 
         Parameters
         ----------
         seed : int
-        act_fn:
-            #TODO: complete documentation
-        sizes:
+            PRNG seed used for weight initialization.
+        act_fn : str
+            Activation function name recognised by `Fnn`.
+        sizes : list[int]
+            Layer widths including input and output dimensions.
 
         Returns
         -------
-
+        Fnn
+            Newly created network with initialized parameters.
         """
 
         return Fnn(sizes=sizes, init_seed=seed, act_fn=act_fn)
@@ -142,12 +169,35 @@ class BdeBuilder(FnnTrainer):
         return [n_features] + self.hidden_sizes + [self._determine_output_dim(y)]
 
     def _ensure_member_initialization(self, full_sizes: list):
+        """Lazily create ensemble members when first needed.
+
+        Parameters
+        ----------
+        full_sizes : list[int]
+            Layer specification passed to each `Fnn` member.
+        """
+
         if self.members is None:
             if self.n_members < 1:
                 raise ValueError("n_members must be at leat 1 to build the ensemble!")
             self.members = self._deep_ensemble_creator(seed=self.seed, act_fn=self.act_fn, sizes=full_sizes)
 
     def _create_training_components(self, optimizer, loss: BaseLoss):
+        """Assemble optimizer, loss, and step function used during training.
+
+        Parameters
+        ----------
+        optimizer : optax.GradientTransformation | None
+            Optional externally provided optimizer.
+        loss : BaseLoss | None
+            Optional custom loss instance.
+
+        Returns
+        -------
+        TrainingComponents
+            Pack containing optimizer, loss object, scalar loss_fn, and step function.
+        """
+
         proto_model = self.members[0]
         opt = optimizer or self.default_optimizer()
         loss_obj = loss or self.default_loss(self.task)
@@ -163,6 +213,20 @@ class BdeBuilder(FnnTrainer):
         )
 
     def _prepare_distributed_state(self, components: TrainingComponents) -> DistributedTrainingState:
+        """Pack ensemble parameters and optimizer state for pmap execution.
+
+        Parameters
+        ----------
+        components : TrainingComponents
+            Prepared optimizer, loss, and step functions.
+
+        Returns
+        -------
+        DistributedTrainingState
+            Parameters and optimizer states reshaped for device parallelism along
+            with pmap'ed step and eval functions.
+        """
+
         params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0), *[m.params for m in self.members])
         ensemble_size = len(self.members)
         device_count = jax.local_device_count()
