@@ -1,4 +1,4 @@
-"""General utility functions for the module sandbox. This is used from @MILE."""
+"""Sampler-side pytree helpers shared across the package."""
 import inspect
 import json
 import logging
@@ -96,13 +96,58 @@ def impute_nan(params: ParamTree, value: float = 0.0) -> ParamTree:
     return jax.tree.map(lambda x: jnp.where(jnp.isnan(x), value, x), params)
 
 def _infer_dim_from_position_example(pos_e):
-    ex = tree_map(lambda a: a[0], pos_e)       
+    """Return the flattened dimensionality of a single ensemble element.
+
+    Parameters
+    ----------
+    pos_e : ParamTree
+        Parameter tree with leading ensemble axis.
+
+    Returns
+    -------
+    int
+        Flattened dimension of one member.
+    """
+    ex = tree_map(lambda a: a[0], pos_e)
     flat, _ = ravel_pytree(ex)
     return flat.shape[0]
 
+
 def _pad_axis0(a, pad):
-    if pad == 0: return a
+    """Pad the leading axis by repeating the first element.
+
+    Parameters
+    ----------
+    a : jax.Array
+        Array whose leading axis enumerates ensemble members.
+    pad : int
+        Number of additional entries to append.
+
+    Returns
+    -------
+    jax.Array
+        Array with `pad` extra elements appended on axis 0.
+    """
+    if pad == 0:
+        return a
     return jnp.concatenate([a, jnp.repeat(a[:1], pad, axis=0)], axis=0)
 
+
 def _reshape_to_devices(a, D, E_per):
+    """Reshape a padded array to `(devices, local_members, ...)` layout.
+
+    Parameters
+    ----------
+    a : jax.Array
+        Array whose leading axis length equals `D * E_per`.
+    D : int
+        Number of local devices.
+    E_per : int
+        Members per device after padding.
+
+    Returns
+    -------
+    jax.Array
+        Reshaped array ready for `pmap` consumption.
+    """
     return a.reshape(D, E_per, *a.shape[1:])
