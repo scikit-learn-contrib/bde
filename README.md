@@ -177,43 +177,50 @@ The high-level estimators follow this flow during `fit` and evaluation:
 
 ```mermaid
 flowchart TD
-
     subgraph User
-        X[Call Bde.fit(X, y)]
+        FitCall["Call Bde.fit(X, y)"]
     end
 
     subgraph Bde
-        X --> A[validate_fit_data / _prepare_targets]
-        A --> B[_build_bde()]
-        B -->|creates| C[BdeBuilder]
-        B --> D[fit_members(X, y, optimizer, loss)]
-        D --> E[_build_log_post(X, y)]
-        E --> F[_warmup_sampler(logpost)]
-        F --> G[_generate_rng_keys + _normalize_tuned_parameters]
-        G --> H[_draw_samples(...)]
-        H --> I[positions_eT_ stored in estimator]
+        Validate["validate_fit_data / _prepare_targets"]
+        Build["_build_bde()"]
+        Builder["BdeBuilder"]
+        Train["fit_members(X, y, optimizer, loss)"]
+        LogPost["_build_log_post(X, y)"]
+        WarmSampler["_warmup_sampler(logpost)"]
+        Keys["_generate_rng_keys + _normalize_tuned_parameters"]
+        Draw["_draw_samples(...)"]
+        Cache["positions_eT_ stored in estimator"]
     end
 
     subgraph Warmup
-        F --> W[warmup_bde()]
-        W --> WA[custom_mclmc_warmup adapter]
-        WA --> WB[per-member adaptation (pmap/vmap)]
-        WB --> WC[AdaptationResults: states_e, tuned params]
+        Warm["warmup_bde()"]
+        Adapter["custom_mclmc_warmup adapter"]
+        Adapt["per-member adaptation (pmap/vmap)"]
+        Results["AdaptationResults: states_e, tuned params"]
     end
 
     subgraph Sampling
-        H --> M[MileWrapper]
-        M --> M1[sample_batched(...)]
-        M1 --> M2[Posterior samples (E × T × ...)]
+        Wrapper["MileWrapper"]
+        Batch["sample_batched(...)"]
+        Posterior["Posterior samples (E x T x ...)"]
     end
 
     subgraph Evaluation
-        Y[Call Bde.evaluate(Xte, ...)]
-        Y --> Z[_make_predictor(Xte)]
-        Z --> P[BdePredictor]
-        P --> Out[Predictions (mean, std, intervals, probs, raw)]
+        EvalCall["Call Bde.evaluate(Xte, ...)"]
+        MakePred["_make_predictor(Xte)"]
+        Predictor["BdePredictor"]
+        Outputs["Predictions (mean, std, intervals, probs, raw)"]
     end
+
+    FitCall --> Validate --> Build --> Builder
+    Builder --> Train --> LogPost --> WarmSampler --> Keys --> Draw --> Cache
+    WarmSampler --> Warm --> Adapter --> Adapt --> Results
+    Draw --> Wrapper --> Batch --> Posterior
+    Cache --> EvalCall --> MakePred --> Predictor --> Outputs
+    Posterior --> Predictor
 ```
+
 
 Mathematical Background
 -----------------------
