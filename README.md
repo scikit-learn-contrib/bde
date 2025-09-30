@@ -41,17 +41,27 @@ Example Usage
 -------------
 
 Minimal runnable scripts live in `examples/`, and the snippets below highlight the
-most common regression and classification workflows.
+most common regression and classification workflows. When running outside those
+scripts, remember to set the XLA device count so JAX allocates enough host devices:
+
+```
+export XLA_FLAGS="--xla_force_host_platform_device_count=8"
+```
+
+Adjust the value to match the number of CPU (or GPU) devices you plan to use.
 
 ### Regression Example
 
 ```python
+import os
 import jax.numpy as jnp
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
 from bde import BdeRegressor
 from bde.loss import GaussianNLL
+
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
 # Generate and split a toy regression problem
 X, y = make_regression(
@@ -82,7 +92,7 @@ regressor = BdeRegressor(
     loss=GaussianNLL(),
     activation="relu",
     epochs=100,
-    patience=10, #Note: Early stopping is always implemented
+    patience=10,
     n_samples=20,
     warmup_steps=100,
     lr=5e-4,
@@ -100,12 +110,15 @@ print("RMSE:", jnp.sqrt(jnp.mean((mean - y_test) ** 2)))
 ### Classification Example
 
 ```python
+import os
 import jax.numpy as jnp
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
 from bde import BdeClassifier
 from bde.loss import CategoricalCrossEntropy
+
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
 # Prepare the Iris dataset
 X, y = load_iris(return_X_y=True)
@@ -132,7 +145,7 @@ classifier = BdeClassifier(
     loss=CategoricalCrossEntropy(),
     activation="relu",
     epochs=50,
-    patience=8, #Note: Early stopping is always implemented
+    patience=8,
     n_samples=15,
     warmup_steps=80,
     lr=1e-3,
@@ -152,4 +165,16 @@ print("Accuracy:", float(accuracy))
 
 Mathematical Background
 -----------------------
+
+Bayesian Deep Ensembles approximate the posterior over neural network weights by
+training multiple independently initialised models and sampling from their
+parameter space. Each ensemble member is regularised by a prior over weights,
+and the final predictive distribution marginalises across members and their
+posterior samples. For a deeper dive, see:
+
+- Lakshminarayanan et al., *Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles*
+- Wilson & Izmailov, *Bayesian Deep Learning and a Probabilistic Perspective of Generalization*
+
+Further derivations and implementation notes will be added to the project
+documentation as the library matures.
 
