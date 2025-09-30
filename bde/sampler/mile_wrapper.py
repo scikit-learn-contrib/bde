@@ -13,13 +13,7 @@ from .utils import _infer_dim_from_position_example, _pad_axis0, _reshape_to_dev
 
 
 class MileWrapper:
-    """Convenience wrapper that hides boilerplate for MCLMC sampling.
-
-    Parameters
-    ----------
-    logdensity_fn : Callable
-        Callable computing the log density given a parameter pytree.
-    """
+    """Convenience wrapper that hides boilerplate for MCLMC sampling."""
 
     def __init__(self, logdensity_fn: Callable[..., jax.Array]):
         self.logdensity_fn = logdensity_fn

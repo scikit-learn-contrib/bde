@@ -156,7 +156,7 @@ class Bde:
         """
         prior = PriorDist.STANDARDNORMAL.get_prior()
         proto = self._bde.members[0]
-        pm = ProbabilisticModel(module=proto, params=proto.params, prior=prior, task=self.task)
+        pm = ProbabilisticModel(model=proto, params=proto.params, prior=prior, task=self.task)
         return partial(pm.log_unnormalized_posterior, x=x, y=y)
 
     def _warmup_sampler(self, logpost):

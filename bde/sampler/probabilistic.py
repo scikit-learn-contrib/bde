@@ -11,6 +11,8 @@ from bde.sampler.prior import Prior
 from bde.sampler.types import ParamTree
 from bde.task import TaskType
 
+from bde.models import BaseModel
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,7 +20,7 @@ class ProbabilisticModel:
     """Convert frequentist Flax modules to Bayesian Numpyro modules."""
 
     def __init__(self,
-                 module: nn.Module,
+                 model: BaseModel,
                  params: ParamTree,
                  prior: Prior,
                  task: TaskType
@@ -38,7 +40,8 @@ class ProbabilisticModel:
         n_batches: int
             Number of batches sampler will see in one epoch.
         """
-        self.module = module
+
+        self.model = model
         self.n_params = train_utils.count_params(params)
         self.prior = prior
         self.task = task
@@ -77,9 +80,14 @@ class ProbabilisticModel:
         Raises:
         -------
         NotImplementedError: If computation for given `task` is not implemented.
+
+        Returns
+        -------
+        jnp.ndarray
+            Scalar log-likelihood of the batch under the current task and parameters.
         """
 
-        lvals = self.module.apply({'params': params}, x, **kwargs)
+        lvals = self.model.apply({'params': params}, x, **kwargs)
 
         if self.task == TaskType.REGRESSION:
             return jnp.nansum(
@@ -115,4 +123,5 @@ class ProbabilisticModel:
         kwargs: dict
             Additional keyword arguments to pass to the model forward pass.
         """
+
         return self.log_prior(position) + self.log_likelihood(position, x, y, **kwargs)

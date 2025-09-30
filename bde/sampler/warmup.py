@@ -29,18 +29,18 @@ from bde.bde_builder import BdeBuilder
 
 
 def mclmc_find_L_and_step_size(
-    mclmc_kernel,
-    state: MCLMCAdaptationState,
-    rng_key: jax.random.PRNGKey,
-    tune1_steps: int = 100,
-    tune2_steps: int = 100,
-    tune3_steps: int = 100,
-    step_size_init: float = 0.005,
-    desired_energy_var_start: float = 5e-4,
-    desired_energy_var_end: float = 5e-4,
-    trust_in_estimate: float = 1.5,
-    num_effective_samples: int = 150,
-    tick=None
+        mclmc_kernel,
+        state: MCLMCAdaptationState,
+        rng_key: jax.random.PRNGKey,
+        tune1_steps: int = 100,
+        tune2_steps: int = 100,
+        tune3_steps: int = 100,
+        step_size_init: float = 0.005,
+        desired_energy_var_start: float = 5e-4,
+        desired_energy_var_end: float = 5e-4,
+        trust_in_estimate: float = 1.5,
+        num_effective_samples: int = 150,
+        tick=None
 ):
     """
     Find the optimal value of the parameters for the MCLMC algorithm.
@@ -77,7 +77,6 @@ def mclmc_find_L_and_step_size(
     A tuple containing the final state of the MCMC algorithm and the final
     hyperparameters.
     """
-
 
     part1_key, part2_key = jax.random.split(rng_key, 2)
     dim = pytree_size(state.position)
@@ -117,7 +116,7 @@ def make_L_step_size_adaptation(
         desired_energy_var_end: float,
         trust_in_estimate: float,
         num_effective_samples: int,
-    tick=None
+        tick=None
 ):
     """
     Adapt the stepsize and L of the MCLMC kernel.
@@ -220,7 +219,7 @@ def make_L_step_size_adaptation(
             weight=(1 - mask) * success * params.step_size,
             zero_prevention=mask,
         )
-        
+
         return (state, params, adaptive_state, streaming_avg), None
 
     def run_steps(xs, state, params):
@@ -298,7 +297,7 @@ def make_adaptation_L(kernel, Lfactor, tick=None):
                 jax.debug.callback(tick, jnp.array(1, dtype=jnp.int32))
 
             return next_state, next_state.position
-        
+
         state, samples = jax.lax.scan(
             f=step,
             init=state,
@@ -393,7 +392,7 @@ def custom_mclmc_warmup(
             rng_key: PRNGKey,
             position: ArrayLikeTree,
             num_steps: int = 100,
-            ) -> AdaptationResults:
+    ) -> AdaptationResults:
         """Run the MCLMC warmup."""
         bar_warm = tqdm(total=num_steps, desc="MCLMC warmup", position=0, dynamic_ncols=True, leave=True)
 
@@ -430,18 +429,16 @@ def custom_mclmc_warmup(
             blackjax_mclmc_sampler_params,
         )
 
-    
-    
     return AdaptationAlgorithm(run)
 
 
 def warmup_bde(
-    bde: BdeBuilder,
-    logpost_one,
-    step_size_init: float,
-    desired_energy_var_start: float,
-    desired_energy_var_end: float,
-    warmup_steps: int,
+        bde: BdeBuilder,
+        logpost_one,
+        step_size_init: float,
+        desired_energy_var_start: float,
+        desired_energy_var_end: float,
+        warmup_steps: int,
 ) -> AdaptationResults:
     # Build the warmup adapter (same as your current code)
     adapt = custom_mclmc_warmup(

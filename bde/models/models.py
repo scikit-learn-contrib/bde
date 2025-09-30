@@ -18,6 +18,9 @@ class BaseModel(ABC):
     @abstractmethod
     def forward(self, params, x): ...
 
+    @abstractmethod
+    def apply(self, params, x, **kwargs): ...
+
 
 class Fnn(BaseModel):
     """Single FNN that can optionally train itself on init."""
@@ -84,7 +87,7 @@ class Fnn(BaseModel):
         W, b = params[-1]
         return jnp.dot(x, W) + b
 
-    def apply(self, variables, x, **kwargs): #TODO[@angelos, @vyron]: this is not used somewhere relevant!
+    def apply(self, variables, x, **kwargs):
         """Mimic Flax API: variables['params'] contains weights."""
         params = variables["params"]
         return self.forward(params, x, **kwargs)
