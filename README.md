@@ -73,10 +73,10 @@ X, y = make_regression(
 X = X.astype("float32")
 y = y.astype("float32")
 X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=0,
+    X, 
+    y, 
+    test_size=0.2, 
+    random_state=42
 )
 
 # Convert to JAX arrays expected by the estimators
@@ -128,8 +128,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
     test_size=0.2,
-    random_state=0,
-    stratify=y,
+    random_state=42
 )
 
 # Convert to JAX arrays expected by the estimators
@@ -166,15 +165,4 @@ print("Accuracy:", float(accuracy))
 Mathematical Background
 -----------------------
 
-Bayesian Deep Ensembles approximate the posterior over neural network weights by
-training multiple independently initialised models and sampling from their
-parameter space. Each ensemble member is regularised by a prior over weights,
-and the final predictive distribution marginalises across members and their
-posterior samples. For a deeper dive, see:
-
-- Lakshminarayanan et al., *Simple and Scalable Predictive Uncertainty Estimation using Deep Ensembles*
-- Wilson & Izmailov, *Bayesian Deep Learning and a Probabilistic Perspective of Generalization*
-
-Further derivations and implementation notes will be added to the project
-documentation as the library matures.
 
