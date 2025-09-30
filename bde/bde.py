@@ -1,7 +1,7 @@
 """High-level scikit-learn style estimators for Bayesian deep ensembles."""
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast, Callable
 
 import jax
 import jax.numpy as jnp
@@ -224,8 +224,8 @@ class Bde:
         return L_e, step_e, sqrt_diag_e
 
     def _draw_samples(self,
-                      logpost,
-                      rng_keys_e,
+                      logpost: Callable,
+                      rng_keys_e: ArrayLike,
                       init_positions_e,
                       L_e,
                       step_e,
