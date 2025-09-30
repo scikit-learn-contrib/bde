@@ -173,15 +173,14 @@ The high-level estimators follow this flow during `fit` and evaluation:
 - `_build_log_post` constructs the ensemble log-posterior, then `warmup_bde` (`bde/sampler/warmup.py`) adapts step sizes before sampling.
 - Sampler utilities (`bde/sampler/*`) draw posterior samples and cache them for downstream prediction.
 - `Bde.evaluate` / predictor utilities (`bde/bde_evaluator.py`) aggregate samples into means, intervals, and probabilities.
-
 ```mermaid
 flowchart TD
 
-    subgraph User["User code"]
+    subgraph User
         X[Call Bde.fit(X, y)]
     end
 
-    subgraph Bde["Bde (Base Estimator)"]
+    subgraph Bde
         X --> A[validate_fit_data / _prepare_targets]
         A --> B[_build_bde()]
         B -->|creates| C[BdeBuilder]
@@ -193,25 +192,22 @@ flowchart TD
         H --> I[positions_eT_ stored in estimator]
     end
 
-    subgraph Warmup["Warmup Phase"]
+    subgraph Warmup
         F --> W[warmup_bde()]
         W --> WA[custom_mclmc_warmup adapter]
         WA --> WB[per-member adaptation (pmap/vmap)]
         WB --> WC[AdaptationResults: states_e, tuned params]
     end
 
-    subgraph Sampling["Sampling Phase"]
+    subgraph Sampling
         H --> M[MileWrapper]
         M --> M1[sample_batched(...)]
         M1 --> M2[Posterior samples (E × T × ...)]
     end
 
-    subgraph Evaluation["Evaluation"]
+    subgraph Evaluation
         Y[Call Bde.evaluate(Xte, ...)]
         Y --> Z[_make_predictor(Xte)]
         Z --> P[BdePredictor]
         P --> Out[Predictions (mean, std, intervals, probs, raw)]
     end
-
-
-
