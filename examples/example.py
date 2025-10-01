@@ -32,6 +32,7 @@ def regression_example():
         X, y, test_size=0.2, random_state=42)
 
     # Convert to JAX arrays
+    #todo: HAVE THEM BE CONVERTED INTO JAX ARRAYS IN THE .fit
     X_train = jnp.array(X_train, dtype=jnp.float32)
     y_train = jnp.array(y_train, dtype=jnp.float32).ravel()
     X_test = jnp.array(X_test, dtype=jnp.float32)
@@ -39,6 +40,7 @@ def regression_example():
 
     Xmu, Xstd = jnp.mean(X_train, 0), jnp.std(X_train, 0) + 1e-8
     Ymu, Ystd = jnp.mean(y_train, 0), jnp.std(y_train, 0) + 1e-8
+
 
     Xtr = (X_train - Xmu) / Xstd
     Xte = (X_test - Xmu) / Xstd
@@ -49,13 +51,13 @@ def regression_example():
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
-        n_members=4,
+        n_members=20,
         seed=0,
         loss=GaussianNLL(),
-        epochs=20,
+        epochs=200,
         lr=1e-3,
-        warmup_steps=50,
-        n_samples=10,
+        warmup_steps=500,
+        n_samples=100,
         n_thinning=1,
     )
 
@@ -159,5 +161,5 @@ def classification_example():
 
 
 if __name__ == "__main__":
-    classification_example()
+    # classification_example()
     regression_example()

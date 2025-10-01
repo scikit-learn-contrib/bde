@@ -468,7 +468,7 @@ class Bde:
             raw=raw,
             probabilities=probabilities,
         )
-
+    #TODO: merge this with the evaluate
     def get_raw_predictions(self, x: ArrayLike):
         """Return raw ensemble predictions for a given input batch."""
         return self.evaluate(x, raw=True)["raw"]
@@ -487,7 +487,7 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
             loss: BaseLoss | None = None,
             activation: str = "relu",
             epochs: int = 20,
-            patience: int = 25,
+            patience: int = 25, #TODO: set default to None-> No early stopping  else if patience do
             n_samples: int = 10,
             warmup_steps: int = 50,
             lr: float = 1e-3,

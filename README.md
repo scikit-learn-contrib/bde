@@ -43,9 +43,9 @@ Example Usage
 Minimal runnable scripts live in `examples/`, and the snippets below highlight the
 most common regression and classification workflows. When running outside those
 scripts, remember to set the XLA device count so JAX allocates enough host devices:
-
+NOTE MENTNION THAT HTHE EXPORT NEEDS TO BE DONE BEFORE JAX
 ```
-export XLA_FLAGS="--xla_force_host_platform_device_count=8"
+export XLA_FLAGS="--xla_force_host_platform_device_count=8" 
 ```
 
 Adjust the value to match the number of CPU (or GPU) devices you plan to use.
@@ -54,6 +54,7 @@ Adjust the value to match the number of CPU (or GPU) devices you plan to use.
 
 ```python
 import os
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 import jax.numpy as jnp
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
@@ -61,7 +62,6 @@ from sklearn.model_selection import train_test_split
 from bde import BdeRegressor
 from bde.loss import GaussianNLL
 
-os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
 # Generate and split a toy regression problem
 X, y = make_regression(
@@ -111,14 +111,14 @@ print("RMSE:", jnp.sqrt(jnp.mean((mean - y_test) ** 2)))
 
 ```python
 import os
+
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 import jax.numpy as jnp
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
 from bde import BdeClassifier
 from bde.loss import CategoricalCrossEntropy
-
-os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
 # Prepare the Iris dataset
 X, y = load_iris(return_X_y=True)
