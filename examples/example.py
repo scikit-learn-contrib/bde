@@ -27,23 +27,16 @@ def regression_example():
     X = data.data.values  # shape (1503, 5)
     y = data.target.values.reshape(-1, 1)  # shape (1503, 1)
 
-
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42)
-
-    # Convert to JAX arrays
-    y_train = jnp.array(y_train, dtype=jnp.float32).ravel()
-    y_test = jnp.array(y_test, dtype=jnp.float32).ravel()
 
     Xmu, Xstd = jnp.mean(X_train, 0), jnp.std(X_train, 0) + 1e-8
     Ymu, Ystd = jnp.mean(y_train, 0), jnp.std(y_train, 0) + 1e-8
 
-
     Xtr = (X_train - Xmu) / Xstd
     Xte = (X_test - Xmu) / Xstd
     ytr = (y_train - Ymu) / Ystd
-    yte = (y_test - Ymu) / Ystd
-
+    yte = ((y_test - Ymu) / Ystd).ravel()
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],

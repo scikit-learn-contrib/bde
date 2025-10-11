@@ -30,14 +30,14 @@ class BdePredictor:
         self.positions = positions_eT  # (E, T, ...)
         self.xte = xte
         self.task = task
-        self._raw_preds: jax.Array | None = None
+        self._raw_preds: ArrayLike | None = None
 
-    def get_raw_preds(self) -> jax.Array:
+    def get_raw_preds(self) -> ArrayLike:
         """Materialise ensemble predictions with leading axes (E, T, N, *).
 
         Returns
         -------
-        jax.Array
+        ArrayLike
             Cached logits or regression outputs for every ensemble member and sample.
         """
 

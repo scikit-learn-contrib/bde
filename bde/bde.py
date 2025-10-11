@@ -333,11 +333,11 @@ class Bde:
             The fitted estimator.
         """
 
-        x_np, y_np = validate_fit_data(self, x, y)
-        y_prepared = self._prepare_targets(y_np)
+        x_np, y_np = validate_fit_data(self, x, y)  # x_np: (N, D), y_np: (N, 1) for regression
+        y_prepared = self._prepare_targets(y_np)  # preserve (N, 1) for regression targets
 
-        x_checked = jnp.asarray(x_np)
-        y_checked = jnp.asarray(y_prepared)
+        x_checked = jnp.asarray(x_np)  # (N, D)
+        y_checked = jnp.asarray(y_prepared)  # regression: (N, 1); classification: (N,)
 
         self._resolved_step_size_init = (
             self.step_size_init if self.step_size_init is not None else self.lr
@@ -526,10 +526,10 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
             raw=raw,
         )
         if mean_and_std:
-            return out["mean"], out["std"]
+            return out["mean"], out["std"]  # both (N,) for regression
         if credible_intervals:
-            return out["mean"], out["credible_intervals"]
-        return out["mean"]
+            return out["mean"], out["credible_intervals"]  # mean (N,), intervals (Q, N)
+        return out["mean"]  # (N,) regression predictive mean
 
     def get_raw_predictions(self, x: ArrayLike):
         """Return raw ensemble predictions.
