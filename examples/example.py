@@ -32,10 +32,7 @@ def regression_example():
         X, y, test_size=0.2, random_state=42)
 
     # Convert to JAX arrays
-    #todo: HAVE THEM BE CONVERTED INTO JAX ARRAYS IN THE .fit
-    X_train = jnp.array(X_train, dtype=jnp.float32)
     y_train = jnp.array(y_train, dtype=jnp.float32).ravel()
-    X_test = jnp.array(X_test, dtype=jnp.float32)
     y_test = jnp.array(y_test, dtype=jnp.float32).ravel()
 
     Xmu, Xstd = jnp.mean(X_train, 0), jnp.std(X_train, 0) + 1e-8
@@ -47,7 +44,6 @@ def regression_example():
     ytr = (y_train - Ymu) / Ystd
     yte = (y_test - Ymu) / Ystd
 
-    sizes = [5, 16, 16, 2]  # TODO: [@later] allow user to configure only hidden layers\ -> this is done
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
