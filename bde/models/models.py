@@ -3,9 +3,6 @@ import jax.numpy as jnp
 
 import jax.nn as nn
 from abc import ABC, abstractmethod
-from bde.data.dataloader import DataLoader
-from bde.training.trainer import FnnTrainer
-from bde.data.dataloader import DataLoader
 
 
 class BaseModel(ABC):

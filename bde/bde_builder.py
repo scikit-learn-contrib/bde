@@ -357,7 +357,13 @@ class BdeBuilder(FnnTrainer):
 
         full_sizes = self._build_full_sizes(x, y)
         self._ensure_member_initialization(full_sizes)
-        x_train, x_val, y_train, y_val = super().split_train_val(x, y)  # for early stopping
+
+        if self.patience is None:
+            x_train, y_train = x, y
+            x_val = None
+            y_val = None
+        else:
+            x_train, x_val, y_train, y_val = super().split_train_val(x, y)  # for early stopping
 
         components = self._create_training_components(optimizer, loss)
         state = self._prepare_distributed_state(components)
