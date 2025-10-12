@@ -4,6 +4,41 @@ from typing import Any
 from jax import tree_util
 
 
+class NullCallback:
+    @staticmethod
+    def initialize(params_de):
+        return params_de  # or a simple container
+
+    @staticmethod
+    def should_evaluate(epoch):
+        return False  # skip validation entirely, or True if you still want metrics
+
+    @staticmethod
+    def stopped_mask(state):
+        first_leaf = tree_util.tree_leaves(state)[0]
+        leading_shape = first_leaf.shape[:2]
+        return jnp.zeros(leading_shape, dtype=bool)
+
+    @staticmethod
+    def update(state, epoch, params_de, val_lvals_de):
+        return state
+
+    @staticmethod
+    def all_stopped(state):
+        return False
+
+    @staticmethod
+    def best_params(state, *, ensemble_size):
+        return tree_util.tree_map(
+            lambda a: a.reshape(-1, *a.shape[2:])[:ensemble_size],
+            state,
+        )
+
+    @staticmethod
+    def stop_epochs(state, *, ensemble_size):
+        return -jnp.ones((ensemble_size,), dtype=jnp.int32)
+
+
 @dataclass
 class EarlyStoppingState:
     """This class will act as a container for storing values of per-member early stopping"""

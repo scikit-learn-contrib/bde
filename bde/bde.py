@@ -54,7 +54,7 @@ class Bde:
                  loss: BaseLoss = None,
                  activation: str = "relu",
                  epochs: int = 20,
-                 patience: int = 25,
+                 patience: int | None = None,
                  n_samples: int = 10,
                  warmup_steps: int = 50,
                  lr: float = 1e-3,
@@ -470,7 +470,6 @@ class Bde:
         )
 
 
-# TODO: [@angelos] maybe put them in another file?
 class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
     """Regression-friendly wrapper exposing scikit-learn style API.
     """
@@ -483,7 +482,7 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
             loss: BaseLoss | None = None,
             activation: str = "relu",
             epochs: int = 20,
-            patience: int = 25,  # TODO: set default to None-> No early stopping  else if patience do
+            patience: int | None = None,
             n_samples: int = 10,
             warmup_steps: int = 50,
             lr: float = 1e-3,
@@ -544,7 +543,7 @@ class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
             loss: BaseLoss | None = None,
             activation: str = "relu",
             epochs: int = 20,
-            patience: int = 25,
+            patience: int | None = None,
             n_samples: int = 10,
             warmup_steps: int = 50,
             lr: float = 1e-3,

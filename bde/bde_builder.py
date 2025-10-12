@@ -7,7 +7,7 @@ import optax
 from typing import Any, Callable
 from .models import Fnn
 from .training.trainer import FnnTrainer
-from .training.callbacks import EarlyStoppingCallback
+from .training.callbacks import EarlyStoppingCallback, NullCallback
 
 from bde.sampler.types import ParamTree
 from bde.sampler.utils import _pad_axis0
@@ -205,12 +205,16 @@ class BdeBuilder(FnnTrainer):
         step_one = FnnTrainer.make_step(loss_fn, opt)
         return TrainingComponents(opt, loss_obj, loss_fn, step_one)
 
-    def _create_callback(self) -> EarlyStoppingCallback:
-        return EarlyStoppingCallback(
-            patience=self.patience,
-            min_delta=self.min_delta,
-            eval_every=self.eval_every,
-        )
+    def _create_callback(self) -> EarlyStoppingCallback | NullCallback:
+
+        if self.patience is None:
+            return NullCallback()
+        else:
+            return EarlyStoppingCallback(
+                patience=self.patience,
+                min_delta=self.min_delta,
+                eval_every=self.eval_every,
+            )
 
     def _prepare_distributed_state(self, components: TrainingComponents) -> DistributedTrainingState:
         """Pack ensemble parameters and optimizer state for pmap execution.
