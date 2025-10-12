@@ -17,7 +17,7 @@ from bde.loss import *
 from sklearn.datasets import fetch_openml, load_iris
 from sklearn.model_selection import train_test_split
 import jax.numpy as jnp
-
+from sklearn.metrics import root_mean_squared_error
 from bde.viz.plotting import plot_pred_vs_true, plot_confusion_matrix, plot_reliability_curve, plot_roc_curve
 
 
@@ -36,7 +36,7 @@ def regression_example():
     Xtr = (X_train - Xmu) / Xstd
     Xte = (X_test - Xmu) / Xstd
     ytr = (y_train - Ymu) / Ystd
-    yte = ((y_test - Ymu) / Ystd).ravel()
+    yte = ((y_test - Ymu) / Ystd)
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
@@ -55,7 +55,7 @@ def regression_example():
 
     means, sigmas = regressor.predict(Xte, mean_and_std=True)
 
-    print("RSME: ", jnp.sqrt(jnp.mean((means - yte) ** 2)))
+    print("RSME: ", root_mean_squared_error(y_true=yte, y_pred=means))
     plot_pred_vs_true(
         y_pred=means,
         y_true=yte,
