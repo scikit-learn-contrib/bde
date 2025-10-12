@@ -94,6 +94,8 @@ class BdeBuilder(FnnTrainer):
         self.keep_best = True
         self.min_delta = 1e-9
 
+        self.results: dict[str, Any] = {}
+
     @staticmethod
     def get_model(seed: int, *, act_fn: str, sizes: list[int]) -> Fnn:
         """Instantiate a single fully-connected network.
@@ -391,6 +393,13 @@ class BdeBuilder(FnnTrainer):
             m.params = tree_map(lambda a: a[i], params_e_final)
         self.params_e = params_e_final
         return self.members
+
+    def keys(self):
+        """Return identifiers of cached results."""
+
+        if not self.results:
+            raise ValueError("No results saved. Cache outputs via predict_ensemble(..., cache=True) first.")
+        return list(self.results.keys())
 
     def __getattr__(self, item):
         """Fallback to cached results when available."""

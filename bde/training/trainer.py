@@ -2,8 +2,9 @@ import jax
 import jax.numpy as jnp
 
 import optax
+
+from bde.loss.loss import BaseLoss, CategoricalCrossEntropy, GaussianNLL
 from bde.task import TaskType
-from bde.loss.loss import *
 
 from sklearn.model_selection import train_test_split
 

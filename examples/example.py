@@ -11,14 +11,19 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
-from bde import BdeRegressor, BdeClassifier
-from bde.task import TaskType
-from bde.loss import *
-from sklearn.datasets import fetch_openml, load_iris
-from sklearn.model_selection import train_test_split
 import jax.numpy as jnp
+from sklearn.datasets import fetch_openml, load_iris
 from sklearn.metrics import root_mean_squared_error
-from bde.viz.plotting import plot_pred_vs_true, plot_confusion_matrix, plot_reliability_curve, plot_roc_curve
+from sklearn.model_selection import train_test_split
+
+from bde import BdeClassifier, BdeRegressor
+from bde.loss.loss import CategoricalCrossEntropy, GaussianNLL
+from bde.viz.plotting import (
+    plot_confusion_matrix,
+    plot_pred_vs_true,
+    plot_reliability_curve,
+    plot_roc_curve,
+)
 
 
 def regression_example():
