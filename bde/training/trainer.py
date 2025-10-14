@@ -1,23 +1,12 @@
 import jax
-import jax.numpy as jnp
-
 import optax
+from sklearn.model_selection import train_test_split
 
 from bde.loss.loss import BaseLoss, CategoricalCrossEntropy, GaussianNLL
 from bde.task import TaskType
 
-from sklearn.model_selection import train_test_split
-
-from typing import (
-    Any,
-    Optional,
-    Sequence,
-    Tuple,
-)
-
 
 class FnnTrainer:
-
     def __init__(self):
         """
         #TODO: documentation
@@ -51,14 +40,25 @@ class FnnTrainer:
         @jax.jit
         def step(p, opt_state, xb, yb):
             lval, grads = jax.value_and_grad(loss_fn)(p, xb, yb)
-            updates, opt_state = optimizer.update(grads, opt_state, p)  # optimizer is GradientTransformation
+            updates, opt_state = optimizer.update(
+                grads, opt_state, p
+            )  # optimizer is GradientTransformation
             p = optax.apply_updates(p, updates)
             return p, opt_state, lval
 
         return step
 
     @staticmethod
-    def split_train_val(X, y, *, train_size=0.85, val_size=0.15, random_state=42, stratify=False, shuffle=True):
+    def split_train_val(
+        X,
+        y,
+        *,
+        train_size=0.85,
+        val_size=0.15,
+        random_state=42,
+        stratify=False,
+        shuffle=True,
+    ):
         """Split features and targets into training and validation subsets.
 
         Parameters
@@ -95,7 +95,8 @@ class FnnTrainer:
         strat = y if stratify else None
 
         X_train, X_val, y_train, y_val = train_test_split(
-            X, y,
+            X,
+            y,
             test_size=val_size,
             random_state=random_state,
             stratify=strat,
@@ -114,4 +115,4 @@ class FnnTrainer:
         elif task == TaskType.CLASSIFICATION:
             return CategoricalCrossEntropy()
         else:
-            raise ValueError(f"Not an available task type was given!")
+            raise ValueError("Not an available task type was given!")

@@ -1,18 +1,18 @@
-import unittest
-import sys
 import os
+import sys
 import time
+import unittest
+
 import jax
 import jax.numpy as jnp
 from sklearn.exceptions import NotFittedError
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from bde.bde import BdeRegressor, BdeClassifier, Bde
+from bde.bde import BdeClassifier, BdeRegressor
 from bde.bde_builder import BdeBuilder
-
-from bde.task import TaskType
 from bde.models import Fnn
+from bde.task import TaskType
 
 
 class TestBdeRegressor(unittest.TestCase):
@@ -40,7 +40,9 @@ class TestBdeRegressor(unittest.TestCase):
     def test_fit_with_zero_members_raises_value_error(self):
         """This tests the _ensure_member_initialization"""
         self.reg_1 = BdeRegressor(hidden_layers=[2], epochs=2, n_members=0)
-        with self.assertRaisesRegex(ValueError, "n_members must be at leat 1 to build the ensemble!"):
+        with self.assertRaisesRegex(
+            ValueError, "n_members must be at leat 1 to build the ensemble!"
+        ):
             self.reg_1.fit(self.x, self.y)
 
     def test_predict_returns_mean_and_optional_outputs(self):
@@ -73,23 +75,26 @@ class TestBdeRegressor(unittest.TestCase):
 
     def test_validate_evaluate_tags_regression(self):
         with self.assertRaisesRegex(
-                ValueError,
-                "'probabilities' predictions are only supported"):
+            ValueError, "'probabilities' predictions are only supported"
+        ):
             self.reg._validate_evaluate_tags(probabilities=True)
 
         with self.assertRaisesRegex(
-                ValueError,
-                "'mean_and_std' and 'credible_intervals' cannot be requested together"):
-            self.reg._validate_evaluate_tags(mean_and_std=True, credible_intervals=[0.1, 0.9])
+            ValueError,
+            "'mean_and_std' and 'credible_intervals' cannot be requested together",
+        ):
+            self.reg._validate_evaluate_tags(
+                mean_and_std=True, credible_intervals=[0.1, 0.9]
+            )
 
         with self.assertRaisesRegex(
-                ValueError,
-                "'raw' and 'credible_intervals' cannot be requested together"):
+            ValueError, "'raw' and 'credible_intervals' cannot be requested together"
+        ):
             self.reg._validate_evaluate_tags(raw=True, credible_intervals=[0.1, 0.9])
 
         with self.assertRaisesRegex(
-                ValueError,
-                "'raw' and 'mean_and_std' cannot be requested together"):
+            ValueError, "'raw' and 'mean_and_std' cannot be requested together"
+        ):
             self.reg._validate_evaluate_tags(raw=True, mean_and_std=True)
 
 
@@ -119,7 +124,9 @@ class TestBdeClassifier(unittest.TestCase):
     def test_fit_with_zero_members_raises_value_error(self):
         """This tests the _ensure_member_initialization"""
         self.clf_1 = BdeClassifier(hidden_layers=[2], epochs=2, n_members=0)
-        with self.assertRaisesRegex(ValueError, "n_members must be at leat 1 to build the ensemble!"):
+        with self.assertRaisesRegex(
+            ValueError, "n_members must be at leat 1 to build the ensemble!"
+        ):
             self.clf_1.fit(self.x, self.y)
 
     def test_evaluate_raw_returns_expected_shape(self):
@@ -137,10 +144,14 @@ class TestBdeClassifier(unittest.TestCase):
         self.assertAlmostEqual(self.probs.shape[1], 2)  # 2 classes
 
     def test_validate_evaluate_tags_classification(self):
-        with self.assertRaisesRegex(ValueError, "'mean_and_std' predictions are not available"):
+        with self.assertRaisesRegex(
+            ValueError, "'mean_and_std' predictions are not available"
+        ):
             self.clf._validate_evaluate_tags(mean_and_std=True)
 
-        with self.assertRaisesRegex(ValueError, "'credible_intervals' predictions are not available"):
+        with self.assertRaisesRegex(
+            ValueError, "'credible_intervals' predictions are not available"
+        ):
             self.clf._validate_evaluate_tags(credible_intervals=[0.1, 0.9])
 
 

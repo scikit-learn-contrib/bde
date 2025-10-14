@@ -5,9 +5,9 @@ Minimal Example
 This example demonstrates a simple usage of the BDE package.
 """
 
-import sys
-import os
 import logging
+import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
@@ -26,10 +26,7 @@ from sklearn.model_selection import train_test_split
 from bde import BdeClassifier, BdeRegressor
 from bde.loss.loss import CategoricalCrossEntropy, GaussianNLL
 from bde.viz.plotting import (
-    plot_confusion_matrix,
     plot_pred_vs_true,
-    plot_reliability_curve,
-    plot_roc_curve,
 )
 
 
@@ -40,7 +37,8 @@ def regression_example():
     y = data.target.values.reshape(-1, 1)  # shape (1503, 1)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42)
+        X, y, test_size=0.2, random_state=42
+    )
 
     Xmu, Xstd = jnp.mean(X_train, 0), jnp.std(X_train, 0) + 1e-8
     Ymu, Ystd = jnp.mean(y_train, 0), jnp.std(y_train, 0) + 1e-8
@@ -48,7 +46,7 @@ def regression_example():
     Xtr = (X_train - Xmu) / Xstd
     Xte = (X_test - Xmu) / Xstd
     ytr = (y_train - Ymu) / Ystd
-    yte = ((y_test - Ymu) / Ystd)
+    yte = (y_test - Ymu) / Ystd
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
@@ -60,7 +58,7 @@ def regression_example():
         warmup_steps=500,
         n_samples=100,
         n_thinning=1,
-        patience=10
+        patience=10,
     )
 
     print(f"the params are {regressor.get_params()}")  # get_params is from sk learn!!
@@ -74,12 +72,14 @@ def regression_example():
         y_true=yte,
         y_pred_err=sigmas,
         title="trial",
-        savepath="plots_regression"
+        savepath="plots_regression",
     )
 
     mean, intervals = regressor.predict(Xte, credible_intervals=[0.9, 0.95])
     raw = regressor.predict(Xte, raw=True)
-    print(f"The shape of the raw predictions are {raw.shape}") #(ensemble members, n_samples, n_data, (mu,sigma))
+    print(
+        f"The shape of the raw predictions are {raw.shape}"
+    )  # (ensemble members, n_samples, n_data, (mu,sigma))
 
     print("Credible intervals shape:", intervals.shape)  # (len(q), N)
 
@@ -104,7 +104,9 @@ def classification_example():
     X = iris.data.astype("float32")
     y = iris.target.astype("int32").ravel()  # 0, 1, 2
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
     # Convert to JAX
     Xtr, Xte = jnp.array(X_train), jnp.array(X_test)
@@ -121,7 +123,7 @@ def classification_example():
         warmup_steps=50,
         n_samples=2,
         n_thinning=1,
-        patience=2
+        patience=2,
     )
 
     classifier.fit(x=Xtr, y=ytr)
@@ -134,7 +136,9 @@ def classification_example():
     score = classifier.score(Xtr, ytr)
     print(f"the sklearn score is {score}")
     raw = classifier.predict(Xte, raw=True)
-    print(f"The shape of the raw predictions are {raw.shape}")  # (ensemble members, n_samples, n_data, n_classes))
+    print(
+        f"The shape of the raw predictions are {raw.shape}"
+    )  # (ensemble members, n_samples, n_data, n_classes))
 
 
 if __name__ == "__main__":

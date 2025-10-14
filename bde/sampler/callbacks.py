@@ -1,6 +1,5 @@
 """Callbacks used in training."""
 import logging
-from functools import partial
 from pathlib import Path
 from typing import Callable
 
@@ -36,7 +35,7 @@ def save_position(position: ParamTree, base: Path, idx: jnp.ndarray, n: int):
     """
     leafs, _ = jax.tree.flatten(position)
     param_names = get_flattened_keys(position)
-    path = base / f'{idx.item()}/sample_{n}.npz'
+    path = base / f"{idx.item()}/sample_{n}.npz"
     if not path.parent.exists():
         path.parent.mkdir(parents=True)
     np.savez_compressed(
@@ -45,7 +44,9 @@ def save_position(position: ParamTree, base: Path, idx: jnp.ndarray, n: int):
     return position
 
 
-def progress_bar_scan(n_steps: int, name: str, position: int, leave: bool = True) -> Callable:
+def progress_bar_scan(
+    n_steps: int, name: str, position: int, leave: bool = True
+) -> Callable:
     pbar = tqdm(total=int(n_steps), desc=name, position=position, leave=leave)
 
     def _progress_bar_scan(f: Callable):

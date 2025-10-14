@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-import jax.numpy as jnp
 from typing import Any
+
+import jax.numpy as jnp
 from jax import tree_util
 
 
@@ -65,7 +66,9 @@ class EarlyStoppingCallback:
 
         leaf_shape = tree_util.tree_leaves(params_de)[0].shape
         if len(leaf_shape) < 2:
-            raise ValueError("Expected distributed params with leading (device, member) axes.")
+            raise ValueError(
+                "Expected distributed params with leading (device, member) axes."
+            )
 
         self._num_devices, self._members_per_device = leaf_shape[:2]
 
@@ -82,8 +85,13 @@ class EarlyStoppingCallback:
             stop_epoch_de=stop_epoch,
         )
 
-    def update(self, state: EarlyStoppingState, epoch: int, params_de: Any,
-               val_lvals_de: jnp.ndarray) -> EarlyStoppingState:
+    def update(
+        self,
+        state: EarlyStoppingState,
+        epoch: int,
+        params_de: Any,
+        val_lvals_de: jnp.ndarray,
+    ) -> EarlyStoppingState:
         """Update the callback state with validation losses for the current epoch."""
 
         improved = val_lvals_de < (state.best_metric_de - self.min_delta)
@@ -144,7 +152,9 @@ class EarlyStoppingCallback:
             state.best_params_de,
         )
 
-    def stop_epochs(self, state: EarlyStoppingState, *, ensemble_size: int) -> jnp.ndarray:
+    def stop_epochs(
+        self, state: EarlyStoppingState, *, ensemble_size: int
+    ) -> jnp.ndarray:
         """Return the epoch at which each real member stopped."""
 
         if self._num_devices is None or self._members_per_device is None:

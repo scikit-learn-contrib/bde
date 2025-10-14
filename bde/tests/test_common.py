@@ -3,8 +3,9 @@
 # Authors: scikit-learn-contrib developers
 # License: BSD 3 clause
 from sklearn.utils.estimator_checks import parametrize_with_checks
-from bde.utils.discovery import all_estimators
+
 from bde.bde import Bde  # import the base class
+from bde.utils.discovery import all_estimators
 
 FAST_BDE_KWARGS = dict(
     n_members=2,

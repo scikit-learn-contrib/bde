@@ -1,7 +1,7 @@
 """High-level scikit-learn style estimators for Bayesian deep ensembles."""
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Protocol, cast, Callable
+from typing import TYPE_CHECKING, Any, Callable, Protocol, cast
 
 import jax
 import jax.numpy as jnp
@@ -18,8 +18,8 @@ from .data.utils import validate_fit_data, validate_predict_data
 from .loss import BaseLoss
 from .models import BaseModel
 from .sampler.mile_wrapper import MileWrapper
-from .sampler.probabilistic import ProbabilisticModel
 from .sampler.prior import PriorDist
+from .sampler.probabilistic import ProbabilisticModel
 from .sampler.types import ParamTree
 from .sampler.warmup import warmup_bde
 from .task import TaskType
@@ -40,29 +40,31 @@ class Bde:
     The class follows the scikit-learn API and is specialised by regression and
     classification mixins.
     """
+
     positions_eT_: ParamTree
     is_fitted_: bool
     members_: list[BaseModel]
     hidden_layers: list[int] | None
     step_size_init: float | None
 
-    def __init__(self,
-                 n_members: int = 2,
-                 hidden_layers: list[int] | None = None,
-                 seed: int = 0,
-                 task: TaskType = None,
-                 loss: BaseLoss = None,
-                 activation: str = "relu",
-                 epochs: int = 20,
-                 patience: int | None = None,
-                 n_samples: int = 10,
-                 warmup_steps: int = 50,
-                 lr: float = 1e-3,
-                 n_thinning: int = 2,
-                 desired_energy_var_start: float = 0.5,
-                 desired_energy_var_end: float = 0.1,
-                 step_size_init: float = None
-                 ):
+    def __init__(
+        self,
+        n_members: int = 2,
+        hidden_layers: list[int] | None = None,
+        seed: int = 0,
+        task: TaskType = None,
+        loss: BaseLoss = None,
+        activation: str = "relu",
+        epochs: int = 20,
+        patience: int | None = None,
+        n_samples: int = 10,
+        warmup_steps: int = 50,
+        lr: float = 1e-3,
+        n_thinning: int = 2,
+        desired_energy_var_start: float = 0.5,
+        desired_energy_var_end: float = 0.1,
+        step_size_init: float = None,
+    ):
         """Initialise the estimator with architectural and sampling settings.
 
         Parameters
@@ -134,7 +136,7 @@ class Bde:
             n_members=self.n_members,
             task=self.task,
             seed=self.seed,
-            act_fn=self.activation
+            act_fn=self.activation,
         )
 
         self.members_ = self._bde.members
@@ -156,7 +158,9 @@ class Bde:
         """
         prior = PriorDist.STANDARDNORMAL.get_prior()
         proto = self._bde.members[0]
-        pm = ProbabilisticModel(model=proto, params=proto.params, prior=prior, task=self.task)
+        pm = ProbabilisticModel(
+            model=proto, params=proto.params, prior=prior, task=self.task
+        )
         return partial(pm.log_unnormalized_posterior, x=x, y=y)
 
     def _warmup_sampler(self, logpost):
@@ -182,7 +186,10 @@ class Bde:
             desired_energy_var_end=self.desired_energy_var_end,
         )
         warm_state = cast(_WarmupState, warm.state)
-        return warm_state.position, warm.parameters  # (pytree with leading E,  MCLMCAdaptationState)
+        return (
+            warm_state.position,
+            warm.parameters,
+        )  # (pytree with leading E,  MCLMCAdaptationState)
 
     def _generate_rng_keys(self, num_chains: int):
         """Construct distinct PRNG keys for each MCMC chain.
@@ -219,18 +226,23 @@ class Bde:
         """
 
         L_e = tuned.L if jnp.ndim(tuned.L) == 1 else jnp.full((num_chains,), tuned.L)
-        step_e = tuned.step_size if jnp.ndim(tuned.step_size) == 1 else jnp.full((num_chains,), tuned.step_size)
+        step_e = (
+            tuned.step_size
+            if jnp.ndim(tuned.step_size) == 1
+            else jnp.full((num_chains,), tuned.step_size)
+        )
         sqrt_diag_e = tuned.sqrt_diag_cov
         return L_e, step_e, sqrt_diag_e
 
-    def _draw_samples(self,
-                      logpost: Callable,
-                      rng_keys_e: ArrayLike,
-                      init_positions_e,
-                      L_e,
-                      step_e,
-                      sqrt_diag_e,
-                      ):
+    def _draw_samples(
+        self,
+        logpost: Callable,
+        rng_keys_e: ArrayLike,
+        init_positions_e,
+        L_e,
+        step_e,
+        sqrt_diag_e,
+    ):
         """Generate posterior samples for each ensemble member.
 
         Parameters
@@ -290,7 +302,10 @@ class Bde:
 
         check_is_fitted(self)
         if not getattr(self._bde, "members", None):
-            raise RuntimeError("BDE members are not initialized; ensure 'fit' has been executed successfully.")
+            raise RuntimeError(
+                "BDE members are not initialized; ensure 'fit' has been executed"
+                " successfully."
+            )
 
         return BdePredictor(
             forward_fn=self._bde.members[0].forward,
@@ -333,8 +348,12 @@ class Bde:
             The fitted estimator.
         """
 
-        x_np, y_np = validate_fit_data(self, x, y)  # x_np: (N, D), y_np: (N, 1) for regression
-        y_prepared = self._prepare_targets(y_np)  # preserve (N, 1) for regression targets
+        x_np, y_np = validate_fit_data(
+            self, x, y
+        )  # x_np: (N, D), y_np: (N, 1) for regression
+        y_prepared = self._prepare_targets(
+            y_np
+        )  # preserve (N, 1) for regression targets
 
         x_checked = jnp.asarray(x_np)  # (N, D)
         y_checked = jnp.asarray(y_prepared)  # regression: (N, 1); classification: (N,)
@@ -381,12 +400,12 @@ class Bde:
         }
 
     def _validate_evaluate_tags(
-            self,
-            *,
-            mean_and_std: bool = False,
-            credible_intervals: list[float] | None = None,
-            raw: bool = False,
-            probabilities: bool = False,
+        self,
+        *,
+        mean_and_std: bool = False,
+        credible_intervals: list[float] | None = None,
+        raw: bool = False,
+        probabilities: bool = False,
     ):
         """This method validates the tags parsed into the evaluate method, makes sure no two competing tags are given.
 
@@ -405,31 +424,47 @@ class Bde:
 
         if self.task == TaskType.REGRESSION:
             if probabilities:
-                raise ValueError("'probabilities' predictions are only supported for classification tasks.")
+                raise ValueError(
+                    "'probabilities' predictions are only supported for classification"
+                    " tasks."
+                )
             if mean_and_std and credible_intervals:
-                raise ValueError("'mean_and_std' and 'credible_intervals' cannot be requested together.")
+                raise ValueError(
+                    "'mean_and_std' and 'credible_intervals' cannot be requested"
+                    " together."
+                )
             if raw and credible_intervals:
-                raise ValueError("'raw' and 'credible_intervals' cannot be requested together.")
+                raise ValueError(
+                    "'raw' and 'credible_intervals' cannot be requested together."
+                )
             if raw and mean_and_std:
-                raise ValueError("'raw' and 'mean_and_std' cannot be requested together.")
+                raise ValueError(
+                    "'raw' and 'mean_and_std' cannot be requested together."
+                )
             return
 
         if self.task == TaskType.CLASSIFICATION:
             if mean_and_std:
-                raise ValueError("'mean_and_std' predictions are not available for classification tasks.")
+                raise ValueError(
+                    "'mean_and_std' predictions are not available for classification"
+                    " tasks."
+                )
             if credible_intervals:
-                raise ValueError("'credible_intervals' predictions are not available for classification tasks.")
+                raise ValueError(
+                    "'credible_intervals' predictions are not available for"
+                    " classification tasks."
+                )
             return
 
         raise ValueError(f"Unsupported task type {self.task}")
 
     def _evaluate(
-            self,
-            xte: ArrayLike,
-            mean_and_std: bool = False,
-            credible_intervals: list[float] | None = None,
-            raw: bool = False,
-            probabilities: bool = False,
+        self,
+        xte: ArrayLike,
+        mean_and_std: bool = False,
+        credible_intervals: list[float] | None = None,
+        raw: bool = False,
+        probabilities: bool = False,
     ):
         """Evaluate the fitted ensemble under different output modes.
 
@@ -471,25 +506,24 @@ class Bde:
 
 
 class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
-    """Regression-friendly wrapper exposing scikit-learn style API.
-    """
+    """Regression-friendly wrapper exposing scikit-learn style API."""
 
     def __init__(
-            self,
-            n_members: int = 2,
-            hidden_layers: list[int] | None = None,
-            seed: int = 0,
-            loss: BaseLoss | None = None,
-            activation: str = "relu",
-            epochs: int = 20,
-            patience: int | None = None,
-            n_samples: int = 10,
-            warmup_steps: int = 50,
-            lr: float = 1e-3,
-            n_thinning: int = 2,
-            desired_energy_var_start: float = 0.5,
-            desired_energy_var_end: float = 0.1,
-            step_size_init: float | None = None,
+        self,
+        n_members: int = 2,
+        hidden_layers: list[int] | None = None,
+        seed: int = 0,
+        loss: BaseLoss | None = None,
+        activation: str = "relu",
+        epochs: int = 20,
+        patience: int | None = None,
+        n_samples: int = 10,
+        warmup_steps: int = 50,
+        lr: float = 1e-3,
+        n_thinning: int = 2,
+        desired_energy_var_start: float = 0.5,
+        desired_energy_var_end: float = 0.1,
+        step_size_init: float | None = None,
     ):
         super().__init__(
             n_members=n_members,
@@ -512,11 +546,13 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
     def fit(self, x: ArrayLike, y: ArrayLike):
         return super()._fit(x, y)
 
-    def predict(self,
-                x: ArrayLike,
-                mean_and_std: bool = False,
-                credible_intervals: list[float] | None = None,
-                raw: bool = False):
+    def predict(
+        self,
+        x: ArrayLike,
+        mean_and_std: bool = False,
+        credible_intervals: list[float] | None = None,
+        raw: bool = False,
+    ):
         out = self._evaluate(
             x,
             mean_and_std=mean_and_std,
@@ -533,27 +569,26 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
 
 
 class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
-    """Classification wrapper with label encoding helpers.
-    """
+    """Classification wrapper with label encoding helpers."""
 
     label_encoder_: "LabelEncoder"
 
     def __init__(
-            self,
-            n_members: int = 2,
-            hidden_layers: list[int] | None = None,
-            seed: int = 0,
-            loss: BaseLoss | None = None,
-            activation: str = "relu",
-            epochs: int = 20,
-            patience: int | None = None,
-            n_samples: int = 10,
-            warmup_steps: int = 50,
-            lr: float = 1e-3,
-            n_thinning: int = 2,
-            desired_energy_var_start: float = 0.5,
-            desired_energy_var_end: float = 0.1,
-            step_size_init: float | None = None,
+        self,
+        n_members: int = 2,
+        hidden_layers: list[int] | None = None,
+        seed: int = 0,
+        loss: BaseLoss | None = None,
+        activation: str = "relu",
+        epochs: int = 20,
+        patience: int | None = None,
+        n_samples: int = 10,
+        warmup_steps: int = 50,
+        lr: float = 1e-3,
+        n_thinning: int = 2,
+        desired_energy_var_start: float = 0.5,
+        desired_energy_var_end: float = 0.1,
+        step_size_init: float | None = None,
     ):
         super().__init__(
             n_members=n_members,

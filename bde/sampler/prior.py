@@ -7,8 +7,7 @@ import jax.numpy as jnp
 import jax.scipy.stats as stats
 from jax.flatten_util import ravel_pytree
 
-from bde.sampler.types import ParamTree
-from bde.sampler.types import BaseStrEnum
+from bde.sampler.types import BaseStrEnum, ParamTree
 
 
 class PriorDist(BaseStrEnum):
@@ -51,14 +50,14 @@ class Prior(NamedTuple):
             )
         else:
             raise NotImplementedError(
-                f'Prior Distribution for {name} is not yet implemented.'
+                f"Prior Distribution for {name} is not yet implemented."
             )
 
 
 def f_init_normal(loc: float = 0.0, scale: float = 1.0) -> Callable:
     """Initialize from Normal distribution."""
     if not loc == 0.0:
-        print('Initialization: Ignoring location unequal to zero.')
+        print("Initialization: Ignoring location unequal to zero.")
     return jinit.normal(stddev=scale)
 
 

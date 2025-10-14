@@ -4,34 +4,16 @@
 directory layout when persisting samples (kept for potential future use), and
 `PRNGKey` annotates JAX pseudo-random keys.
 """
+import enum
+import sys
 import typing
 from pathlib import Path
-from typing import (
-    NamedTuple,
-    Protocol,
-    TypeVar,
-)
-
-import dataclasses
-import enum
-import importlib.util
-import inspect
-import itertools
-import json
-import operator
-import random
-import sys
-from functools import reduce
-from json.encoder import JSONEncoder
-from types import GenericAlias, UnionType
 
 import jax
-import jax.numpy as jnp
-from blackjax.base import SamplingAlgorithm
 
-ParamTree: typing.TypeAlias = dict[str, typing.Union[jax.Array, 'ParamTree']]
+ParamTree: typing.TypeAlias = dict[str, typing.Union[jax.Array, "ParamTree"]]
 # `FileTree` mirrors the on-disk nesting when persisting checkpoints; retained for API stability.
-FileTree: typing.TypeAlias = dict[str, typing.Union[Path, 'FileTree']]
+FileTree: typing.TypeAlias = dict[str, typing.Union[Path, "FileTree"]]
 # A `PRNGKey` is a uint32 array of shape (2,) produced by `jax.random.PRNGKey`.
 PRNGKey = jax.Array
 
@@ -43,7 +25,7 @@ class CustomEnumMeta(enum.EnumMeta):
         """Extend the __call__ method to raise a ValueError."""
         if value not in cls._value2member_map_:
             raise ValueError(
-                f'{cls.__name__} must be one of {[*cls._value2member_map_.keys()]}'
+                f"{cls.__name__} must be one of {[*cls._value2member_map_.keys()]}"
             )
         return super().__call__(value, **kwargs)
 
@@ -61,7 +43,6 @@ if sys.version_info >= (3, 11):
             """Return the string representation of the Enum."""
             return self.value
 
-
     class BaseIntEnum(enum.IntEnum, metaclass=CustomEnumMeta):
         """BaseEnum Class for implementing custom Enum classes."""
 
@@ -77,7 +58,6 @@ else:
         def __str__(self):
             """Return the string representation of the Enum."""
             return self.value
-
 
     class BaseIntEnum(int, BaseEnum):
         """BaseEnum Class for implementing custom Enum classes."""

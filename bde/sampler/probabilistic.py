@@ -1,17 +1,15 @@
 """Convert frequentist Flax modules to Bayesian NNs. This is used from @MILE."""
 import logging
 
-import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import jax.scipy.stats as stats
 
 import bde.sampler.utils as train_utils
+from bde.models import BaseModel
 from bde.sampler.prior import Prior
 from bde.sampler.types import ParamTree
 from bde.task import TaskType
-
-from bde.models import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -19,12 +17,9 @@ logger = logging.getLogger(__name__)
 class ProbabilisticModel:
     """Convert frequentist Flax modules to Bayesian Numpyro modules."""
 
-    def __init__(self,
-                 model: BaseModel,
-                 params: ParamTree,
-                 prior: Prior,
-                 task: TaskType
-                 ):
+    def __init__(
+        self, model: BaseModel, params: ParamTree, prior: Prior, task: TaskType
+    ):
         """Initialize the ProbabilisticModel class for Bayesian training.
 
         Parameters:
@@ -49,21 +44,22 @@ class ProbabilisticModel:
     def __str__(self):
         """Return informative string representation of the model."""
         return (
-            f'{self.__class__.__name__}:\n'  # noqa
-            f' | Params: {self.n_params}'
-            f' | Prior: {self.prior.name}'
+            f"{self.__class__.__name__}:\n"  # noqa
+            f" | Params: {self.n_params}"
+            f" | Prior: {self.prior.name}"
         )
 
     def log_prior(self, params: ParamTree) -> jax.Array:
         """Compute log prior for given parameters."""
         return self.prior.log_prior(params)
 
-    def log_likelihood(self,
-                       params: ParamTree,
-                       x: jnp.ndarray,
-                       y: jnp.ndarray,
-                       **kwargs,
-                       ) -> jnp.ndarray:
+    def log_likelihood(
+        self,
+        params: ParamTree,
+        x: jnp.ndarray,
+        y: jnp.ndarray,
+        **kwargs,
+    ) -> jnp.ndarray:
         """Evaluate Log likelihood for given Parameter Tree and data.
 
         Parameters:
@@ -87,7 +83,7 @@ class ProbabilisticModel:
             Scalar log-likelihood of the batch under the current task and parameters.
         """
 
-        lvals = self.model.apply({'params': params}, x, **kwargs)
+        lvals = self.model.apply({"params": params}, x, **kwargs)
 
         if self.task == TaskType.REGRESSION:
             return jnp.nansum(
@@ -99,17 +95,22 @@ class ProbabilisticModel:
             )
         elif self.task == TaskType.CLASSIFICATION:
             logits = lvals
-            log_probs = logits - jax.scipy.special.logsumexp(logits, axis=-1, keepdims=True)
+            log_probs = logits - jax.scipy.special.logsumexp(
+                logits, axis=-1, keepdims=True
+            )
             return jnp.sum(jnp.take_along_axis(log_probs, y[..., None], axis=-1))
         else:
-            raise NotImplementedError(f"Task {self.task} not implemented in log_likelihood")
+            raise NotImplementedError(
+                f"Task {self.task} not implemented in log_likelihood"
+            )
 
-    def log_unnormalized_posterior(self,
-                                   position: ParamTree,
-                                   x: jnp.ndarray,
-                                   y: jnp.ndarray,
-                                   **kwargs,
-                                   ):
+    def log_unnormalized_posterior(
+        self,
+        position: ParamTree,
+        x: jnp.ndarray,
+        y: jnp.ndarray,
+        **kwargs,
+    ):
         """Log unnormalized posterior (potential) for given parameters and data.
 
         Parameters:

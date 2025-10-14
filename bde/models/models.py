@@ -1,8 +1,8 @@
-import jax
-import jax.numpy as jnp
-
-import jax.nn as nn
 from abc import ABC, abstractmethod
+
+import jax
+import jax.nn as nn
+import jax.numpy as jnp
 
 
 class BaseModel(ABC):
@@ -10,13 +10,16 @@ class BaseModel(ABC):
 
     @property
     @abstractmethod
-    def name(self) -> str: ...
+    def name(self) -> str:
+        ...
 
     @abstractmethod
-    def forward(self, params, x): ...
+    def forward(self, params, x):
+        ...
 
     @abstractmethod
-    def apply(self, params, x, **kwargs): ...
+    def apply(self, params, x, **kwargs):
+        ...
 
 
 class Fnn(BaseModel):
@@ -79,7 +82,7 @@ class Fnn(BaseModel):
         """
         # TODO: [@later] have a validation of input layer and number of features
         act_fn = self._get_activation(self.activation_name)
-        for (W, b) in params[:-1]:
+        for W, b in params[:-1]:
             x = act_fn(jnp.dot(x, W) + b)
         W, b = params[-1]
         return jnp.dot(x, W) + b

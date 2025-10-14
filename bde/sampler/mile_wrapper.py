@@ -9,7 +9,7 @@ from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_leaves, tree_map
 
 from .types import ParamTree
-from .utils import infer_dim_from_position_example, pad_axis0, _reshape_to_devices
+from .utils import _reshape_to_devices, infer_dim_from_position_example, pad_axis0
 
 
 class MileWrapper:
@@ -35,19 +35,21 @@ class MileWrapper:
         )
 
     def step(
-            self,
-            rng_key: jax.Array,
-            state,
-            L: jax.Array,
-            step_size: jax.Array,
-            sqrt_diag_cov: jax.Array | None = None,
+        self,
+        rng_key: jax.Array,
+        state,
+        L: jax.Array,
+        step_size: jax.Array,
+        sqrt_diag_cov: jax.Array | None = None,
     ):
         """Advance one chain by a single MCLMC step."""
         if sqrt_diag_cov is None:
             dim = ravel_pytree(state.position)[0].shape[0]
             sqrt_diag_cov = jnp.ones((dim,))
         kernel = self._build_kernel(sqrt_diag_cov)
-        next_state, info = kernel(rng_key=rng_key, state=state, L=L, step_size=step_size)
+        next_state, info = kernel(
+            rng_key=rng_key, state=state, L=L, step_size=step_size
+        )
         return next_state, info
 
     def init_batched(self, positions_e: ParamTree, keys_e: jax.Array):
@@ -56,12 +58,12 @@ class MileWrapper:
         return jax.vmap(init_one)(positions_e, keys_e)
 
     def _step_batched(
-            self,
-            keys_e: jax.Array,
-            states_e,
-            L_e: jax.Array,
-            step_e: jax.Array,
-            sqrt_diag_e: jax.Array | None = None,
+        self,
+        keys_e: jax.Array,
+        states_e,
+        L_e: jax.Array,
+        step_e: jax.Array,
+        sqrt_diag_e: jax.Array | None = None,
     ):
         """Advance all ensemble members by one step (vectorised over members)."""
         if sqrt_diag_e is None:
@@ -73,18 +75,20 @@ class MileWrapper:
             next_state, info = kernel(rng_key=key, state=state, L=L_i, step_size=step_i)
             return next_state, info
 
-        return jax.vmap(step_one, in_axes=(0, 0, 0, 0, 0))(keys_e, states_e, L_e, step_e, sqrt_diag_e)
+        return jax.vmap(step_one, in_axes=(0, 0, 0, 0, 0))(
+            keys_e, states_e, L_e, step_e, sqrt_diag_e
+        )
 
     def sample_batched(
-            self,
-            rng_keys_e: jax.Array,
-            init_positions_e: ParamTree,
-            num_samples: int,
-            thinning: int = 1,
-            L_e: jax.Array | None = None,
-            step_e: jax.Array | None = None,
-            sqrt_diag_e: jax.Array | None = None,
-            store_states: bool = True,
+        self,
+        rng_keys_e: jax.Array,
+        init_positions_e: ParamTree,
+        num_samples: int,
+        thinning: int = 1,
+        L_e: jax.Array | None = None,
+        step_e: jax.Array | None = None,
+        sqrt_diag_e: jax.Array | None = None,
+        store_states: bool = True,
     ) -> tuple:
         """Draw samples for every ensemble member in parallel.
 
@@ -140,11 +144,16 @@ class MileWrapper:
         sqrt_diag_e = pad_array(sqrt_diag_e)
         init_positions_e = tree_map(pad_array, init_positions_e)
 
-        keys_de = rng_keys_e.reshape(device_count, members_per_device, *rng_keys_e.shape[1:])
+        keys_de = rng_keys_e.reshape(
+            device_count, members_per_device, *rng_keys_e.shape[1:]
+        )
         L_de = _reshape_to_devices(L_e, device_count, members_per_device)
         step_de = _reshape_to_devices(step_e, device_count, members_per_device)
         sdc_de = _reshape_to_devices(sqrt_diag_e, device_count, members_per_device)
-        pos_de = tree_map(lambda a: _reshape_to_devices(a, device_count, members_per_device), init_positions_e)
+        pos_de = tree_map(
+            lambda a: _reshape_to_devices(a, device_count, members_per_device),
+            init_positions_e,
+        )
 
         def sample_chunk(keys_chunk, init_pos_chunk, L_chunk, step_chunk, sdc_chunk):
             def sample_one_member(key, init_pos, L_i, step_i, sdc_i):
@@ -159,9 +168,9 @@ class MileWrapper:
                 st, (pos_T, info_T) = jax.lax.scan(body, state, keys[1:])
                 return pos_T, info_T, st
 
-            return jax.vmap(sample_one_member, in_axes=(0, 0, 0, 0, 0), out_axes=(0, 0, 0))(
-                keys_chunk, init_pos_chunk, L_chunk, step_chunk, sdc_chunk
-            )
+            return jax.vmap(
+                sample_one_member, in_axes=(0, 0, 0, 0, 0), out_axes=(0, 0, 0)
+            )(keys_chunk, init_pos_chunk, L_chunk, step_chunk, sdc_chunk)
 
         positions_dET, infos_dET, states_dE = jax.pmap(
             sample_chunk, in_axes=(0, 0, 0, 0, 0), out_axes=(0, 0, 0)

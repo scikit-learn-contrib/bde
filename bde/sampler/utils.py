@@ -1,24 +1,19 @@
 """Sampler-side pytree helpers shared across the package."""
-import inspect
-import json
 import logging
 import operator
-import time
-from contextlib import contextmanager
 from functools import reduce
-from json.encoder import JSONEncoder
 
 import jax
 import jax.numpy as jnp
-from jax.tree_util import tree_map
 from jax.flatten_util import ravel_pytree
+from jax.tree_util import tree_map
 
 from bde.sampler.types import ParamTree
 
 logger = logging.getLogger(__name__)
 
 
-def get_flattened_keys(d: dict, sep='.') -> list[str]:
+def get_flattened_keys(d: dict, sep=".") -> list[str]:
     """Recursively get `sep` delimited path to the leaves of a tree.
 
     Parameters:
@@ -35,7 +30,7 @@ def get_flattened_keys(d: dict, sep='.') -> list[str]:
     keys = []
     for k, v in d.items():
         if isinstance(v, dict):
-            keys.extend([f'{k}{sep}{kk}' for kk in get_flattened_keys(v)])
+            keys.extend([f"{k}{sep}{kk}" for kk in get_flattened_keys(v)])
         else:
             keys.append(k)
     return keys
@@ -60,7 +55,7 @@ def count_chains(samples: ParamTree) -> int:
     """
     n = set([x.shape[0] for x in jax.tree.leaves(samples)])
     if len(n) > 1:
-        raise ValueError(f'Ambiguous chain dimension across layers. Found {n}')
+        raise ValueError(f"Ambiguous chain dimension across layers. Found {n}")
     return n.pop()
 
 
@@ -72,7 +67,7 @@ def count_samples(samples: ParamTree) -> int:
     """
     n = set([x.shape[1] for x in jax.tree.leaves(samples)])
     if len(n) > 1:
-        raise ValueError(f'Ambiguous sample dimension across layers. Found {n}')
+        raise ValueError(f"Ambiguous sample dimension across layers. Found {n}")
     return n.pop()
 
 

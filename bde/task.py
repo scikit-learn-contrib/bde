@@ -11,6 +11,7 @@ from bde.loss.loss import (
 
 class TaskType(Enum):
     """Holder for task types."""
+
     REGRESSION = "regression"
     CLASSIFICATION = "classification"
 

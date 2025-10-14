@@ -68,9 +68,7 @@ def all_estimators(type_filter=None):
     # Ignore deprecation warnings triggered at import time and from walking
     # packages
     with ignore_warnings(category=FutureWarning):
-        for _, module_name, _ in pkgutil.walk_packages(
-                path=[root], prefix="bde."
-        ):
+        for _, module_name, _ in pkgutil.walk_packages(path=[root], prefix="bde."):
             module_parts = module_name.split(".")
             if any(part in _MODULE_TO_IGNORE for part in module_parts):
                 continue
@@ -147,7 +145,7 @@ def all_displays():
     # packages
     with ignore_warnings(category=FutureWarning):
         for _, module_name, _ in pkgutil.walk_packages(
-                path=[root], prefix="bde.utils."
+            path=[root], prefix="bde.utils."
         ):
             module_parts = module_name.split(".")
             if any(part in _MODULE_TO_IGNORE for part in module_parts):
@@ -194,7 +192,5 @@ def all_functions():
     """
     module = import_module(__name__)
     functions = inspect.getmembers(module, inspect.isfunction)
-    filtered = [
-        (name, func) for name, func in functions if _is_checked_function(func)
-    ]
+    filtered = [(name, func) for name, func in functions if _is_checked_function(func)]
     return sorted(filtered, key=itemgetter(0))

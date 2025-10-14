@@ -2,10 +2,10 @@
 
 from .loss import (
     BaseLoss,
-    Rmse,
-    GaussianNLL,
     BinaryCrossEntropy,
     CategoricalCrossEntropy,
+    GaussianNLL,
+    Rmse,
 )
 
 __all__ = [

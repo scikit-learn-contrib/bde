@@ -2,8 +2,9 @@
 # License: BSD 3 clause
 
 from ._template import TemplateClassifier, TemplateEstimator, TemplateTransformer
+
 # from ._version import __version__
-from .bde import BdeRegressor, BdeClassifier, Bde, BdePredictor
+from .bde import Bde, BdeClassifier, BdePredictor, BdeRegressor
 
 __version__ = "0.1"
 

@@ -25,8 +25,13 @@ class BdePredictor:
         Task associated with the ensemble (regression or classification).
     """
 
-    def __init__(self, forward_fn: Callable[[ParamTree, ArrayLike], jax.Array], positions_eT: ParamTree, xte: ArrayLike,
-                 task: TaskType):
+    def __init__(
+        self,
+        forward_fn: Callable[[ParamTree, ArrayLike], jax.Array],
+        positions_eT: ParamTree,
+        xte: ArrayLike,
+        task: TaskType,
+    ):
         self._forward = forward_fn
         self.positions = positions_eT  # (E, T, ...)
         self.xte = xte
@@ -79,13 +84,14 @@ class BdePredictor:
 
         mu, sigma = self._regression_mu_sigma()
         mu_mean_e = jnp.mean(mu, axis=1)
-        var_ale_e = jnp.mean(sigma ** 2, axis=1)
+        var_ale_e = jnp.mean(sigma**2, axis=1)
         var_epi_e = jnp.var(mu, axis=1)
         std_total_e = jnp.sqrt(var_ale_e + var_epi_e)
         return mu_mean_e, std_total_e
 
-    def _predict_regression(self, *, mean_and_std: bool, credible_intervals: list[float] | None, raw: bool) -> dict[
-        str, jax.Array]:
+    def _predict_regression(
+        self, *, mean_and_std: bool, credible_intervals: list[float] | None, raw: bool
+    ) -> dict[str, jax.Array]:
         """Aggregate regression predictions under different output modalities.
 
         Parameters
@@ -105,7 +111,7 @@ class BdePredictor:
 
         mu, sigma = self._regression_mu_sigma()
         mu_mean = jnp.mean(mu, axis=(0, 1))
-        var_ale = jnp.mean(sigma ** 2, axis=(0, 1))
+        var_ale = jnp.mean(sigma**2, axis=(0, 1))
         var_epi = jnp.var(mu, axis=(0, 1))
         std_total = jnp.sqrt(var_ale + var_epi)
         out = {"mean": mu_mean}
@@ -118,7 +124,9 @@ class BdePredictor:
             out["raw"] = self.get_raw_preds()
         return out
 
-    def _predict_classification(self, *, probabilities: bool, raw: bool) -> dict[str, jax.Array]:
+    def _predict_classification(
+        self, *, probabilities: bool, raw: bool
+    ) -> dict[str, jax.Array]:
         """Aggregate classification logits into labels and probabilities.
 
         Parameters
@@ -146,7 +154,14 @@ class BdePredictor:
             out["raw"] = logits
         return out
 
-    def predict(self, *, mean_and_std=False, credible_intervals=None, raw=False, probabilities=False):
+    def predict(
+        self,
+        *,
+        mean_and_std=False,
+        credible_intervals=None,
+        raw=False,
+        probabilities=False,
+    ):
         """Return prediction artefacts appropriate for the configured task.
 
         Parameters

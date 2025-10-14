@@ -57,13 +57,16 @@ def validate_predict_data(estimator, X):
 
     if X_checked.shape[1] != estimator.n_features_in_:
         raise ValueError(
-            f"X has {X_checked.shape[1]} features, but {estimator.__class__.__name__} was fitted with {estimator.n_features_in_}."
+            f"X has {X_checked.shape[1]} features, but"
+            f" {estimator.__class__.__name__} was fitted with"
+            f" {estimator.n_features_in_}."
         )
 
     if hasattr(estimator, "feature_names_in_"):
         if feature_names is None:
             raise ValueError(
-                "X has no feature names, but this estimator was fitted with feature names."
+                "X has no feature names, but this estimator was fitted with feature"
+                " names."
             )
         if list(feature_names) != list(estimator.feature_names_in_):
             raise ValueError("Feature names of X do not match those seen during fit.")
