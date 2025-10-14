@@ -3288,7 +3288,7 @@ packages:
   timestamp: 1702422720584
 - pypi: ./
   name: bde
-  version: 0.1.dev223+g947119151.d20251014
+  version: 0.1.dev224+g3aaf88454.d20251014
   sha256: ddb953be3e64975fde00674ee0512b2cf0aac94ee7ea5c59ee35101edbeb0492
   requires_dist:
   - scikit-learn>=1.4.2

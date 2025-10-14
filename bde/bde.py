@@ -222,7 +222,8 @@ class Bde:
         Returns
         -------
         tuple[jax.Array, jax.Array, jax.Array]
-            Tuple of inverse mass matrix diagonals, step sizes, and covariance square roots.
+            Tuple of inverse mass matrix diagonals,
+            step sizes and covariance square roots.
         """
 
         L_e = tuned.L if jnp.ndim(tuned.L) == 1 else jnp.full((num_chains,), tuned.L)
@@ -407,7 +408,8 @@ class Bde:
         raw: bool = False,
         probabilities: bool = False,
     ):
-        """This method validates the tags parsed into the evaluate method, makes sure no two competing tags are given.
+        """This method validates the tags parsed into the evaluate method,
+        makes sure no two competing tags are given.
 
         Parameters
         ----------

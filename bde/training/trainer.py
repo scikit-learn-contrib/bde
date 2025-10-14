@@ -81,7 +81,7 @@ class FnnTrainer:
         Returns
         -------
         tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]
-            Training features, validation features, training targets, validation targets.
+            Training, validation features, training, validation targets.
         """
         # prefer val_size; keep train_size for backward-compat
         if val_size is None and train_size is not None:

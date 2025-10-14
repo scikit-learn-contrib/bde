@@ -171,7 +171,7 @@ class BdeBuilder(FnnTrainer):
             Feature matrix of shape (n_samples, n_features). Only the feature dimension
             is used here.
         y : ArrayLike
-            Target values that determine the output dimension via `_determine_output_dim`.
+            Target values determining the output dimension via `_determine_output_dim`.
 
         Returns
         -------

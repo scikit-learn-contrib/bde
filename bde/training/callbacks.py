@@ -42,7 +42,9 @@ class NullCallback:
 
 @dataclass
 class EarlyStoppingState:
-    """This class will act as a container for storing values of per-member early stopping"""
+    """This class will act as a container for storing values
+    of per-member early stopping
+    """
 
     best_params_de: any
     best_metric_de: jnp.ndarray
