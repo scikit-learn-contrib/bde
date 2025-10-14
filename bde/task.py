@@ -1,5 +1,12 @@
 from enum import Enum
-from bde.loss.loss import *
+
+from bde.loss.loss import (
+    BaseLoss,
+    BinaryCrossEntropy,
+    CategoricalCrossEntropy,
+    GaussianNLL,
+    Rmse,
+)
 
 
 class TaskType(Enum):

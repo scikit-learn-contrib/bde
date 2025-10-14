@@ -1,21 +1,24 @@
-"""this is a bde builder"""
+"""Utilities for constructing and training Bayesian deep ensembles."""
 import jax
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 import optax
 from typing import Any, Callable
-from .models.models import Fnn
+from .models import Fnn
 from .training.trainer import FnnTrainer
-from .training.callbacks import EarlyStoppingCallback
+from .training.callbacks import EarlyStoppingCallback, NullCallback
 
-from bde.sampler.my_types import ParamTree
-from bde.sampler.utils import _infer_dim_from_position_example, _pad_axis0, _reshape_to_devices
+from bde.sampler.types import ParamTree
+from bde.sampler.utils import pad_axis0
 from bde.task import TaskType
-from .loss.loss import BaseLoss
+from .loss import BaseLoss
 
 from dataclasses import dataclass
 from jax.typing import ArrayLike
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -45,6 +48,12 @@ class TrainingLoopResult:
 
 
 class BdeBuilder(FnnTrainer):
+    """Helper that instantiates ensemble members and coordinates their training.
+
+    The builder keeps lightweight references to the underlying `Fnn` instances and
+    exposes utilities used by the high-level estimator.
+    """
+
     def __init__(self,
                  hidden_sizes: list,
                  n_members: int,
@@ -53,6 +62,24 @@ class BdeBuilder(FnnTrainer):
                  act_fn: str,
                  patience: int
                  ):
+        """Configure the builder with architectural and training defaults.
+
+        Parameters
+        ----------
+        hidden_sizes : list[int]
+            Width of each hidden layer shared across ensemble members.
+        n_members : int
+            Number of FNN members in the ensemble.
+        task : TaskType
+            Task specification (`REGRESSION` or `CLASSIFICATION`).
+        seed : int
+            Base random seed used for member initialization.
+        act_fn : str
+            Activation function name understood by `Fnn`.
+        patience : int
+            Early stopping patience measured in validation evaluations.
+        """
+
         FnnTrainer.__init__(self)
         self.hidden_sizes = hidden_sizes
         self.n_members = n_members
@@ -67,22 +94,25 @@ class BdeBuilder(FnnTrainer):
         self.keep_best = True
         self.min_delta = 1e-9
 
-        self.results = {}
+        self.results: dict[str, Any] = {}
 
     @staticmethod
-    def get_model(seed: int, *, act_fn, sizes) -> Fnn:
-        """Create a single Fnn model and initialize its parameters
+    def get_model(seed: int, *, act_fn: str, sizes: list[int]) -> Fnn:
+        """Instantiate a single fully-connected network.
 
         Parameters
         ----------
         seed : int
-        act_fn:
-            #TODO: complete documentation
-        sizes:
+            PRNG seed used for weight initialization.
+        act_fn : str
+            Activation function name recognised by `Fnn`.
+        sizes : list[int]
+            Layer widths including input and output dimensions.
 
         Returns
         -------
-
+        Fnn
+            Newly created network with initialized parameters.
         """
 
         return Fnn(sizes=sizes, init_seed=seed, act_fn=act_fn)
@@ -103,6 +133,18 @@ class BdeBuilder(FnnTrainer):
         return [self.get_model(seed + i, act_fn=act_fn, sizes=sizes) for i in range(self.n_members)]
 
     def _determine_output_dim(self, y: ArrayLike) -> int:
+        """Infer the output dimension for the ensemble from the targets.
+
+        Parameters
+        ----------
+        y : ArrayLike
+            Target values used to determine the output width.
+
+        Returns
+        -------
+        int
+            Number of output units required for the configured task.
+        """
         if self.task == TaskType.REGRESSION:
             return 2
         elif self.task == TaskType.CLASSIFICATION:
@@ -111,16 +153,54 @@ class BdeBuilder(FnnTrainer):
             raise ValueError(f"Unknown task {self.task} !")
 
     def _build_full_sizes(self, x: ArrayLike, y: ArrayLike) -> list[int]:
+        """Compute the layer sizes for each fully-connected ensemble member.
+
+        Parameters
+        ----------
+        x : ArrayLike
+            Feature matrix of shape (n_samples, n_features). Only the feature dimension
+            is used here.
+        y : ArrayLike
+            Target values that determine the output dimension via `_determine_output_dim`.
+
+        Returns
+        -------
+        list[int]
+            Full list of layer sizes `[n_features, *hidden_sizes, n_outputs]`.
+        """
         n_features = x.shape[1]
         return [n_features] + self.hidden_sizes + [self._determine_output_dim(y)]
 
     def _ensure_member_initialization(self, full_sizes: list):
+        """Lazily create ensemble members when first needed.
+
+        Parameters
+        ----------
+        full_sizes : list[int]
+            Layer specification passed to each `Fnn` member.
+        """
+
         if self.members is None:
             if self.n_members < 1:
                 raise ValueError("n_members must be at leat 1 to build the ensemble!")
             self.members = self._deep_ensemble_creator(seed=self.seed, act_fn=self.act_fn, sizes=full_sizes)
 
     def _create_training_components(self, optimizer, loss: BaseLoss):
+        """Assemble optimizer, loss, and step function used during training.
+
+        Parameters
+        ----------
+        optimizer : optax.GradientTransformation | None
+            Optional externally provided optimizer.
+        loss : BaseLoss | None
+            Optional custom loss instance.
+
+        Returns
+        -------
+        TrainingComponents
+            Pack containing optimizer, loss object, scalar loss_fn, and step function.
+        """
+
         proto_model = self.members[0]
         opt = optimizer or self.default_optimizer()
         loss_obj = loss or self.default_loss(self.task)
@@ -128,22 +208,40 @@ class BdeBuilder(FnnTrainer):
         step_one = FnnTrainer.make_step(loss_fn, opt)
         return TrainingComponents(opt, loss_obj, loss_fn, step_one)
 
-    def _create_callback(self) -> EarlyStoppingCallback:
-        return EarlyStoppingCallback(
-            patience=self.patience,
-            min_delta=self.min_delta,
-            eval_every=self.eval_every,
-        )
+    def _create_callback(self) -> EarlyStoppingCallback | NullCallback:
+
+        if self.patience is None:
+            return NullCallback()
+        else:
+            return EarlyStoppingCallback(
+                patience=self.patience,
+                min_delta=self.min_delta,
+                eval_every=self.eval_every,
+            )
 
     def _prepare_distributed_state(self, components: TrainingComponents) -> DistributedTrainingState:
+        """Pack ensemble parameters and optimizer state for pmap execution.
+
+        Parameters
+        ----------
+        components : TrainingComponents
+            Prepared optimizer, loss, and step functions.
+
+        Returns
+        -------
+        DistributedTrainingState
+            Parameters and optimizer states reshaped for device parallelism along
+            with pmap'ed step and eval functions.
+        """
+
         params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0), *[m.params for m in self.members])
         ensemble_size = len(self.members)
         device_count = jax.local_device_count()
-        print("Kernel devices:", device_count)
+        logger.info("Kernel devices: %s", device_count)
         pad = (device_count - (ensemble_size % max(device_count, 1))) % max(device_count, 1)
         ensemble_padded = ensemble_size + pad
         members_per_device = ensemble_padded // max(device_count, 1)
-        params_e = tree_map(lambda a: _pad_axis0(a, pad), params_e)
+        params_e = tree_map(lambda a: pad_axis0(a, pad), params_e)
         params_de = tree_map(lambda a: a.reshape(device_count, members_per_device, *a.shape[1:]), params_e)
 
         def init_chunk(params_chunk: Any) -> jax.vmap:
@@ -188,6 +286,32 @@ class BdeBuilder(FnnTrainer):
             y_val: ArrayLike,
             epochs: int,
     ) -> TrainingLoopResult:
+        """Run the distributed training loop with optional validation.
+
+        Parameters
+        ----------
+        state : DistributedTrainingState
+            Packed parameters, optimizer state, and pmap'ed step/eval functions.
+        callback : EarlyStoppingCallback
+            Early stopping controller that decides when members should freeze.
+        callback_state : Any
+            Mutable state tracked by the callback.
+        x_train : ArrayLike
+            Training features broadcast to every ensemble member.
+        y_train : ArrayLike
+            Training targets aligned with `x_train`.
+        x_val : ArrayLike
+            Validation features used for early stopping. May be `None`.
+        y_val : ArrayLike
+            Validation targets used by the callback. May be `None`.
+        epochs : int
+            Maximum number of epochs to run.
+
+        Returns
+        -------
+        TrainingLoopResult
+            Final distributed parameters, optimizer state, and callback state.
+        """
         params_de = state.params_de
         opt_state_de = state.opt_state_de
 
@@ -203,20 +327,49 @@ class BdeBuilder(FnnTrainer):
             if should_eval:
                 val_lvals_de = state.peval(params_de, x_val, y_val)
                 callback_state = callback.update(callback_state, epoch, params_de, val_lvals_de)
-                # if epoch % 100 == 0:
-                #     n_active = callback.active_members(callback_state)
-                #     print(f"[epoch {epoch}] active members: {n_active}")
+                if epoch % 100 == 0:
+                    logger.info(
+                        "Epoch %d: %d ensemble members still training",
+                        epoch,
+                        callback.active_members(callback_state),
+                    )
 
                 if callback.all_stopped(callback_state):
-                    # print(f"All members stopped by epoch {epoch}.")
+                    logger.info("All members stopped by epoch %d.", epoch)
                     break
         return TrainingLoopResult(params_de, opt_state_de, callback_state)
 
     def fit_members(self, x: ArrayLike, y: ArrayLike, epochs: int, optimizer=None, loss: BaseLoss = None):
+        """Train every ensemble member on the provided dataset.
+
+        Parameters
+        ----------
+        x : ArrayLike
+            Feature matrix of shape (n_samples, n_features).
+        y : ArrayLike
+            Target array broadcastable to the model output.
+        epochs : int
+            Maximum number of training epochs.
+        optimizer : optax.GradientTransformation | None
+            Custom optimizer; defaults to `default_optimizer` when `None`.
+        loss : BaseLoss | None
+            Loss object; defaults to `default_loss` for the configured task when `None`.
+
+        Returns
+        -------
+        list[Fnn]
+            The trained ensemble members with updated parameters.
+        """
 
         full_sizes = self._build_full_sizes(x, y)
         self._ensure_member_initialization(full_sizes)
-        x_train, x_val, y_train, y_val = super().split_train_val(x, y)  # for early stopping
+
+        if self.patience is None:
+            x_train, y_train = x, y
+            x_val = None
+            y_val = None
+        else:
+            x_train, x_val, y_train, y_val = super().split_train_val(x, y)  # for early stopping
 
         components = self._create_training_components(optimizer, loss)
         state = self._prepare_distributed_state(components)
@@ -245,11 +398,10 @@ class BdeBuilder(FnnTrainer):
         return self.members
 
     def keys(self):
-        """
-        Return the keys currently  in `self.results`.
-        """
+        """Return identifiers of cached results."""
+
         if not self.results:
-            raise ValueError("No results saved. Call `predict_ensemble(..., cache=True)` first!")
+            raise ValueError("No results saved. Cache outputs via predict_ensemble(..., cache=True) first.")
         return list(self.results.keys())
 
     def __getattr__(self, item):

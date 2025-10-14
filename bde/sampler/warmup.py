@@ -1,7 +1,10 @@
 """Multiple warmup implementations for different samplers. This is used from @MILE."""
+import math
 from functools import partial
 from pathlib import Path
-from typing import Callable
+from threading import Lock
+from typing import Callable, Optional
+
 from tqdm import tqdm
 
 import blackjax
@@ -28,19 +31,62 @@ from bde.sampler.prior import Prior, PriorDist
 from bde.bde_builder import BdeBuilder
 
 
+class WarmupProgress:
+    """Thread-safe wrapper around tqdm progress bar for warmup."""
+
+    def __init__(
+            self,
+            total: float,
+            *,
+            desc: str = "MCLMC warmup",
+            scale: float = 1.0,
+    ) -> None:
+        self._bar = tqdm(
+            total=total,
+            desc=desc,
+            position=0,
+            dynamic_ncols=True,
+            leave=True,
+        )
+        self._lock = Lock()
+        self._scale = scale
+        self._ticks = 0.0
+
+    def update(self, n: int) -> None:
+        if n <= 0:
+            return
+        with self._lock:
+            self._ticks += float(n)
+            target = self._ticks * self._scale
+            desired = math.floor(target + 1e-9)
+            delta = desired - self._bar.n
+            if delta > 0:
+                self._bar.update(delta)
+                self._bar.refresh()
+
+    def close(self) -> None:
+        with self._lock:
+            target = self._ticks * self._scale
+            desired = math.ceil(target - 1e-9)
+            delta = desired - self._bar.n
+            if delta > 0:
+                self._bar.update(delta)
+            self._bar.close()
+
+
 def mclmc_find_L_and_step_size(
-    mclmc_kernel,
-    state: MCLMCAdaptationState,
-    rng_key: jax.random.PRNGKey,
-    tune1_steps: int = 100,
-    tune2_steps: int = 100,
-    tune3_steps: int = 100,
-    step_size_init: float = 0.005,
-    desired_energy_var_start: float = 5e-4,
-    desired_energy_var_end: float = 5e-4,
-    trust_in_estimate: float = 1.5,
-    num_effective_samples: int = 150,
-    tick=None
+        mclmc_kernel,
+        state: MCLMCAdaptationState,
+        rng_key: jax.random.PRNGKey,
+        tune1_steps: int = 100,
+        tune2_steps: int = 100,
+        tune3_steps: int = 100,
+        step_size_init: float = 0.005,
+        desired_energy_var_start: float = 5e-4,
+        desired_energy_var_end: float = 5e-4,
+        trust_in_estimate: float = 1.5,
+        num_effective_samples: int = 150,
+        tick=None
 ):
     """
     Find the optimal value of the parameters for the MCLMC algorithm.
@@ -77,7 +123,6 @@ def mclmc_find_L_and_step_size(
     A tuple containing the final state of the MCMC algorithm and the final
     hyperparameters.
     """
-
 
     part1_key, part2_key = jax.random.split(rng_key, 2)
     dim = pytree_size(state.position)
@@ -117,7 +162,7 @@ def make_L_step_size_adaptation(
         desired_energy_var_end: float,
         trust_in_estimate: float,
         num_effective_samples: int,
-    tick=None
+        tick=None
 ):
     """
     Adapt the stepsize and L of the MCLMC kernel.
@@ -220,7 +265,7 @@ def make_L_step_size_adaptation(
             weight=(1 - mask) * success * params.step_size,
             zero_prevention=mask,
         )
-        
+
         return (state, params, adaptive_state, streaming_avg), None
 
     def run_steps(xs, state, params):
@@ -298,7 +343,7 @@ def make_adaptation_L(kernel, Lfactor, tick=None):
                 jax.debug.callback(tick, jnp.array(1, dtype=jnp.int32))
 
             return next_state, next_state.position
-        
+
         state, samples = jax.lax.scan(
             f=step,
             init=state,
@@ -357,6 +402,7 @@ def custom_mclmc_warmup(
         num_effective_samples: int = 100,
         step_size_init: float = 0.005,
         # TODO add saving_path: Path | None = None,
+        progress: Optional[WarmupProgress] = None,
 ) -> AdaptationAlgorithm:
     """Warmup the initial state using MCLMC.
 
@@ -393,12 +439,21 @@ def custom_mclmc_warmup(
             rng_key: PRNGKey,
             position: ArrayLikeTree,
             num_steps: int = 100,
-            ) -> AdaptationResults:
+    ) -> AdaptationResults:
         """Run the MCLMC warmup."""
-        bar_warm = tqdm(total=num_steps, desc="MCLMC warmup", position=0, dynamic_ncols=True, leave=True)
+        local_bar: Optional[WarmupProgress] = None
+        if progress is None:
+            local_bar = WarmupProgress(total=num_steps)
 
-        def _tick(n):
-            bar_warm.update(int(n))
+            def _tick(n):
+                increment = int(n)
+                if increment <= 0:
+                    return
+                local_bar.update(increment)
+        else:
+
+            def _tick(n):
+                progress.update(int(n))
 
         initial_state = blackjax.mcmc.mclmc.init(
             position=position, logdensity_fn=logdensity_fn, rng_key=rng_key
@@ -424,25 +479,33 @@ def custom_mclmc_warmup(
             num_effective_samples=num_effective_samples,
             tick=_tick
         )
-        bar_warm.close()
+        if local_bar is not None:
+            local_bar.close()
         return AdaptationResults(
             blackjax_state_after_tuning,
             blackjax_mclmc_sampler_params,
         )
 
-    
-    
     return AdaptationAlgorithm(run)
 
 
 def warmup_bde(
-    bde: BdeBuilder,
-    logpost_one,
-    step_size_init: float,
-    desired_energy_var_start: float,
-    desired_energy_var_end: float,
-    warmup_steps: int,
+        bde: BdeBuilder,
+        logpost_one,
+        step_size_init: float,
+        desired_energy_var_start: float,
+        desired_energy_var_end: float,
+        warmup_steps: int,
 ) -> AdaptationResults:
+    n_members = bde.n_members
+    n_devices = jax.local_device_count()
+
+    pad = (n_devices - (n_members % n_devices)) % n_devices if n_devices else 0
+    n_members_pad = n_members + pad if n_devices else n_members
+    device_weight = max(n_devices, 1)
+    scale = 1.0 / device_weight
+    progress = WarmupProgress(total=warmup_steps, scale=scale) if warmup_steps > 0 else None
+
     # Build the warmup adapter (same as your current code)
     adapt = custom_mclmc_warmup(
         logdensity_fn=logpost_one,
@@ -451,14 +514,12 @@ def warmup_bde(
         trust_in_estimate=1.5,
         num_effective_samples=100,
         step_size_init=step_size_init,
+        progress=progress,
     )
 
     def run_member(key, position):
         ar = adapt.run(key, position, warmup_steps)
         return ar.state, ar.parameters  # return plain pytrees (pmap-friendly)
-
-    n_members = bde.n_members
-    n_devices = jax.local_device_count()
 
     # Stack member params if needed (expect (n_members, ...) leaves)
     params_e = getattr(bde, "params_e", None)
@@ -467,7 +528,6 @@ def warmup_bde(
                             *[m.params for m in bde.members])
 
     # Pad to multiple of n_devices (so we can reshape to (n_devices, n_members_per, ...))
-    pad = (n_devices - (n_members % n_devices)) % n_devices
     if pad:
         params_e = tree_map(
             lambda a: jnp.concatenate([a, jnp.repeat(a[:1], pad, axis=0)], axis=0),
@@ -489,19 +549,23 @@ def warmup_bde(
         return jax.vmap(run_member, in_axes=(0, 0))(keys_chunk, positions_chunk)
 
     # pmap across devices; params/keys are sharded (in_axes=0)
-    states_de, mclmc_params_de = jax.pmap(
-        run_chunk, in_axes=(0, 0), out_axes=(0, 0)
-    )(keys_de, params_de)
+    try:
+        states_de, mclmc_params_de = jax.pmap(
+            run_chunk, in_axes=(0, 0), out_axes=(0, 0)
+        )(keys_de, params_de)
 
-    # Back to (n_members_pad, ...)
-    states_e, mclmc_params_e = tree_map(
-        lambda a: a.reshape(n_members_pad, *a.shape[2:]),
-        (states_de, mclmc_params_de),
-    )
+        # Back to (n_members_pad, ...)
+        states_e, mclmc_params_e = tree_map(
+            lambda a: a.reshape(n_members_pad, *a.shape[2:]),
+            (states_de, mclmc_params_de),
+        )
 
-    # Drop padding
-    if pad:
-        states_e = tree_map(lambda a: a[:n_members], states_e)
-        mclmc_params_e = tree_map(lambda a: a[:n_members], mclmc_params_e)
+        # Drop padding
+        if pad:
+            states_e = tree_map(lambda a: a[:n_members], states_e)
+            mclmc_params_e = tree_map(lambda a: a[:n_members], mclmc_params_e)
 
-    return AdaptationResults(states_e, mclmc_params_e)
+        return AdaptationResults(states_e, mclmc_params_e)
+    finally:
+        if progress is not None:
+            progress.close()

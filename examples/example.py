@@ -7,18 +7,30 @@ This example demonstrates a simple usage of the BDE package.
 
 import sys
 import os
+import logging
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
-from bde.bde import BdeRegressor, BdeClassifier
-from bde.task import TaskType
-from bde.loss.loss import *
-from sklearn.datasets import fetch_openml, load_iris
-from sklearn.model_selection import train_test_split
-import jax.numpy as jnp
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logging.getLogger("bde").setLevel(logging.INFO)
 
-from bde.viz.plotting import plot_pred_vs_true, plot_confusion_matrix, plot_reliability_curve, plot_roc_curve
+import jax.numpy as jnp
+from sklearn.datasets import fetch_openml, load_iris
+from sklearn.metrics import root_mean_squared_error
+from sklearn.model_selection import train_test_split
+
+from bde import BdeClassifier, BdeRegressor
+from bde.loss.loss import CategoricalCrossEntropy, GaussianNLL
+from bde.viz.plotting import (
+    plot_confusion_matrix,
+    plot_pred_vs_true,
+    plot_reliability_curve,
+    plot_roc_curve,
+)
 
 
 def regression_example():
@@ -30,32 +42,25 @@ def regression_example():
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42)
 
-    # Convert to JAX arrays
-    X_train = jnp.array(X_train, dtype=jnp.float32)
-    y_train = jnp.array(y_train, dtype=jnp.float32).ravel()
-    X_test = jnp.array(X_test, dtype=jnp.float32)
-    y_test = jnp.array(y_test, dtype=jnp.float32)
-
     Xmu, Xstd = jnp.mean(X_train, 0), jnp.std(X_train, 0) + 1e-8
     Ymu, Ystd = jnp.mean(y_train, 0), jnp.std(y_train, 0) + 1e-8
 
     Xtr = (X_train - Xmu) / Xstd
     Xte = (X_test - Xmu) / Xstd
     ytr = (y_train - Ymu) / Ystd
-    yte = (y_test - Ymu) / Ystd
-
-    sizes = [5, 16, 16, 2]  # TODO: [@later] allow user to configure only hidden layers\ -> this is done
+    yte = ((y_test - Ymu) / Ystd)
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
-        n_members=4,
+        n_members=20,
         seed=0,
         loss=GaussianNLL(),
-        epochs=20,
+        epochs=200,
         lr=1e-3,
-        warmup_steps=50,
-        n_samples=10,
+        warmup_steps=500,
+        n_samples=100,
         n_thinning=1,
+        patience=10
     )
 
     print(f"the params are {regressor.get_params()}")  # get_params is from sk learn!!
@@ -63,7 +68,7 @@ def regression_example():
 
     means, sigmas = regressor.predict(Xte, mean_and_std=True)
 
-    print("RSME: ", jnp.sqrt(jnp.mean((means - yte) ** 2)))
+    print("RSME: ", root_mean_squared_error(y_true=yte, y_pred=means))
     plot_pred_vs_true(
         y_pred=means,
         y_true=yte,
@@ -73,6 +78,8 @@ def regression_example():
     )
 
     mean, intervals = regressor.predict(Xte, credible_intervals=[0.9, 0.95])
+    raw = regressor.predict(Xte, raw=True)
+    print(f"The shape of the raw predictions are {raw.shape}") #(ensemble members, n_samples, n_data, (mu,sigma))
 
     print("Credible intervals shape:", intervals.shape)  # (len(q), N)
 
@@ -113,7 +120,8 @@ def classification_example():
         lr=1e-3,
         warmup_steps=50,
         n_samples=2,
-        n_thinning=1
+        n_thinning=1,
+        patience=2
     )
 
     classifier.fit(x=Xtr, y=ytr)
@@ -123,38 +131,10 @@ def classification_example():
     print("Predicted class probabilities:\n", probs)
     print("Predicted class labels:\n", preds)
     print("True labels:\n", yte)
-
-    savepath = "plots_classification"
-    classes = list(range(3))  # [0,1,2]
-
-    # 1. Confusion matrix
-    plot_confusion_matrix(
-        y_true=jnp.array(yte),
-        y_pred=jnp.array(preds),
-        classes=classes,
-        title="Iris Confusion Matrix",
-        savepath=savepath,
-    )
-
-    # 2. Reliability curve (per class, e.g. class 0)
-    plot_reliability_curve(
-        y_true=(jnp.array(yte) == 0).astype(int),
-        y_proba=jnp.array(probs)[:, 0],  # probability of class 0
-        n_bins=10,
-        title="Iris Calibration Curve (class 0)",
-        savepath=savepath,
-    )
-
-    # 3. ROC curve (per class, e.g. class 0)
-    plot_roc_curve(
-        y_true=(jnp.array(yte) == 0).astype(int),
-        y_proba=jnp.array(probs)[:, 0],
-        title="Iris ROC Curve (class 0 vs rest)",
-        savepath=savepath,
-    )
-
     score = classifier.score(Xtr, ytr)
     print(f"the sklearn score is {score}")
+    raw = classifier.predict(Xte, raw=True)
+    print(f"The shape of the raw predictions are {raw.shape}")  # (ensemble members, n_samples, n_data, n_classes))
 
 
 if __name__ == "__main__":

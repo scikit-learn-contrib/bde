@@ -1,31 +1,31 @@
-from bde.bde_builder import BdeBuilder
-from bde.bde_evaluator import BdePredictor
-from bde.loss.loss import BaseLoss
-from bde.models.models import BaseModel
-from bde.sampler.probabilistic import ProbabilisticModel
-from bde.sampler.prior import PriorDist
-from bde.sampler.warmup import warmup_bde
-from bde.sampler.mile_wrapper import MileWrapper
+"""High-level scikit-learn style estimators for Bayesian deep ensembles."""
+
+from functools import partial
+from typing import TYPE_CHECKING, Any, Protocol, cast, Callable
+
 import jax
 import jax.numpy as jnp
-from jax.typing import ArrayLike
-from jax.tree_util import tree_map, tree_leaves
-from bde.task import TaskType
-from functools import partial
-import optax
-from sklearn.base import BaseEstimator, RegressorMixin, ClassifierMixin
-from sklearn.utils.validation import check_is_fitted
-from typing import Any, Protocol, TYPE_CHECKING, cast
 import numpy as np
+import optax
+from jax.tree_util import tree_leaves, tree_map
+from jax.typing import ArrayLike
+from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+from sklearn.utils.validation import check_is_fitted
+
+from .bde_builder import BdeBuilder
+from .bde_evaluator import BdePredictor
+from .data.utils import validate_fit_data, validate_predict_data
+from .loss import BaseLoss
+from .models import BaseModel
+from .sampler.mile_wrapper import MileWrapper
+from .sampler.probabilistic import ProbabilisticModel
+from .sampler.prior import PriorDist
+from .sampler.types import ParamTree
+from .sampler.warmup import warmup_bde
+from .task import TaskType
 
 if TYPE_CHECKING:
     from sklearn.preprocessing import LabelEncoder
-
-from bde.data.utils import (
-    validate_fit_data,
-    validate_predict_data,
-)
-from bde.sampler.my_types import ParamTree
 
 
 class _WarmupState(Protocol):
@@ -35,6 +35,11 @@ class _WarmupState(Protocol):
 
 
 class Bde:
+    """Base estimator that orchestrates training and sampling of deep ensembles.
+
+    The class follows the scikit-learn API and is specialised by regression and
+    classification mixins.
+    """
     positions_eT_: ParamTree
     is_fitted_: bool
     members_: list[BaseModel]
@@ -49,7 +54,7 @@ class Bde:
                  loss: BaseLoss = None,
                  activation: str = "relu",
                  epochs: int = 20,
-                 patience: int = 25,
+                 patience: int | None = None,
                  n_samples: int = 10,
                  warmup_steps: int = 50,
                  lr: float = 1e-3,
@@ -58,6 +63,42 @@ class Bde:
                  desired_energy_var_end: float = 0.1,
                  step_size_init: float = None
                  ):
+        """Initialise the estimator with architectural and sampling settings.
+
+        Parameters
+        ----------
+        n_members : int
+            Number of networks in the deep ensemble.
+        hidden_layers : list[int] | None
+            Hidden-layer widths; defaults to `[4, 4]` when `None`.
+        seed : int
+            Random seed shared across ensemble and sampling routines.
+        task : TaskType | None
+            Task identifier; subclasses set this automatically.
+        loss : BaseLoss | None
+            Optional user-provided loss function.
+        activation : str
+            Activation function passed to each network.
+        epochs : int
+            Maximum training epochs for each ensemble member.
+        patience : int
+            Early-stopping patience forwarded to the builder.
+        n_samples : int
+            Number of posterior samples per ensemble member.
+        warmup_steps : int
+            Warmup iterations for the sampler.
+        lr : float
+            Learning rate for the default Adam optimizer.
+        n_thinning : int
+            Thinning factor applied to MCMC samples.
+        desired_energy_var_start : float
+            Initial target energy variance for warmup.
+        desired_energy_var_end : float
+            Final target energy variance for warmup.
+        step_size_init : float | None
+            Optional initial step size for the sampler.
+        """
+
         self.n_members = n_members
         self.hidden_layers = hidden_layers
         self.seed = seed
@@ -82,12 +123,8 @@ class Bde:
         self._bde: BdeBuilder | None = None
 
     def _build_bde(self):
-        """
+        """Instantiate the builder and ensemble members based on current settings."""
 
-        Returns
-        -------
-
-        """
         hidden_layers = self.hidden_layers if self.hidden_layers is not None else [4, 4]
         self._resolved_hidden_layers = list(hidden_layers)
 
@@ -103,33 +140,39 @@ class Bde:
         self.members_ = self._bde.members
 
     def _build_log_post(self, x: ArrayLike, y: ArrayLike):
-        """
+        """Construct the log-posterior callable for the ensemble.
 
         Parameters
         ----------
-        x
-        y
+        x : ArrayLike
+            Feature matrix that the posterior conditions on.
+        y : ArrayLike
+            Targets associated with `x`.
 
         Returns
         -------
-
+        Callable
+            Function mapping parameter states to their unnormalized log posterior.
         """
         prior = PriorDist.STANDARDNORMAL.get_prior()
         proto = self._bde.members[0]
-        pm = ProbabilisticModel(module=proto, params=proto.params, prior=prior, task=self.task)
+        pm = ProbabilisticModel(model=proto, params=proto.params, prior=prior, task=self.task)
         return partial(pm.log_unnormalized_posterior, x=x, y=y)
 
     def _warmup_sampler(self, logpost):
-        """
+        """Run the adaptive warmup phase for the MCMC sampler.
 
         Parameters
         ----------
-        logpost
+        logpost : Callable
+            Unnormalised log posterior accepting parameter trees.
 
         Returns
         -------
-
+        tuple[ParamTree, Any]
+            Warmed-up starting positions and adaptation metadata.
         """
+
         warm = warmup_bde(
             self._bde,
             logpost,
@@ -142,60 +185,75 @@ class Bde:
         return warm_state.position, warm.parameters  # (pytree with leading E,  MCLMCAdaptationState)
 
     def _generate_rng_keys(self, num_chains: int):
-        """
+        """Construct distinct PRNG keys for each MCMC chain.
 
         Parameters
         ----------
-        num_chains
+        num_chains : int
+            Number of independent chains required.
 
         Returns
         -------
-
+        jax.Array
+            Array of shape (num_chains, 2) containing PRNG keys.
         """
+
         rng = jax.random.PRNGKey(int(self.seed))
         return jax.vmap(lambda i: jax.random.fold_in(rng, i))(jnp.arange(num_chains))
 
     @staticmethod
     def _normalize_tuned_parameters(tuned, num_chains: int):
-        """
+        """Broadcast tuned sampler parameters to the number of chains.
 
         Parameters
         ----------
-        tuned
-        num_chains
+        tuned : Any
+            Object returned by warmup containing `L`, `step_size`, `sqrt_diag_cov`.
+        num_chains : int
+            Number of chains requested for sampling.
 
         Returns
         -------
-
+        tuple[jax.Array, jax.Array, jax.Array]
+            Tuple of inverse mass matrix diagonals, step sizes, and covariance square roots.
         """
+
         L_e = tuned.L if jnp.ndim(tuned.L) == 1 else jnp.full((num_chains,), tuned.L)
         step_e = tuned.step_size if jnp.ndim(tuned.step_size) == 1 else jnp.full((num_chains,), tuned.step_size)
         sqrt_diag_e = tuned.sqrt_diag_cov
         return L_e, step_e, sqrt_diag_e
 
     def _draw_samples(self,
-                      logpost,
-                      rng_keys_e,
+                      logpost: Callable,
+                      rng_keys_e: ArrayLike,
                       init_positions_e,
                       L_e,
                       step_e,
                       sqrt_diag_e,
                       ):
-        """
+        """Generate posterior samples for each ensemble member.
 
         Parameters
         ----------
-        logpost
-        rng_keys_e
-        init_positions_e
-        L_e
-        step_e
-        sqrt_diag_e
+        logpost : Callable
+            Log posterior callable produced by `_build_log_post`.
+        rng_keys_e : jax.Array
+            PRNG keys for each chain.
+        init_positions_e : ParamTree
+            Warmed-up starting positions with leading ensemble axis.
+        L_e : jax.Array
+            Inverse mass matrix factors per chain.
+        step_e : jax.Array
+            Step sizes per chain.
+        sqrt_diag_e : jax.Array
+            Square root of diagonal covariance estimates.
 
         Returns
         -------
-
+        ParamTree
+            Posterior samples with leading axes (ensemble, samples, ...).
         """
+
         sampler = MileWrapper(logpost)
         positions_eT, _, _ = sampler.sample_batched(
             rng_keys_e=rng_keys_e,
@@ -210,15 +268,24 @@ class Bde:
         return positions_eT
 
     def _make_predictor(self, x: ArrayLike) -> BdePredictor:
-        """
+        """Create a predictor helper configured for the provided features.
 
         Parameters
         ----------
-        x
+        x : ArrayLike
+            Feature matrix of shape (n_samples, n_features) to evaluate.
 
         Returns
         -------
+        BdePredictor
+            Lightweight wrapper exposing ensemble prediction utilities.
 
+        Raises
+        ------
+        NotFittedError
+            If `fit` has not been called yet.
+        RuntimeError
+            If the underlying builder did not initialize ensemble members.
         """
 
         check_is_fitted(self)
@@ -234,37 +301,43 @@ class Bde:
 
     @staticmethod
     def _prepare_targets(y_checked: ArrayLike) -> ArrayLike:
-        """This method is to be overwritten in the BdeClassifier class in order to prepare the labels for classification
+        """Prepare target values before training.
 
         Parameters
         ----------
-        y_checked
+        y_checked : ArrayLike
+            Target array validated by `validate_fit_data`.
 
         Returns
         -------
-
+        ArrayLike
+            Possibly transformed targets. The base implementation is identity and
+            subclasses can override it (e.g. to one-hot encode classification labels).
         """
 
         return y_checked
 
-    def fit(self, x: ArrayLike, y: ArrayLike):
-        """
+    def _fit(self, x: ArrayLike, y: ArrayLike):
+        """Fit the Bayesian Deep Ensemble on the provided dataset.
 
         Parameters
         ----------
-        x
-        y
+        x : ArrayLike
+            Feature matrix of shape (n_samples, n_features).
+        y : ArrayLike
+            Target array with shape compatible to the configured task.
 
         Returns
         -------
-
+        Bde
+            The fitted estimator.
         """
 
-        x_np, y_np = validate_fit_data(self, x, y)
-        y_prepared = self._prepare_targets(y_np)
+        x_np, y_np = validate_fit_data(self, x, y)  # x_np: (N, D), y_np: (N, 1) for regression
+        y_prepared = self._prepare_targets(y_np)  # preserve (N, 1) for regression targets
 
-        x_checked = jnp.asarray(x_np)
-        y_checked = jnp.asarray(y_prepared)
+        x_checked = jnp.asarray(x_np)  # (N, D)
+        y_checked = jnp.asarray(y_prepared)  # regression: (N, 1); classification: (N,)
 
         self._resolved_step_size_init = (
             self.step_size_init if self.step_size_init is not None else self.lr
@@ -315,6 +388,21 @@ class Bde:
             raw: bool = False,
             probabilities: bool = False,
     ):
+        """This method validates the tags parsed into the evaluate method, makes sure no two competing tags are given.
+
+        Parameters
+        ----------
+        mean_and_std : bool
+            When `True`, return both the predictive mean and standard deviation.
+        credible_intervals : list[float] | None
+            Credible interval levels in (0, 1). In regression mode mutually exclusive
+            with `mean_and_std`.
+        raw : bool
+            Return the raw ensemble outputs without aggregation.
+        probabilities : bool
+            Return class probabilities (classification only).
+        """
+
         if self.task == TaskType.REGRESSION:
             if probabilities:
                 raise ValueError("'probabilities' predictions are only supported for classification tasks.")
@@ -335,7 +423,7 @@ class Bde:
 
         raise ValueError(f"Unsupported task type {self.task}")
 
-    def evaluate(
+    def _evaluate(
             self,
             xte: ArrayLike,
             mean_and_std: bool = False,
@@ -343,20 +431,28 @@ class Bde:
             raw: bool = False,
             probabilities: bool = False,
     ):
-        """
+        """Evaluate the fitted ensemble under different output modes.
 
         Parameters
         ----------
-        xte
-        mean_and_std
-        credible_intervals
-        raw
-        probabilities
+        xte : ArrayLike
+            Feature matrix for which predictions are requested.
+        mean_and_std : bool
+            When `True`, return both the predictive mean and standard deviation.
+        credible_intervals : list[float] | None
+            Credible interval levels in (0, 1). In regression mode mutually exclusive
+            with `mean_and_std`.
+        raw : bool
+            Return the raw ensemble outputs without aggregation.
+        probabilities : bool
+            Return class probabilities (classification only).
 
         Returns
         -------
-
+        dict[str, ArrayLike]
+            Mapping containing the requested prediction artifacts.
         """
+
         xte_np = validate_predict_data(self, xte)
         xte_jnp = jnp.asarray(xte_np)
         predictor = self._make_predictor(xte_jnp)
@@ -373,13 +469,11 @@ class Bde:
             probabilities=probabilities,
         )
 
-    def get_raw_predictions(self, x: ArrayLike):
-        """Return raw ensemble predictions for a given input batch."""
-        return self.evaluate(x, raw=True)["raw"]
 
-
-# TODO: [@angelos] maybe put them in another file?
 class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
+    """Regression-friendly wrapper exposing scikit-learn style API.
+    """
+
     def __init__(
             self,
             n_members: int = 2,
@@ -388,7 +482,7 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
             loss: BaseLoss | None = None,
             activation: str = "relu",
             epochs: int = 20,
-            patience: int = 25,
+            patience: int | None = None,
             n_samples: int = 10,
             warmup_steps: int = 50,
             lr: float = 1e-3,
@@ -415,37 +509,33 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
             step_size_init=step_size_init,
         )
 
+    def fit(self, x: ArrayLike, y: ArrayLike):
+        return super()._fit(x, y)
+
     def predict(self,
                 x: ArrayLike,
                 mean_and_std: bool = False,
                 credible_intervals: list[float] | None = None,
                 raw: bool = False):
-        out = self.evaluate(
+        out = self._evaluate(
             x,
             mean_and_std=mean_and_std,
             credible_intervals=credible_intervals,
             raw=raw,
         )
+        if raw:
+            return out["raw"]
         if mean_and_std:
-            return out["mean"], out["std"]
+            return out["mean"], out["std"]  # both (N,) for regression
         if credible_intervals:
-            return out["mean"], out["credible_intervals"]
-        return out["mean"]
-
-    def get_raw_predictions(self, x: ArrayLike):
-        """Return raw ensemble predictions.
-
-        Shape: (E, T, N, 2), where:
-          - E = ensemble members
-          - T = posterior samples per member
-          - N = number of test points
-          - 2 = (mu, sigma_param)
-        """
-
-        return super().get_raw_predictions(x)
+            return out["mean"], out["credible_intervals"]  # mean (N,), intervals (Q, N)
+        return out["mean"]  # (N,) regression predictive mean
 
 
 class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
+    """Classification wrapper with label encoding helpers.
+    """
+
     label_encoder_: "LabelEncoder"
 
     def __init__(
@@ -456,7 +546,7 @@ class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
             loss: BaseLoss | None = None,
             activation: str = "relu",
             epochs: int = 20,
-            patience: int = 25,
+            patience: int | None = None,
             n_samples: int = 10,
             warmup_steps: int = 50,
             lr: float = 1e-3,
@@ -492,23 +582,17 @@ class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
         self.classes_ = np.asarray(encoder.classes_)
         return encoded.astype(np.int32)
 
-    def predict(self, x: ArrayLike):
-        labels = np.asarray(self.evaluate(x)["labels"])
+    def fit(self, x: ArrayLike, y: ArrayLike):
+        return super()._fit(x, y)
+
+    def predict(self, x: ArrayLike, raw: bool = False):
+        if raw:
+            return self._evaluate(x, raw=True)["raw"]
+        labels = np.asarray(self._evaluate(x)["labels"])
         if not hasattr(self, "label_encoder_"):
             return labels
         return self.label_encoder_.inverse_transform(labels.astype(int))
 
     def predict_proba(self, x: ArrayLike):
-        probs = np.asarray(self.evaluate(x, probabilities=True)["probs"])
+        probs = np.asarray(self._evaluate(x, probabilities=True)["probs"])
         return probs
-
-    def get_raw_predictions(self, x: ArrayLike):
-        """Return raw ensemble predictions.
-
-        Shape: (E, T, N, C), where:
-          - E = ensemble members
-          - T = posterior samples per member
-          - N = number of test points
-          - C = number of classes (logits before softmax)
-        """
-        return super().get_raw_predictions(x)

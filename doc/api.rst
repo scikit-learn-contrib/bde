@@ -15,16 +15,9 @@ Estimator
    :toctree: generated/
    :template: class.rst
 
-   TemplateEstimator
+   BdeRegressor
+   BdeClassifier
 
-Transformer
-===========
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   TemplateTransformer
 
 Predictor
 =========
@@ -33,7 +26,7 @@ Predictor
    :toctree: generated/
    :template: class.rst
 
-    TemplateClassifier
+    BdePredictor
 
 
 Utilities

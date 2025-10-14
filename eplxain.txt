@@ -1,0 +1,78 @@
+
+> Warmup Overview
+  warmup_bde (bde/sampler/warmup.py:412) runs an adaptive pre-sampling phase to tune the MCLMC sampler before we draw posterior samples. Each ensemble member becomes its own MCMC
+  chain; chains are padded and sharded across devices so the whole stage is pmap/vmap‑friendly.
+
+  What adapt is
+  Inside warmup_bde, we build an AdaptationAlgorithm named adapt by calling custom_mclmc_warmup (bde/sampler/warmup.py:286). That helper wires up BlackJAX’s MCLMC kernel together
+  with our multi-phase adaptation routine (step-size tuning, mass/potential scaling, and optional L updates). The returned object exposes run(key, position, num_steps) that yields
+  AdaptationResults (final state + tuned parameters) for a single chain.
+
+  What logpost_one is
+  logpost_one comes from Bde._build_log_post (bde/bde.py:146): we wrap the trained prototype member in ProbabilisticModel, so the log posterior is
+  [
+  \log p(\theta \mid X, y) = \log p(\theta) + \log p(y \mid X, \theta)
+  ]
+  with the prior PriorDist.STANDARDNORMAL and the task-specific likelihood (bde/sampler/probabilistic.py:70-111). That callable takes a parameter tree θ and returns the scalar log
+  density the sampler needs.
+
+  How chains are built
+  We collect each member’s parameters into a pytree params_e. If the ensemble size isn’t divisible by the device count, we pad by repeating the first member so we can reshape to
+  (n_devices, members_per_device, …) (bde/sampler/warmup.py:434-452). Each row in this reshaped tensor is an independent chain seeded with its own RNG key split from bde.seed.
+
+  What run_member does
+  run_member (bde/sampler/warmup.py:428) is a thin wrapper that feeds one chain’s RNG key + initial position into adapt.run. The result is the tuned state (position/momentum etc.)
+  and the tuned sampler hyperparameters (step size, mass matrix, integration length). jax.vmap applies this over the chunk of members per device, and jax.pmap distributes across
+  devices so every chain warms up in parallel.
+
+  Step-size and mass adaptation math
+  All the heavy lifting happens in mclmc_find_L_and_step_size and make_L_step_size_adaptation (bde/sampler/warmup.py:19-183). Key formulas:
+
+  - Energy diagnostic: For each leapfrog attempt we compute
+    [
+    \xi = \frac{(\Delta E)^2}{d \cdot \text{desired_energy_var}} + 1\text{e-8},
+    ]
+    where (d) is the flattened parameter dimension and (\Delta E) is the Hamiltonian energy change (make_L_step_size_adaptation.predictor).
+  - Weighting:
+    [
+    w = \exp!\left(-\tfrac{1}{2} \left(\frac{\log \xi}{6 \cdot \text{trust_in_estimate}}\right)^2\right),
+    ]
+    down‑weighting outlier steps.
+  - Streaming averages: We maintain exponentially decaying averages of ( \xi / \epsilon^6 ) and the weights. With decay rate
+    [
+    \rho = \frac{N_{\text{eff}} - 1}{N_{\text{eff}} + 1},
+    ]
+    the accumulator updates are
+    [
+    \bar{x} \gets \rho \bar{x} + w \cdot \frac{\xi}{\epsilon^6},\quad
+    t \gets \rho t + w.
+    ]
+  - Step-size update: Inverting the (\mathrm{Var}[E] = \mathcal{O}(\epsilon^6)) relationship gives
+    [
+    \epsilon_{\text{new}} = \left(\frac{\bar{x}}{t}\right)^{-1/6},
+    ]
+    capped by any previously observed divergent step size (make_L_step_size_adaptation.predictor).
+  - Variance-based L (trajectory length) update: After the second tuning phase we compute the per-parameter variance of the warmed-up positions and set
+    [
+    L = \sqrt{\sum_i \operatorname{Var}(x_i)},
+    ]
+    adapting the kernel’s integration length (make_L_step_size_adaptation.L_step_size_adaptation).
+  - Autocorrelation-based L refinement: Optionally (third phase), we run additional short trajectories, estimate the effective sample size (ESS) via FFT, and rescale
+    [
+    L \gets L_{\text{factor}} \cdot \epsilon \cdot \overline{\frac{n_{\text{steps}}}{\text{ESS}}},
+    ]
+    so longer trajectories are used when ESS is low (make_adaptation_L).
+
+  All these adaptations are part of the overall AdaptationAlgorithm. When warmup_bde finishes, the tuned states and parameters are unsharded back to (n_members, …) and returned as
+  AdaptationResults. Those tuned positions seed the main sampling run, while the adapted step size and mass matrix (via sqrt_diag_cov) feed into _normalize_tuned_parameters before
+  _draw_samples.
+
+  Putting it together
+
+  1. Train ensemble → get initial params.
+  2. Build log posterior for a single member.
+  3. Warmup for each member (chain) in parallel: step-size & mass adaptation using energy diagnostics, optional L refinement via ESS.
+  4. Return tuned chain states + sampler parameters for later sampling.
+
+  That’s why warmup is essential: it calibrates the sampler’s hyperparameters so the subsequent MCLMC sampling over neural network weights mixes properly and avoids blow-ups.
+

@@ -12,7 +12,7 @@ from bde.bde import BdeRegressor, BdeClassifier, Bde
 from bde.bde_builder import BdeBuilder
 
 from bde.task import TaskType
-from bde.models.models import Fnn
+from bde.models import Fnn
 
 
 class TestBdeRegressor(unittest.TestCase):
@@ -59,8 +59,12 @@ class TestBdeRegressor(unittest.TestCase):
         self.assertTrue(jnp.allclose(mean_only, mean_with_ci))
         self.assertEqual(ci.shape, (len(ci_levels), mean_only.shape[0]))
 
+        raw_preds = self.reg.predict(self.x, raw=True)
+        self.assertEqual(raw_preds.shape[-1], 2)
+        self.assertEqual(raw_preds.shape[-2], self.x.shape[0])
+
     def test_evaluate_raw_returns_expected_shape(self):
-        raw_out = self.reg.evaluate(self.x, raw=True)
+        raw_out = self.reg._evaluate(self.x, raw=True)
         self.assertIn("raw", raw_out)
         raw = raw_out["raw"]
         # Expect shape (E, T, N, 2) with E=ensemble members, T=samples
@@ -120,7 +124,7 @@ class TestBdeClassifier(unittest.TestCase):
 
 
     def test_evaluate_raw_returns_expected_shape(self):
-        raw_out = self.clf.evaluate(self.x, raw=True)
+        raw_out = self.clf._evaluate(self.x, raw=True)
         self.assertIn("raw", raw_out)
         raw = raw_out["raw"]
         # Expect shape (E, T, N, 2) with E=ensemble members, T=samples
@@ -208,8 +212,14 @@ class TestBdeBuilderHelpers(unittest.TestCase):
         new_params, new_state, loss = components.step_fn(params, opt_state, xb, yb)
 
         self.assertEqual(loss.shape, ())
-        self.assertEqual(jax.tree_structure(new_params), jax.tree_structure(params))
-        self.assertEqual(jax.tree_structure(new_state), jax.tree_structure(opt_state))
+        self.assertEqual(
+            jax.tree_util.tree_structure(new_params),
+            jax.tree_util.tree_structure(params),
+        )
+        self.assertEqual(
+            jax.tree_util.tree_structure(new_state),
+            jax.tree_util.tree_structure(opt_state),
+        )
 
     def test_keys_and_cached_attribute_access(self):
         builder = self._make_builder()

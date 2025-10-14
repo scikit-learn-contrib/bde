@@ -3,9 +3,6 @@ import jax.numpy as jnp
 
 import jax.nn as nn
 from abc import ABC, abstractmethod
-from bde.data.dataloader import DataLoader
-from bde.training.trainer import FnnTrainer
-from bde.data.dataloader import DataLoader
 
 
 class BaseModel(ABC):
@@ -17,6 +14,9 @@ class BaseModel(ABC):
 
     @abstractmethod
     def forward(self, params, x): ...
+
+    @abstractmethod
+    def apply(self, params, x, **kwargs): ...
 
 
 class Fnn(BaseModel):
@@ -63,17 +63,19 @@ class Fnn(BaseModel):
         return params
 
     def forward(self, params, x):
-        """
-        #TODO: documentation
+        """Run a forward pass of the network.
 
         Parameters
         ----------
-        params
-        x
+        params : list[tuple[jax.Array, jax.Array]]
+            Sequence of `(weights, bias)` pairs produced by `_init_mlp`.
+        x : ArrayLike
+            Input batch shaped (n_samples, n_features).
 
         Returns
         -------
-
+        jax.Array
+            Model outputs with shape (n_samples, output_dim).
         """
         # TODO: [@later] have a validation of input layer and number of features
         act_fn = self._get_activation(self.activation_name)
@@ -82,7 +84,7 @@ class Fnn(BaseModel):
         W, b = params[-1]
         return jnp.dot(x, W) + b
 
-    def apply(self, variables, x, **kwargs): #TODO[@angelos, @vyron]: this is not used somewhere relevant!
+    def apply(self, variables, x, **kwargs):
         """Mimic Flax API: variables['params'] contains weights."""
         params = variables["params"]
         return self.forward(params, x, **kwargs)
