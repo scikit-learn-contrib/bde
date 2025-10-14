@@ -1,0 +1,56 @@
+﻿BdeClassifier
+===============================
+
+.. currentmodule:: bde
+
+.. autoclass:: BdeClassifier
+
+   
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      
+      
+        ~BdeClassifier.fit
+      
+      
+        ~BdeClassifier.get_metadata_routing
+      
+      
+        ~BdeClassifier.get_params
+      
+      
+        ~BdeClassifier.predict
+      
+      
+        ~BdeClassifier.predict_proba
+      
+      
+        ~BdeClassifier.score
+      
+      
+        ~BdeClassifier.set_fit_request
+      
+      
+        ~BdeClassifier.set_params
+      
+      
+        ~BdeClassifier.set_predict_proba_request
+      
+      
+        ~BdeClassifier.set_predict_request
+      
+      
+        ~BdeClassifier.set_score_request
+      
+   
+   
+
+.. include:: bde.BdeClassifier.examples
+
+.. raw:: html
+
+    <div style='clear:both'></div>

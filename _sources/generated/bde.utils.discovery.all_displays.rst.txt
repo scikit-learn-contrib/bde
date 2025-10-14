@@ -1,0 +1,6 @@
+﻿bde.utils.discovery.all\_displays
+=================================
+
+.. currentmodule:: bde.utils.discovery
+
+.. autofunction:: all_displays

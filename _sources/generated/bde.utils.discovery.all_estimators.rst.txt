@@ -1,0 +1,6 @@
+﻿bde.utils.discovery.all\_estimators
+===================================
+
+.. currentmodule:: bde.utils.discovery
+
+.. autofunction:: all_estimators

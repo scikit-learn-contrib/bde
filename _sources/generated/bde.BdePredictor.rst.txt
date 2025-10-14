@@ -1,0 +1,35 @@
+﻿BdePredictor
+==============================
+
+.. currentmodule:: bde
+
+.. autoclass:: BdePredictor
+
+   
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      
+      
+        ~BdePredictor.get_preds_per_member
+      
+      
+        ~BdePredictor.get_raw_preds
+      
+      
+        ~BdePredictor.predict
+      
+      
+        ~BdePredictor.predictive_accuracy
+      
+   
+   
+
+.. include:: bde.BdePredictor.examples
+
+.. raw:: html
+
+    <div style='clear:both'></div>

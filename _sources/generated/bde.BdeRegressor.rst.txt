@@ -1,0 +1,50 @@
+﻿BdeRegressor
+==============================
+
+.. currentmodule:: bde
+
+.. autoclass:: BdeRegressor
+
+   
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      
+      
+        ~BdeRegressor.fit
+      
+      
+        ~BdeRegressor.get_metadata_routing
+      
+      
+        ~BdeRegressor.get_params
+      
+      
+        ~BdeRegressor.predict
+      
+      
+        ~BdeRegressor.score
+      
+      
+        ~BdeRegressor.set_fit_request
+      
+      
+        ~BdeRegressor.set_params
+      
+      
+        ~BdeRegressor.set_predict_request
+      
+      
+        ~BdeRegressor.set_score_request
+      
+   
+   
+
+.. include:: bde.BdeRegressor.examples
+
+.. raw:: html
+
+    <div style='clear:both'></div>
