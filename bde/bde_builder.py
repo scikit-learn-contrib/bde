@@ -327,7 +327,7 @@ class BdeBuilder(FnnTrainer):
             if should_eval:
                 val_lvals_de = state.peval(params_de, x_val, y_val)
                 callback_state = callback.update(callback_state, epoch, params_de, val_lvals_de)
-                if epoch% 100==0:
+                if epoch % 100 == 0:
                     logger.info(
                         "Epoch %d: %d ensemble members still training",
                         epoch,

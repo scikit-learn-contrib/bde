@@ -1,4 +1,5 @@
 """Multiple warmup implementations for different samplers. This is used from @MILE."""
+import math
 from functools import partial
 from pathlib import Path
 from threading import Lock
@@ -33,7 +34,13 @@ from bde.bde_builder import BdeBuilder
 class WarmupProgress:
     """Thread-safe wrapper around tqdm progress bar for warmup."""
 
-    def __init__(self, total: int, *, desc: str = "MCLMC warmup") -> None:
+    def __init__(
+            self,
+            total: float,
+            *,
+            desc: str = "MCLMC warmup",
+            scale: float = 1.0,
+    ) -> None:
         self._bar = tqdm(
             total=total,
             desc=desc,
@@ -42,16 +49,28 @@ class WarmupProgress:
             leave=True,
         )
         self._lock = Lock()
+        self._scale = scale
+        self._ticks = 0.0
 
     def update(self, n: int) -> None:
         if n <= 0:
             return
         with self._lock:
-            self._bar.update(n)
-            self._bar.refresh()
+            self._ticks += float(n)
+            target = self._ticks * self._scale
+            desired = math.floor(target + 1e-9)
+            delta = desired - self._bar.n
+            if delta > 0:
+                self._bar.update(delta)
+                self._bar.refresh()
 
     def close(self) -> None:
         with self._lock:
+            target = self._ticks * self._scale
+            desired = math.ceil(target - 1e-9)
+            delta = desired - self._bar.n
+            if delta > 0:
+                self._bar.update(delta)
             self._bar.close()
 
 
@@ -422,22 +441,15 @@ def custom_mclmc_warmup(
             num_steps: int = 100,
     ) -> AdaptationResults:
         """Run the MCLMC warmup."""
-        local_bar = None
+        local_bar: Optional[WarmupProgress] = None
         if progress is None:
-            local_bar = tqdm(
-                total=num_steps,
-                desc="MCLMC warmup",
-                position=0,
-                dynamic_ncols=True,
-                leave=True,
-            )
+            local_bar = WarmupProgress(total=num_steps)
 
             def _tick(n):
                 increment = int(n)
                 if increment <= 0:
                     return
                 local_bar.update(increment)
-                local_bar.refresh()
         else:
 
             def _tick(n):
@@ -488,10 +500,11 @@ def warmup_bde(
     n_members = bde.n_members
     n_devices = jax.local_device_count()
 
-    pad = (n_devices - (n_members % n_devices)) % n_devices
-    n_members_pad = n_members + pad if n_devices > 0 else n_members
-    total_warmup_ticks = warmup_steps * max(n_members_pad, 1)
-    progress = WarmupProgress(total_warmup_ticks) if total_warmup_ticks > 0 else None
+    pad = (n_devices - (n_members % n_devices)) % n_devices if n_devices else 0
+    n_members_pad = n_members + pad if n_devices else n_members
+    device_weight = max(n_devices, 1)
+    scale = 1.0 / device_weight
+    progress = WarmupProgress(total=warmup_steps, scale=scale) if warmup_steps > 0 else None
 
     # Build the warmup adapter (same as your current code)
     adapt = custom_mclmc_warmup(
