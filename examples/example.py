@@ -7,9 +7,16 @@ This example demonstrates a simple usage of the BDE package.
 
 import sys
 import os
+import logging
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logging.getLogger("bde").setLevel(logging.INFO)
 
 import jax.numpy as jnp
 from sklearn.datasets import fetch_openml, load_iris
@@ -53,6 +60,7 @@ def regression_example():
         warmup_steps=500,
         n_samples=100,
         n_thinning=1,
+        patience=10
     )
 
     print(f"the params are {regressor.get_params()}")  # get_params is from sk learn!!
@@ -112,7 +120,8 @@ def classification_example():
         lr=1e-3,
         warmup_steps=50,
         n_samples=2,
-        n_thinning=1
+        n_thinning=1,
+        patience=2
     )
 
     classifier.fit(x=Xtr, y=ytr)

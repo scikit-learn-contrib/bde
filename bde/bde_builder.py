@@ -237,7 +237,7 @@ class BdeBuilder(FnnTrainer):
         params_e = tree_map(lambda *ps: jnp.stack(ps, axis=0), *[m.params for m in self.members])
         ensemble_size = len(self.members)
         device_count = jax.local_device_count()
-        logger.info("Kernel devices:", device_count)
+        logger.info("Kernel devices: %s", device_count)
         pad = (device_count - (ensemble_size % max(device_count, 1))) % max(device_count, 1)
         ensemble_padded = ensemble_size + pad
         members_per_device = ensemble_padded // max(device_count, 1)
@@ -327,12 +327,15 @@ class BdeBuilder(FnnTrainer):
             if should_eval:
                 val_lvals_de = state.peval(params_de, x_val, y_val)
                 callback_state = callback.update(callback_state, epoch, params_de, val_lvals_de)
-                # if epoch % 100 == 0:
-                #     n_active = callback.active_members(callback_state)
-                #     print(f"[epoch {epoch}] active members: {n_active}")
+                if epoch% 100==0:
+                    logger.info(
+                        "Epoch %d: %d ensemble members still training",
+                        epoch,
+                        callback.active_members(callback_state),
+                    )
 
                 if callback.all_stopped(callback_state):
-                    # print(f"All members stopped by epoch {epoch}.")
+                    logger.info("All members stopped by epoch %d.", epoch)
                     break
         return TrainingLoopResult(params_de, opt_state_de, callback_state)
 
