@@ -6,175 +6,111 @@
 User Guide
 ==========
 
-Estimator
----------
+This guide focuses on the pieces that are specific to ``bde``. If you are new to
+scikit-learn's estimator API, refer to the official `developer guide
+<https://scikit-learn.org/stable/developers/develop.html>`__ for the foundational
+concepts. The sections below assume that background and concentrate on how
+``BdeRegressor`` and ``BdeClassifier`` behave, how they integrate with JAX, and how
+you should prepare data to get reliable results.
 
-The central piece of transformer, regressor, and classifier is
-:class:`sklearn.base.BaseEstimator`. All estimators in scikit-learn are derived
-from this class. In more details, this base class enables to set and get
-parameters of the estimator. It can be imported as::
+Estimator overview
+------------------
 
-    >>> from sklearn.base import BaseEstimator
+``bde`` exposes two scikit-learn compatible estimators:
 
-Once imported, you can create a class which inherate from this base class::
+* :class:`bde.BdeRegressor` for continuous targets.
+* :class:`bde.BdeClassifier` for categorical targets.
 
-    >>> class MyOwnEstimator(BaseEstimator):
-    ...     pass
+Both inherit :class:`sklearn.base.BaseEstimator` and the relevant mixins, so they
+support the familiar ``fit``/``predict``/``score`` methods, accept keyword
+hyperparameters in ``__init__``, and can be dropped into a
+:class:`sklearn.pipeline.Pipeline`. Under the hood they train a fully connected
+ensemble in JAX and then run an MCMC sampler to draw posterior weight samples. At
+prediction time the estimator combines those samples to provide means, standard
+deviations, credible intervals, probability vectors, or the raw ensemble outputs.
 
-Transformer
------------
+Data preparation
+----------------
 
-Transformers are scikit-learn estimators which implement a ``transform`` method.
-The use case is the following:
+Bayesian deep ensembles are sensitive to feature and target scale because the
+networks are initialised with zero-mean weights and the prior assumes unit-scale
+activations. Large raw targets (for instance the default output of
+:func:`sklearn.datasets.make_regression`) can lead to very poor fits if left
+unscaled. Always apply basic preprocessing before calling ``fit``:
 
-* at ``fit``, some parameters can be learned from ``X`` and ``y``;
-* at ``transform``, `X` will be transformed, using the parameters learned
-  during ``fit``.
+Understanding the outputs
+-------------------------
 
-.. _mixin: https://en.wikipedia.org/wiki/Mixin
+The estimators expose several prediction modes:
 
-In addition, scikit-learn provides a
-mixin_, i.e. :class:`sklearn.base.TransformerMixin`, which
-implement the combination of ``fit`` and ``transform`` called ``fit_transform``.
+``predict(X)``
+    Returns the mean prediction (regression) or hard labels (classification).
+``predict(X, mean_and_std=True)``
+    Regression only; returns a tuple ``(mean, std)`` where ``std`` combines
+    aleatoric and epistemic components.
+``predict(X, credible_intervals=[0.9, 0.95])``
+    Regression only; returns ``(mean, intervals)`` with quantiles over posterior
+    samples.
+``predict(X, raw=True)``
+    Returns the raw tensor with leading axes ``(ensemble_members, samples, n,
+    output_dims)``. Useful for custom diagnostics.
+``predict_proba(X)``
+    Classification only; returns class probability vectors.
 
-One can import the mixin class as::
 
-    >>> from sklearn.base import TransformerMixin
+Key hyperparameters
+-------------------
 
-Therefore, when creating a transformer, you need to create a class which
-inherits from both :class:`sklearn.base.BaseEstimator` and
-:class:`sklearn.base.TransformerMixin`. The scikit-learn API imposed ``fit`` to
-**return ``self``**. The reason is that it allows to pipeline ``fit`` and
-``transform`` imposed by the :class:`sklearn.base.TransformerMixin`. The
-``fit`` method is expected to have ``X`` and ``y`` as inputs. Note that
-``transform`` takes only ``X`` as input and is expected to return the
-transformed version of ``X``::
+``n_members``
+    Number of deterministic networks in the ensemble. Increasing members improves
+    epistemic uncertainty estimation but raises computational cost.
+``hidden_layers``
+    Widths of hidden layers. Defaults internally to ``[4, 4]`` if ``None``.
+``epochs`` / ``patience``
+    Control training duration. ``epochs`` sets the maximum number of epochs,
+    while ``patience`` enables early stopping. When ``patience`` is ``None``,
+    training always runs for all epochs.
+``lr``
+    Learning rate for the Adam optimiser during pre-sampling training.
+``warmup_steps`` / ``n_samples`` / ``n_thinning``
+    Control the MCMC sampling stage. ``warmup_steps`` adjusts the step size,
+    ``n_samples`` defines the number of retained posterior draws, and
+    ``n_thinning`` specifies the interval between saved samples.
 
-    >>> class MyOwnTransformer(TransformerMixin, BaseEstimator):
-    ...     def fit(self, X, y=None):
-    ...         return self
-    ...     def transform(self, X):
-    ...         return X
 
-We build a basic example to show that our :class:`MyOwnTransformer` is working
-within a scikit-learn ``pipeline``::
 
-    >>> from sklearn.datasets import load_iris
-    >>> from sklearn.pipeline import make_pipeline
-    >>> from sklearn.linear_model import LogisticRegression
-    >>> X, y = load_iris(return_X_y=True)
-    >>> pipe = make_pipeline(MyOwnTransformer(),
-    ...                      LogisticRegression(random_state=10,
-    ...                                         solver='lbfgs'))
-    >>> pipe.fit(X, y)  # doctest: +ELLIPSIS
-    Pipeline(...)
-    >>> pipe.predict(X)  # doctest: +ELLIPSIS
-    array([...])
+Sampler and builder internals
+-----------------------------
 
-Predictor
----------
+After the deterministic training phase ``BdeRegressor`` and ``BdeClassifier``
+construct a :class:`bde.bde_builder.BdeBuilder` instance. This helper manages the
+ensemble members, coordinates parallel training across devices, and hands off to
+``bde.sampler`` utilities for warmup and sampling. Advanced users can interact
+with these pieces directly:
 
-Regressor
-~~~~~~~~~
+* ``estimator._bde`` references the builder after ``fit`` and exposes the
+  deterministic members and training history.
+* ``estimator.positions_eT_`` stores the weight samples with shape ``(E, T, ...)``.
+* Warmup behaviour can be tuned via ``desired_energy_var_start`` and
+  ``desired_energy_var_end``.
 
-Similarly, regressors are scikit-learn estimators which implement a ``predict``
-method. The use case is the following:
+Generally you should rely on the high-level estimator API, but the internals are
+accessible for custom diagnostics or research experiments.
 
-* at ``fit``, some parameters can be learned from ``X`` and ``y``;
-* at ``predict``, predictions will be computed using ``X`` using the parameters
-  learned during ``fit``.
+Accelerators and environment
+----------------------------
 
-In addition, scikit-learn provides a mixin_, i.e.
-:class:`sklearn.base.RegressorMixin`, which implements the ``score`` method
-which computes the :math:`R^2` score of the predictions.
+The estimators run on whatever backend JAX initialises. On CPU-only machines you
+must set ``XLA_FLAGS="--xla_force_host_platform_device_count=<n>"`` to allocate
+several virtual devices for the ensemble. On GPU- or TPU-enabled hardware JAX
+picks up devices automatically; ensure your environment includes the matching
+``jaxlib`` build. The repository ships with a ``pixi.toml`` that pins compatible
+versions and provides tasks such as ``pixi run test`` and ``pixi run build-doc``.
 
-One can import the mixin as::
+Where to next
+-------------
 
-    >>> from sklearn.base import RegressorMixin
-
-Therefore, we create a regressor, :class:`MyOwnRegressor` which inherits from
-both :class:`sklearn.base.BaseEstimator` and
-:class:`sklearn.base.RegressorMixin`. The method ``fit`` gets ``X`` and ``y``
-as input and should return ``self``. It should implement the ``predict``
-function which should output the predictions of your regressor::
-
-    >>> import numpy as np
-    >>> class MyOwnRegressor(RegressorMixin, BaseEstimator):
-    ...     def fit(self, X, y):
-    ...         return self
-    ...     def predict(self, X):
-    ...         return np.mean(X, axis=1)
-
-We illustrate that this regressor is working within a scikit-learn pipeline::
-
-    >>> from sklearn.datasets import load_diabetes
-    >>> X, y = load_diabetes(return_X_y=True)
-    >>> pipe = make_pipeline(MyOwnTransformer(), MyOwnRegressor())
-    >>> pipe.fit(X, y)  # doctest: +ELLIPSIS
-    Pipeline(...)
-    >>> pipe.predict(X)  # doctest: +ELLIPSIS
-    array([...])
-
-Since we inherit from the :class:`sklearn.base.RegressorMixin`, we can call
-the ``score`` method which will return the :math:`R^2` score::
-
-    >>> pipe.score(X, y)  # doctest: +ELLIPSIS
-    -3.9...
-
-Classifier
-~~~~~~~~~~
-
-Similarly to regressors, classifiers implement ``predict``. In addition, they
-output the probabilities of the prediction using the ``predict_proba`` method:
-
-* at ``fit``, some parameters can be learned from ``X`` and ``y``;
-* at ``predict``, predictions will be computed using ``X`` using the parameters
-  learned during ``fit``. The output corresponds to the predicted class for each sample;
-* ``predict_proba`` will give a 2D matrix where each column corresponds to the
-  class and each entry will be the probability of the associated class.
-
-In addition, scikit-learn provides a mixin, i.e.
-:class:`sklearn.base.ClassifierMixin`, which implements the ``score`` method
-which computes the accuracy score of the predictions.
-
-One can import this mixin as::
-
-    >>> from sklearn.base import ClassifierMixin
-
-Therefore, we create a classifier, :class:`MyOwnClassifier` which inherits
-from both :class:`slearn.base.BaseEstimator` and
-:class:`sklearn.base.ClassifierMixin`. The method ``fit`` gets ``X`` and ``y``
-as input and should return ``self``. It should implement the ``predict``
-function which should output the class inferred by the classifier.
-``predict_proba`` will output some probabilities instead::
-
-    >>> class MyOwnClassifier(ClassifierMixin, BaseEstimator):
-    ...     def fit(self, X, y):
-    ...         self.classes_ = np.unique(y)
-    ...         return self
-    ...     def predict(self, X):
-    ...         return np.random.randint(0, self.classes_.size,
-    ...                                  size=X.shape[0])
-    ...     def predict_proba(self, X):
-    ...         pred = np.random.rand(X.shape[0], self.classes_.size)
-    ...         return pred / np.sum(pred, axis=1)[:, np.newaxis]
-
-We illustrate that this regressor is working within a scikit-learn pipeline::
-
-    >>> X, y = load_iris(return_X_y=True)
-    >>> pipe = make_pipeline(MyOwnTransformer(), MyOwnClassifier())
-    >>> pipe.fit(X, y)  # doctest: +ELLIPSIS
-    Pipeline(...)
-
-Then, you can call ``predict`` and ``predict_proba``::
-
-    >>> pipe.predict(X)  # doctest: +ELLIPSIS
-    array([...])
-    >>> pipe.predict_proba(X)  # doctest: +ELLIPSIS
-    array([...])
-
-Since our classifier inherits from :class:`sklearn.base.ClassifierMixin`, we
-can compute the accuracy by calling the ``score`` method::
-
-    >>> pipe.score(X, y)  # doctest: +ELLIPSIS
-    0...
+* The :ref:`quick_start` page shows condensed scripts you can run end to end.
+* :ref:`api` documents every public class and helper in the package.
+* :ref:`general_examples` renders notebooks and plots that mirror the examples
+  in the ``examples/`` directory.

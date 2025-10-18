@@ -1,6 +1,0 @@
-﻿bde.utils.discovery.all\_functions
-==================================
-
-.. currentmodule:: bde.utils.discovery
-
-.. autofunction:: all_functions
