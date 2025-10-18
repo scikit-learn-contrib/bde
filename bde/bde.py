@@ -239,10 +239,10 @@ class Bde:
         self,
         logpost: Callable,
         rng_keys_e: ArrayLike,
-        init_positions_e,
-        L_e,
-        step_e,
-        sqrt_diag_e,
+        init_positions_e: ArrayLike,
+        L_e: ArrayLike,
+        step_e: ArrayLike,
+        sqrt_diag_e: ArrayLike,
     ):
         """Generate posterior samples for each ensemble member.
 
@@ -254,11 +254,11 @@ class Bde:
             PRNG keys for each chain.
         init_positions_e : ParamTree
             Warmed-up starting positions with leading ensemble axis.
-        L_e : jax.Array
+        L_e : ArrayLike
             Inverse mass matrix factors per chain.
-        step_e : jax.Array
+        step_e : ArrayLike
             Step sizes per chain.
-        sqrt_diag_e : jax.Array
+        sqrt_diag_e : ArrayLike
             Square root of diagonal covariance estimates.
 
         Returns

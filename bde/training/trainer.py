@@ -5,6 +5,8 @@ from sklearn.model_selection import train_test_split
 from bde.loss.loss import BaseLoss, CategoricalCrossEntropy, GaussianNLL
 from bde.task import TaskType
 
+class BaseTrainer(): #TODO: maybe later?
+    pass
 
 class FnnTrainer:
     def __init__(self):
