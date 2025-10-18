@@ -527,6 +527,40 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
         desired_energy_var_end: float = 0.1,
         step_size_init: float | None = None,
     ):
+        """Initialise the regressor with architecture, optimisation, and sampling settings.
+
+        Parameters
+        ----------
+        n_members : int, default=2
+            Number of deterministic networks in the ensemble.
+        hidden_layers : list[int] | None, default= None
+            Hidden layer widths; defaults to ``[4, 4]`` internally when ``None``.
+        seed : int, default=0
+            Shared PRNG seed for member initialisation and sampling.
+        loss : BaseLoss | None
+            Custom training loss; defaults to :class:`bde.loss.GaussianNLL`.
+        activation : str, default='relu'
+            Activation function applied to each hidden layer.
+        epochs : int, default=20
+            Maximum training epochs during the deterministic phase.
+        patience : int | None, optional
+            Early-stopping patience measured in epochs; ``None`` disables it.
+        n_samples : int, default=10
+            Posterior samples retained for each ensemble member.
+        warmup_steps : int, default=50
+            Number of warm-up iterations for the MCMC sampler.
+        lr : float, default=1e-3
+            Learning rate for the Adam optimiser used in pre-sampling training.
+        n_thinning : int, default=2
+            Thinning interval applied to posterior samples.
+        desired_energy_var_start : float, default=0.5
+            Target energy variance at the start of warm-up.
+        desired_energy_var_end : float, default=0.1
+            Target energy variance at the end of warm-up.
+        step_size_init : float | None, optional
+            Override for the sampler's initial step size; falls back to ``lr``.
+        """
+
         super().__init__(
             n_members=n_members,
             hidden_layers=hidden_layers,
@@ -592,6 +626,40 @@ class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
         desired_energy_var_end: float = 0.1,
         step_size_init: float | None = None,
     ):
+        """Initialise the classifier with architecture, optimisation, and sampling settings.
+
+        Parameters
+        ----------
+        n_members : int, default=2
+            Number of deterministic networks in the ensemble.
+        hidden_layers : list[int] | None, default= None
+            Hidden layer widths; defaults to ``[4, 4]`` internally when ``None``.
+        seed : int, default=0
+            Shared PRNG seed for member initialisation and sampling.
+        loss : BaseLoss | None
+            Custom training loss; defaults to :class:`bde.loss.GaussianNLL`.
+        activation : str, default='relu'
+            Activation function applied to each hidden layer.
+        epochs : int, default=20
+            Maximum training epochs during the deterministic phase.
+        patience : int | None, optional
+            Early-stopping patience measured in epochs; ``None`` disables it.
+        n_samples : int, default=10
+            Posterior samples retained for each ensemble member.
+        warmup_steps : int, default=50
+            Number of warm-up iterations for the MCMC sampler.
+        lr : float, default=1e-3
+            Learning rate for the Adam optimiser used in pre-sampling training.
+        n_thinning : int, default=2
+            Thinning interval applied to posterior samples.
+        desired_energy_var_start : float, default=0.5
+            Target energy variance at the start of warm-up.
+        desired_energy_var_end : float, default=0.1
+            Target energy variance at the end of warm-up.
+        step_size_init : float | None, optional
+            Override for the sampler's initial step size; falls back to ``lr``.
+        """
+
         super().__init__(
             n_members=n_members,
             hidden_layers=hidden_layers,
