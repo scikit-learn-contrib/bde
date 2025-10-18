@@ -1,4 +1,6 @@
-"""Thin wrapper around BlackJAX MCLMC for ensemble sampling."""
+"""Thin wrapper around BlackJAX MCLMC for ensemble sampling.
+Some code snippets have been taken from
+https://github.com/EmanuelSommer/MILE"""
 
 from typing import Callable
 

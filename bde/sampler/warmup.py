@@ -1,4 +1,6 @@
-"""Multiple warmup implementations for different samplers. This is used from @MILE."""
+"""Multiple warmup implementations for different samplers.
+Code snippets have been taken from
+https://github.com/EmanuelSommer/MILE."""
 import math
 from threading import Lock
 from typing import Callable, Optional

@@ -1,4 +1,6 @@
-"""Sampler-side pytree helpers shared across the package."""
+"""Sampler-side pytree helpers shared across
+the package, taken from
+https://github.com/EmanuelSommer/MILE"""
 import logging
 import operator
 from functools import reduce

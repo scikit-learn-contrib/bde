@@ -527,7 +527,8 @@ class BdeRegressor(Bde, BaseEstimator, RegressorMixin):
         desired_energy_var_end: float = 0.1,
         step_size_init: float | None = None,
     ):
-        """Initialise the regressor with architecture, optimisation, and sampling settings.
+        """Initialise the regressor with architecture,
+        optimisation, and sampling settings.
 
         Parameters
         ----------
@@ -626,7 +627,8 @@ class BdeClassifier(Bde, BaseEstimator, ClassifierMixin):
         desired_energy_var_end: float = 0.1,
         step_size_init: float | None = None,
     ):
-        """Initialise the classifier with architecture, optimisation, and sampling settings.
+        """Initialise the classifier with architecture,
+        optimisation, and sampling settings.
 
         Parameters
         ----------
