@@ -1,4 +1,4 @@
-bde: Bayesian Deep Ensembles for scikit-learn and JAX
+bde: Bayesian Deep Ensembles for scikit-learn
 ====================================================
 
 ![tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
@@ -47,8 +47,9 @@ Example Usage
 
 Minimal runnable scripts live in `examples/`, and the snippets below highlight the
 most common regression and classification workflows. When running outside those
-scripts, remember to set the XLA device count so JAX allocates enough host devices:
-NOTE MENTNION THAT HTHE EXPORT NEEDS TO BE DONE BEFORE JAX
+scripts, remember to set the XLA device count so JAX allocates enough host devices (
+this needs to be done before importing JAX):
+
 ```
 export XLA_FLAGS="--xla_force_host_platform_device_count=8" 
 ```
@@ -72,16 +73,13 @@ from bde.loss import GaussianNLL
 
 
 data = fetch_openml(name="airfoil_self_noise", as_frame=True)
-X = data.data.values  # shape (1503, 5)
-y = data.target.values.reshape(-1, 1)  # shape (1503, 1)
 
+X = data.data.values  
+y = data.target.values.reshape(-1, 1)
 X_train, X_test, y_train, y_test = train_test_split(
-   X,
-   y,
-   test_size=0.2,
-   random_state=0,
+    X, y, test_size=0.2, random_state=42
 )
-# Normalize data
+
 Xmu, Xstd = jnp.mean(X_train, 0), jnp.std(X_train, 0) + 1e-8
 Ymu, Ystd = jnp.mean(y_train, 0), jnp.std(y_train, 0) + 1e-8
 
@@ -92,26 +90,29 @@ yte = (y_test - Ymu) / Ystd
 
 regressor = BdeRegressor(
     hidden_layers=[16, 16],
-    n_members=20,
+    n_members=8,
     seed=0,
     loss=GaussianNLL(),
     epochs=200,
     lr=1e-3,
-    warmup_steps=500,
-    n_samples=100,
-    n_thinning=1,
+    warmup_steps=5000, # 50k in the original paper
+    n_samples=2000, # 10k in the original paper
+    n_thinning=2,
     patience=10,
 )
 
 regressor.fit(x=Xtr, y=ytr)
 
-mean, std = regressor.predict(jnp.array(X_test), mean_and_std=True)
-mu, intervals = regressor.predict(Xte, credible_intervals=[0.9, 0.95])
-raw = regressor.predict(Xte, raw=True)
-print("RSME: ", root_mean_squared_error(y_true=yte, y_pred=mean))
-score = regressor.score(Xtr, ytr)
-print(f"the sklearn score is {score}")
+means, sigmas = regressor.predict(Xte, mean_and_std=True)
 
+print("RSME: ", root_mean_squared_error(y_true=yte, y_pred=means))
+
+mean, intervals = regressor.predict(Xte, credible_intervals=[0.1, 0.9])
+
+lower = intervals[0]
+upper = intervals[1]
+coverage = jnp.mean((yte.ravel() >= lower) & (yte.ravel() <= upper))
+print(f"Coverage of the 80% credible interval: {coverage * 100:.2f}%")
 
 ```
 
@@ -130,32 +131,32 @@ from bde.loss import CategoricalCrossEntropy
 
 iris = load_iris()
 X = iris.data.astype("float32")
-y = iris.target.astype("int32").ravel()
+y = iris.target.astype("int32").ravel()  # 0, 1, 2
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42)
+    X, y, test_size=0.2, random_state=42
+)
+
 classifier = BdeClassifier(
-    n_members=2,
+    n_members=4,
     hidden_layers=[16, 16],
     seed=0,
     loss=CategoricalCrossEntropy(),
     activation="relu",
-    epochs=4,
+    epochs=100,
     lr=1e-3,
-    warmup_steps=50,
-    n_samples=2,
+    warmup_steps=400, # very few steps required for this simple dataset
+    n_samples=100,
     n_thinning=1,
-    patience=2
-    )
+    patience=10,
+)
+
 classifier.fit(x=X_train, y=y_train)
+
 preds = classifier.predict(X_test)
 probs = classifier.predict_proba(X_test)
-score = classifier.score(X_train, y_train)
-raw = classifier.predict(X_test, raw=True)
-print("Predicted class probabilities:\n", probs)
-print("Predicted class labels:\n", preds)
-print("True labels:\n", y_test)
-print(f"the sklearn score is {score}")
-print(f"The shape of the raw predictions are {raw.shape}")
+
+accuracy = jnp.mean(preds == y_test)
+print(f"Test accuracy: {accuracy * 100:.2f}%")
 ```
 
 Workflow
