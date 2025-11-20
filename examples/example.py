@@ -174,10 +174,10 @@ def sklearn_pipeline():
     param_grid = {
         "clf__n_members": [4],
         "clf__hidden_layers": [[8, 8], [16, 16]],
-        "clf__epochs": [20, 100],
-        "clf__lr": [1e-3, 2e-3],
-        "clf__warmup_steps": [40, 400],
-        "clf__n_samples": [10, 100],
+        "clf__epochs": [20],
+        "clf__lr": [1e-3],
+        "clf__warmup_steps": [400],
+        "clf__n_samples": [100],
         "scaler__with_std": [True],
     }
 
