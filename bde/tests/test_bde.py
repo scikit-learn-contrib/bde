@@ -8,9 +8,9 @@ import jax.numpy as jnp
 import pandas as pd
 import pytest
 from sklearn.exceptions import NotFittedError
-from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import root_mean_squared_error
 from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPRegressor, MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
@@ -304,7 +304,7 @@ def test_keys_and_cached_attribute_access(builder):
 
 def test_sanity_airfoil():
     reg = BdeRegressor(
-        hidden_layers=[4],
+        hidden_layers=[4, 4],
         n_members=3,
         epochs=5,
         warmup_steps=100,
@@ -335,24 +335,23 @@ def test_sanity_airfoil():
     # ---- BDE ----
     reg.fit(jnp.array(X_train), jnp.array(y_train))
     bde_mean, _ = reg.predict(jnp.array(X_test), mean_and_std=True)
-
     bde_rmse = root_mean_squared_error(y_test, bde_mean)
 
     assert bde_rmse < 1.0
 
     # ---- Linear baseline ----
-    lr = LinearRegression()
+    lr = MLPRegressor(hidden_layer_sizes=(2, 12))  # very simple MLP
     lr.fit(X_train, y_train)
     lr_pred = lr.predict(X_test)
     lr_rmse = root_mean_squared_error(y_test, lr_pred)
 
     # BDE should not be astronomically worse than linear baseline
-    assert bde_rmse < lr_rmse * 2
+    assert bde_rmse < lr_rmse
 
 
 def test_sanity_iris():
     clf = BdeClassifier(
-        hidden_layers=[4],
+        hidden_layers=[4, 4],
         n_members=3,
         epochs=5,
         warmup_steps=100,
@@ -381,16 +380,16 @@ def test_sanity_iris():
     y_pred = clf.predict(jnp.array(X_test))
 
     bde_acc = (y_pred == y_test).mean()
-
     # sanity bound — just make sure it's not broken
     assert bde_acc > 0.6
 
     # ---- Linear baseline (optional diagnostic) ----
 
-    clf = LogisticRegression(max_iter=200)
+    clf = MLPClassifier(hidden_layer_sizes=(2, 12))
     clf.fit(X_train, y_train)
     pred = clf.predict(X_test)
     lr_acc = (pred == y_test).mean()
+
 
     # BDE should not be astronomically worse than logistic  baseline
     assert bde_acc > lr_acc * 0.3
