@@ -10,7 +10,7 @@ import pytest
 from sklearn.exceptions import NotFittedError
 from sklearn.metrics import root_mean_squared_error
 from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPRegressor, MLPClassifier
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.preprocessing import StandardScaler
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
@@ -389,7 +389,6 @@ def test_sanity_iris():
     clf.fit(X_train, y_train)
     pred = clf.predict(X_test)
     lr_acc = (pred == y_test).mean()
-
 
     # BDE should not be astronomically worse than logistic  baseline
     assert bde_acc > lr_acc * 0.3
