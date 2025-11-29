@@ -65,6 +65,7 @@ def regression_example():
         seed=0,
         loss=GaussianNLL(),
         epochs=1000,
+        validation_split=0.15,
         lr=1e-3,
         warmup_steps=2,  # 50k in the original paper
         n_samples=2,  # 10k in the original paper

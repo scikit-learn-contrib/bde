@@ -44,8 +44,7 @@ class FnnTrainer:
         X,
         y,
         *,
-        train_size=0.85,
-        val_size=0.15,
+        val_size,
         random_state=42,
         stratify=False,
         shuffle=True,
@@ -74,14 +73,8 @@ class FnnTrainer:
         tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike]
             Training, validation features, training, validation targets.
         """
-        # prefer val_size; keep train_size for backward-compat
-        if val_size is None and train_size is not None:
-            val_size = 1.0 - train_size
-        elif val_size is None:
-            val_size = 0.15
-
         if not (0.0 < val_size < 1.0):
-            raise ValueError("val_size must be in (0, 1).")
+            raise ValueError("validation_split must be in (0, 1).")
 
         strat = y if stratify else None
 

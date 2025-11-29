@@ -67,6 +67,7 @@ class Bde:
         activation: str = "relu",
         epochs: int = 20,
         patience: int | None = None,
+        validation_split: float = 0.15,
         n_samples: int = 10,
         warmup_steps: int = 50,
         lr: float = 1e-3,
@@ -127,6 +128,7 @@ class Bde:
         self.activation = activation
         self.epochs = epochs
         self.patience = patience
+        self.validation_split = validation_split
         self.n_samples = n_samples
         self.warmup_steps = warmup_steps
         self.lr = lr
@@ -151,6 +153,7 @@ class Bde:
         self._bde = BdeBuilder(
             hidden_sizes=self._resolved_hidden_layers,
             patience=self.patience,
+            validation_split=self.validation_split,
             n_members=self.n_members,
             task=self.task,
             seed=self.seed,
@@ -614,6 +617,7 @@ class BdeRegressor(Bde, RegressorMixin, BaseEstimator):
         activation: str = "relu",
         epochs: int = 20,
         patience: int | None = None,
+        validation_split: float = 0.15,
         n_samples: int = 10,
         warmup_steps: int = 50,
         lr: float = 1e-3,
@@ -674,6 +678,7 @@ class BdeRegressor(Bde, RegressorMixin, BaseEstimator):
             activation=activation,
             epochs=epochs,
             patience=patience,
+            validation_split=validation_split,
             n_samples=n_samples,
             warmup_steps=warmup_steps,
             lr=lr,
@@ -790,6 +795,7 @@ class BdeClassifier(Bde, ClassifierMixin, BaseEstimator):
         activation: str = "relu",
         epochs: int = 20,
         patience: int | None = None,
+        validation_split: float = 0.15,
         n_samples: int = 10,
         warmup_steps: int = 50,
         lr: float = 1e-3,
@@ -850,6 +856,7 @@ class BdeClassifier(Bde, ClassifierMixin, BaseEstimator):
             activation=activation,
             epochs=epochs,
             patience=patience,
+            validation_split=validation_split,
             n_samples=n_samples,
             warmup_steps=warmup_steps,
             lr=lr,

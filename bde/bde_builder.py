@@ -69,6 +69,7 @@ class BdeBuilder(FnnTrainer):
         seed: int,
         act_fn: str,
         patience: int,
+        validation_split: float
     ):
         """Configure the builder with architectural and training defaults.
 
@@ -98,6 +99,7 @@ class BdeBuilder(FnnTrainer):
         self.act_fn = act_fn
 
         self.patience = patience
+        self.validation_split = validation_split
         self.eval_every = 1  # Check epochs for early stopping
         self.keep_best = True
         self.min_delta = 1e-9
@@ -448,7 +450,7 @@ class BdeBuilder(FnnTrainer):
             y_val = None
         else:
             x_train, x_val, y_train, y_val = super().split_train_val(
-                x, y
+                x, y, val_size=self.validation_split, 
             )  # for early stopping
 
         components = self._create_training_components(optimizer, loss)
