@@ -71,6 +71,7 @@ class Bde:
         n_samples: int = 10,
         warmup_steps: int = 50,
         lr: float = 1e-3,
+        weight_decay: float = 1e-4,
         n_thinning: int = 2,
         desired_energy_var_start: float = 0.5,
         desired_energy_var_end: float = 0.1,
@@ -132,6 +133,7 @@ class Bde:
         self.n_samples = n_samples
         self.warmup_steps = warmup_steps
         self.lr = lr
+        self.weight_decay = weight_decay
         self.n_thinning = n_thinning
         self.desired_energy_var_start = desired_energy_var_start
         self.desired_energy_var_end = desired_energy_var_end
@@ -155,6 +157,8 @@ class Bde:
             patience=self.patience,
             validation_split=self.validation_split,
             n_members=self.n_members,
+            lr=self.lr,
+            weight_decay=self.weight_decay,
             task=self.task,
             seed=self.seed,
             act_fn=self.activation,
@@ -621,6 +625,7 @@ class BdeRegressor(Bde, RegressorMixin, BaseEstimator):
         n_samples: int = 10,
         warmup_steps: int = 50,
         lr: float = 1e-3,
+        weight_decay: float = 1e-4,
         n_thinning: int = 2,
         desired_energy_var_start: float = 0.5,
         desired_energy_var_end: float = 0.1,
@@ -682,6 +687,7 @@ class BdeRegressor(Bde, RegressorMixin, BaseEstimator):
             n_samples=n_samples,
             warmup_steps=warmup_steps,
             lr=lr,
+            weight_decay=weight_decay,
             n_thinning=n_thinning,
             desired_energy_var_start=desired_energy_var_start,
             desired_energy_var_end=desired_energy_var_end,
@@ -799,6 +805,7 @@ class BdeClassifier(Bde, ClassifierMixin, BaseEstimator):
         n_samples: int = 10,
         warmup_steps: int = 50,
         lr: float = 1e-3,
+        weight_decay: float = 1e-4,
         n_thinning: int = 2,
         desired_energy_var_start: float = 0.5,
         desired_energy_var_end: float = 0.1,
@@ -860,6 +867,7 @@ class BdeClassifier(Bde, ClassifierMixin, BaseEstimator):
             n_samples=n_samples,
             warmup_steps=warmup_steps,
             lr=lr,
+            weight_decay=weight_decay,
             n_thinning=n_thinning,
             desired_energy_var_start=desired_energy_var_start,
             desired_energy_var_end=desired_energy_var_end,

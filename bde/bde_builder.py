@@ -69,7 +69,9 @@ class BdeBuilder(FnnTrainer):
         seed: int,
         act_fn: str,
         patience: int,
-        validation_split: float
+        validation_split: float,
+        lr: float,
+        weight_decay: float
     ):
         """Configure the builder with architectural and training defaults.
 
@@ -97,9 +99,11 @@ class BdeBuilder(FnnTrainer):
         self.params_e = None  # will be set after training
         self.members = None  #
         self.act_fn = act_fn
-
+        self.lr = lr
+        self.weight_decay = weight_decay
         self.patience = patience
         self.validation_split = validation_split
+
         self.eval_every = 1  # Check epochs for early stopping
         self.keep_best = True
         self.min_delta = 1e-9
@@ -219,7 +223,7 @@ class BdeBuilder(FnnTrainer):
         """
 
         proto_model = self.members[0]
-        opt = optimizer or self.default_optimizer()
+        opt = optimizer or self.default_optimizer(self.lr, self.weight_decay)
         loss_obj = loss or self.default_loss(self.task)
         loss_fn = FnnTrainer.make_loss_fn(proto_model, loss_obj)
         step_one = FnnTrainer.make_step(loss_fn, opt)

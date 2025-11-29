@@ -67,6 +67,7 @@ def regression_example():
         epochs=1000,
         validation_split=0.15,
         lr=1e-3,
+        weight_decay=1e-4,
         warmup_steps=2,  # 50k in the original paper
         n_samples=2,  # 10k in the original paper
         n_thinning=0,
@@ -128,11 +129,13 @@ def classification_example():
         seed=0,
         loss=CategoricalCrossEntropy(),
         activation="relu",
-        epochs=100,
+        epochs=1000,
+        validation_split=0.15,
         lr=1e-3,
-        warmup_steps=400,  # very few steps required for this simple dataset
-        n_samples=100,
-        n_thinning=1,
+        weight_decay=1e-4,
+        warmup_steps=2,  # very few steps required for this simple dataset
+        n_samples=2,
+        n_thinning=0,
         patience=10,
     )
 
@@ -179,11 +182,13 @@ def concrete_data_example():
         n_members=8,
         seed=0,
         loss=GaussianNLL(),
-        epochs=200,
+        epochs=1000,
+        validation_split=0.15,
         lr=1e-3,
-        warmup_steps=500,
-        n_samples=100,
-        n_thinning=10,
+        weight_decay=1e-4,
+        warmup_steps=2,
+        n_samples=2,
+        n_thinning=0,
         patience=10,
         prior_family=PriorDist.NORMAL,
         prior_kwargs={"loc": 0, "scale": 1.5},
@@ -226,6 +231,6 @@ def concrete_data_example():
 
 
 if __name__ == "__main__":
-    # classification_example()
-    regression_example()
+    classification_example()
+    # regression_example()
     #concrete_data_example()

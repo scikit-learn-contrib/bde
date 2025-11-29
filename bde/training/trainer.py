@@ -89,8 +89,8 @@ class FnnTrainer:
         return X_train, X_val, y_train, y_val
 
     @staticmethod
-    def default_optimizer():
-        return optax.adam(learning_rate=0.01)
+    def default_optimizer(learning_rate: float, weight_decay: float):
+        return optax.adamw(learning_rate, weight_decay)
 
     @staticmethod
     def default_loss(task: TaskType):
