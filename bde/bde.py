@@ -102,9 +102,17 @@ class Bde:
         n_samples : int
             Number of posterior samples per ensemble member.
         warmup_steps : int
-            Warmup iterations for the sampler.
+            Warmup iterations for the sampler. When ``0`` or ``None``, warmup is skipped
+            and sampling starts from the trained parameters.
         lr : float
             Learning rate for the default Adam optimizer.
+        validation_split : float | None
+            Fraction of data reserved for validation when early stopping is used. Must
+            lie in (0, 1) if provided; when ``None``, all data is used for training and
+            early stopping is disabled.
+        weight_decay: float
+            Weight decay parameter for the AdamW optimizer applied during member
+            pretraining.
         n_thinning : int
             Thinning factor applied to MCMC samples.
         desired_energy_var_start : float
@@ -155,7 +163,7 @@ class Bde:
         self._bde = BdeBuilder(
             hidden_sizes=self._resolved_hidden_layers,
             patience=self.patience,
-            validation_split=self.validation_split,
+            val_split=self.validation_split,
             n_members=self.n_members,
             lr=self.lr,
             weight_decay=self.weight_decay,
@@ -653,12 +661,19 @@ class BdeRegressor(Bde, RegressorMixin, BaseEstimator):
             Maximum training epochs during the deterministic phase.
         patience : int | None, optional
             Early-stopping patience measured in epochs; ``None`` disables it.
+        validation_split : float, default=0.15
+            Fraction of data reserved for validation when early stopping is enabled.
+            Must lie in (0, 1); when ``None``, all data is used and early stopping is
+            skipped.
         n_samples : int, default=10
             Posterior samples retained for each ensemble member.
         warmup_steps : int, default=50
             Number of warm-up iterations for the MCMC sampler.
         lr : float, default=1e-3
             Learning rate for the Adam optimiser used in pre-sampling training.
+        weight_decay: float
+            Weight decay parameter for the AdamW optimiser applied during member
+            training.
         n_thinning : int, default=2
             Thinning interval applied to posterior samples.
         desired_energy_var_start : float, default=0.5
@@ -833,12 +848,19 @@ class BdeClassifier(Bde, ClassifierMixin, BaseEstimator):
             Maximum training epochs during the deterministic phase.
         patience : int | None, optional
             Early-stopping patience measured in epochs; ``None`` disables it.
+        validation_split : float, default=0.15
+            Fraction of data reserved for validation when early stopping is enabled.
+            Must lie in (0, 1); when ``None``, all data is used and early stopping is
+            skipped.
         n_samples : int, default=10
             Posterior samples retained for each ensemble member.
         warmup_steps : int, default=50
             Number of warm-up iterations for the MCMC sampler.
         lr : float, default=1e-3
             Learning rate for the Adam optimiser used in pre-sampling training.
+        weight_decay: float
+            Weight decay parameter for the AdamW optimiser applied during member
+            training.
         n_thinning : int, default=2
             Thinning interval applied to posterior samples.
         desired_energy_var_start : float, default=0.5

@@ -74,8 +74,8 @@ def regression_example():
         validation_split=0.15,
         lr=1e-3,
         weight_decay=1e-4,
-        warmup_steps=2,  # 50k in the original paper
-        n_samples=2,  # 10k in the original paper
+        warmup_steps=2000,  # 50k in the original paper
+        n_samples=100,  # 10k in the original paper
         n_thinning=0,
         patience=1,
     )
@@ -239,6 +239,6 @@ def concrete_data_example():
 
 
 if __name__ == "__main__":
-    # classification_example()
     regression_example()
-    # concrete_data_example()
+    classification_example()
+    concrete_data_example()

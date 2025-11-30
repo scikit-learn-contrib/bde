@@ -73,6 +73,9 @@ def builder():
             seed=0,
             act_fn="relu",
             patience=1,
+            val_split=0.1,
+            lr=0.01,
+            weight_decay=0.01,
         )
         defaults.update(overrides)
         return BdeBuilder(**defaults)

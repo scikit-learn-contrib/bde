@@ -69,7 +69,7 @@ class BdeBuilder(FnnTrainer):
         seed: int,
         act_fn: str,
         patience: int,
-        validation_split: float,
+        val_split: float,
         lr: float,
         weight_decay: float,
     ):
@@ -89,6 +89,14 @@ class BdeBuilder(FnnTrainer):
             Activation function name understood by `Fnn`.
         patience : int
             Early stopping patience measured in validation evaluations.
+        val_split: float | None, default=0.15
+            Proportion to split the data for validation when early stopping is enabled.
+            Must lie in (0, 1); when ``None``, all data is used for training and early
+            stopping is skipped.
+        lr : float
+            Learning rate of the optimizer used for member pretraining.
+        weight_decay: float | None
+            Weight decay parameter for the AdamW optimizer applied to member training.
         """
 
         FnnTrainer.__init__(self)
@@ -102,7 +110,7 @@ class BdeBuilder(FnnTrainer):
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
-        self.validation_split = validation_split
+        self.val_split = val_split
 
         self.eval_every = 1  # Check epochs for early stopping
         self.keep_best = True
@@ -457,7 +465,7 @@ class BdeBuilder(FnnTrainer):
             x_train, x_val, y_train, y_val = super().split_train_val(
                 x,
                 y,
-                val_size=self.validation_split,
+                val_size=self.val_split,
             )  # for early stopping
 
         components = self._create_training_components(optimizer, loss)
