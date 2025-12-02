@@ -775,6 +775,7 @@ class BdeRegressor(Bde, RegressorMixin, BaseEstimator):
             When ``True``, ignore other flags and return the raw ensemble
             outputs with shape ``(n_members, n_samples_draws, n_samples, 2)``,
             corresponding to per-member, per-draw mean and scale parameters.
+            #TODO: add a note here & somewhere in the docs that softplus is used i.e. formalize the how the Gaussian likelihood is modeled in this framework! Might be a good fit for the readme as well
 
         Returns
         -------

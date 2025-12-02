@@ -58,17 +58,17 @@ def regression_example():
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
-        n_members=9,
+        n_members=8,
         seed=0,
         loss=GaussianNLL(),
-        epochs=1000,
+        epochs=200,
         validation_split=0.15,
         lr=1e-3,
         weight_decay=1e-4,
-        warmup_steps=2000,  # 50k in the original paper
-        n_samples=100,  # 10k in the original paper
-        n_thinning=0,
-        patience=1,
+        warmup_steps=5000,  # 50k in the original paper
+        n_samples=2000,  # 10k in the original paper
+        n_thinning=2,
+        patience=10,
     )
 
     print(f"the params are {regressor.get_params()}")  # get_params is from sklearn!
@@ -131,10 +131,9 @@ def classification_example():
         epochs=1000,
         validation_split=0.15,
         lr=1e-3,
-        weight_decay=1e-4,
-        warmup_steps=2,  # very few steps required for this simple dataset
-        n_samples=2,
-        n_thinning=0,
+        warmup_steps=400,  # very few steps required for this simple dataset
+        n_samples=100,
+        n_thinning=1,
         patience=10,
     )
 
@@ -185,15 +184,15 @@ def concrete_data_example():
         validation_split=0.15,
         lr=1e-3,
         weight_decay=1e-4,
-        warmup_steps=2,
-        n_samples=2,
+        warmup_steps=50000,
+        n_samples=10000,
         n_thinning=0,
         patience=10,
         prior_family=PriorDist.NORMAL,
         prior_kwargs={"loc": 0, "scale": 1.5},
     )
 
-    print(f"the params are {regressor.get_params()}")
+    print(f"The params are {regressor.get_params()}")
     regressor.fit(x=jnp.array(X_train), y=jnp.array(y_train))
 
     means, sigmas = regressor.predict(jnp.array(X_test), mean_and_std=True)

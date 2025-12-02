@@ -10,8 +10,8 @@ import sys
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 from importlib.metadata import version as get_version
 
-project = "Scikit-learn Project Template"
-copyright = "2016, V. Birodkar"
+project = "bde"
+copyright = "2025, Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel"
 author = "Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel"
 
 release = get_version("bde")
