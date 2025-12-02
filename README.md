@@ -62,7 +62,6 @@ Adjust the value to match the number of CPU (or GPU) devices you plan to use.
 
 ###  Datasets included in the package for testing purposes
 
-#### Airfoil
 
 **Airfoil Self-Noise Dataset**
 
@@ -72,7 +71,6 @@ Adjust the value to match the number of CPU (or GPU) devices you plan to use.
 
 **Notes:** This is the standard `airfoil_self_noise` dataset used in many regression benchmarks.
 
-#### Concrete
 
 **Concrete Compressive Strength Dataset**
 
@@ -82,7 +80,6 @@ Adjust the value to match the number of CPU (or GPU) devices you plan to use.
 
 **Notes:** Widely used as a tabular regression benchmark. Your file `concrete.data` matches the UCI format.
 
-##### Iris
 
 **Iris Dataset**
 
