@@ -52,7 +52,7 @@ def validate_fit_data(estimator, X, y):
         accept_sparse=False,
         ensure_2d=True,
         ensure_min_samples=1,
-        force_all_finite=True,
+        ensure_all_finite=True,
         y_numeric=(estimator.task == TaskType.REGRESSION),  # only True for regression
         multi_output=multi_output,
     )
@@ -88,7 +88,7 @@ def validate_predict_data(estimator, X):
         accept_sparse=False,
         ensure_2d=True,
         ensure_min_samples=1,
-        force_all_finite=True,
+        ensure_all_finite=True,
     )
 
     if X_checked.shape[1] != estimator.n_features_in_:
