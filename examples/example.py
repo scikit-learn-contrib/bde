@@ -34,27 +34,28 @@ from bde.loss.loss import CategoricalCrossEntropy, GaussianNLL
 from bde.sampler.prior import PriorDist
 
 
-def regression_example():
+def regression_airfoil_example():
     print("-" * 20)
     print("Regression example")
     print("-" * 20)
 
-    data = fetch_openml(name="airfoil_self_noise", as_frame=True)
+    data = pd.read_csv("bde/data/airfoil.csv", sep=",", header=0)
 
-    X = data.data.values  # shape (1503, 5)
-    y = data.target.values.reshape(-1, 1)  # shape (1503, 1)
+    X = data.iloc[:, :-1].values  # (1503, 5)
+    y = data.iloc[:, -1].values  # (1503,)
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )
 
-    Xmu, Xstd = jnp.mean(X_train, 0), jnp.std(X_train, 0) + 1e-8
-    Ymu, Ystd = jnp.mean(y_train, 0), jnp.std(y_train, 0) + 1e-8
+    x_scaler = StandardScaler()
+    y_scaler = StandardScaler()
 
-    Xtr = (X_train - Xmu) / Xstd
-    Xte = (X_test - Xmu) / Xstd
-    ytr = (y_train - Ymu) / Ystd
-    yte = (y_test - Ymu) / Ystd
+    X_train = x_scaler.fit_transform(X_train)
+    X_test = x_scaler.transform(X_test)
+
+    y_train = y_scaler.fit_transform(y_train.reshape(-1, 1)).ravel()
+    y_test = y_scaler.transform(y_test.reshape(-1, 1)).ravel()
 
     regressor = BdeRegressor(
         hidden_layers=[16, 16],
@@ -72,22 +73,21 @@ def regression_example():
     )
 
     print(f"the params are {regressor.get_params()}")  # get_params is from sklearn!
-    regressor.fit(x=Xtr, y=ytr)
+    regressor.fit(x=jnp.array(X_train), y=jnp.array(y_train))
 
-    means, sigmas = regressor.predict(Xte, mean_and_std=True)
+    means, sigmas = regressor.predict(jnp.array(X_test), mean_and_std=True)
 
-    print("RSME: ", root_mean_squared_error(y_true=yte, y_pred=means))
-    mean, intervals = regressor.predict(Xte, credible_intervals=[0.1, 0.9])
-    raw = regressor.predict(Xte, raw=True)
+    print("RSME: ", root_mean_squared_error(y_true=y_test, y_pred=means))
+    mean, intervals = regressor.predict(X_test, credible_intervals=[0.1, 0.9])
+    raw = regressor.predict(X_test, raw=True)
     print(
         f"The shape of the raw predictions are {raw.shape}"
     )  # (ensemble members, n_samples/n_thinning, n_data, (mu,sigma))
 
     # use the raw predictions to compute log pointwise predictive density (lppd)
-
-    n_data = yte.shape[0]
+    n_data = y_test.shape[0]
     log_likelihoods = norm.logpdf(
-        yte.reshape(1, 1, n_data),
+        y_test.reshape(1, 1, n_data),
         loc=raw[:, :, :, 0],
         scale=jax.nn.softplus(raw[..., 1]) + 1e-6,  # map raw scale via softplus
     )  # (E,T,N)
@@ -101,13 +101,13 @@ def regression_example():
     # calculate the coverage of the 80% credible interval
     lower = intervals[0]
     upper = intervals[1]
-    coverage = jnp.mean((yte.ravel() >= lower) & (yte.ravel() <= upper))
+    coverage = jnp.mean((y_test.ravel() >= lower) & (y_test.ravel() <= upper))
     print(f"Coverage of the 80% credible interval: {coverage * 100:.2f}%")
 
-    score = regressor.score(Xte, yte)
+    score = regressor.score(X_test, y_test)
     print(f"The sklearn test score is {score}")
 
-    print(f"This is the history of the regressor\n {regressor.history()}")
+    # print(f"This is the history of the regressor\n {regressor.history()}")
 
 
 def classification_example():
@@ -152,7 +152,7 @@ def classification_example():
     )  # (ensemble members, n_samples/n_thinning, n_test_data, n_classes)
 
 
-def concrete_data_example():
+def regression_concrete_example():
     print("-" * 20)
     print("Regression example for concrete data")
     print("-" * 20)
@@ -229,6 +229,6 @@ def concrete_data_example():
 
 
 if __name__ == "__main__":
-    regression_example()
+    regression_airfoil_example()
     classification_example()
-    concrete_data_example()
+    regression_concrete_example()
