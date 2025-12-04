@@ -23,6 +23,9 @@
         ~BdeClassifier.get_params
       
       
+        ~BdeClassifier.history
+      
+      
         ~BdeClassifier.predict
       
       

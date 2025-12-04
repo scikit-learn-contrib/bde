@@ -23,6 +23,9 @@
         ~BdeRegressor.get_params
       
       
+        ~BdeRegressor.history
+      
+      
         ~BdeRegressor.predict
       
       

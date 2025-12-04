@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User guide : contents &#8212; Scikit-learn Project Template 0.1.dev247+g43d77f81e documentation</title>
+    <title>User guide : contents &#8212; bde 0.1.dev291+g78b71f5d5 documentation</title>
   
   
   
@@ -42,7 +42,7 @@
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
   <script src="_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
 
-    <script src="_static/documentation_options.js?v=a4f4d1ce"></script>
+    <script src="_static/documentation_options.js?v=c1a2cc65"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/design-tabs.js?v=36754332"></script>
@@ -127,8 +127,8 @@
       
     
     
-    <img src="_static/logo.png" class="logo__image only-light" alt="Scikit-learn Project Template 0.1.dev247+g43d77f81e documentation - Home"/>
-    <script>document.write(`<img src="_static/logo.png" class="logo__image only-dark" alt="Scikit-learn Project Template 0.1.dev247+g43d77f81e documentation - Home"/>`);</script>
+    <img src="_static/logo.png" class="logo__image only-light" alt="bde 0.1.dev291+g78b71f5d5 documentation - Home"/>
+    <script>document.write(`<img src="_static/logo.png" class="logo__image only-dark" alt="bde 0.1.dev291+g78b71f5d5 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -166,7 +166,7 @@
 
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="auto_examples/index.html">
-                        Example Gallery
+                        Examples
                       </a>
                     </li>
                 
@@ -291,7 +291,7 @@ document.write(`
 
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="auto_examples/index.html">
-                        Example Gallery
+                        Examples
                       </a>
                     </li>
                 
@@ -424,8 +424,13 @@ unscaled. Always apply basic preprocessing before calling <code class="docutils 
 <dt><code class="docutils literal notranslate"><span class="pre">predict(X,</span> <span class="pre">mean_and_std=True)</span></code></dt><dd><p>Regression only; returns a tuple <code class="docutils literal notranslate"><span class="pre">(mean,</span> <span class="pre">std)</span></code> where <code class="docutils literal notranslate"><span class="pre">std</span></code> combines
 aleatoric and epistemic components.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">predict(X,</span> <span class="pre">credible_intervals=[0.05,</span> <span class="pre">0.95])</span></code></dt><dd><p>Regression only; returns <code class="docutils literal notranslate"><span class="pre">(mean,</span> <span class="pre">quantiles)</span></code> with quantiles over posterior
-samples that can be used to construct credible intervals.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">predict(X,</span> <span class="pre">credible_intervals=[0.05,</span> <span class="pre">0.95])</span></code></dt><dd><p>Regression only; returns <code class="docutils literal notranslate"><span class="pre">(mean,</span> <span class="pre">quantiles)</span></code> where each quantile is computed
+from Monte Carlo samples drawn from every posterior component (i.e. the full
+mixture across ensemble members and MCMC draws). This reflects the predictive
+distribution of the entire ensemble rather than just parameter quantiles. For
+small posterior sample counts (<code class="docutils literal notranslate"><span class="pre">n_samples</span> <span class="pre">&lt;</span> <span class="pre">10</span></code>) a small random draw is used;
+for very large counts (<code class="docutils literal notranslate"><span class="pre">n_samples</span> <span class="pre">&gt;</span> <span class="pre">10_000</span></code>) a single sample is taken to keep
+the computation cheap.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">predict(X,</span> <span class="pre">raw=True)</span></code></dt><dd><p>Returns the raw tensor with leading axes <code class="docutils literal notranslate"><span class="pre">(ensemble_members,</span> <span class="pre">samples,</span> <span class="pre">n,</span>
 <span class="pre">output_dims)</span></code>. Useful for custom diagnostics.</p>
@@ -433,6 +438,28 @@ samples that can be used to construct credible intervals.</p>
 <dt><code class="docutils literal notranslate"><span class="pre">predict_proba(X)</span></code></dt><dd><p>Classification only; returns class probability vectors.</p>
 </dd>
 </dl>
+</section>
+<section id="gaussian-likelihood-regression">
+<h2>Gaussian likelihood (regression)<a class="headerlink" href="#gaussian-likelihood-regression" title="Link to this heading">#</a></h2>
+<p>Regression heads emit a mean and an unconstrained scale. The scale is mapped to a
+positive standard deviation with <code class="docutils literal notranslate"><span class="pre">softplus</span></code> (plus a small epsilon) in all stages:
+the training loss <code class="xref py py-class docutils literal notranslate"><span class="pre">bde.loss.GaussianNLL</span></code>, the
+posterior log-likelihood in <code class="xref py py-func docutils literal notranslate"><span class="pre">bde.sampler.probabilistic.ProbabilisticModel.log_likelihood()</span></code>,
+and the prediction helpers in <code class="xref py py-func docutils literal notranslate"><span class="pre">bde.bde_evaluator.BdePredictor._regression_mu_sigma()</span></code>.
+.. note:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>If you request ``raw=True`` from the regressor you receive the unconstrained scale
+head and should apply the same ``softplus`` transform before treating it as a
+standard deviation.
+</pre></div>
+</div>
+</section>
+<section id="how-to-read-uncertainties">
+<h2>How to read uncertainties<a class="headerlink" href="#how-to-read-uncertainties" title="Link to this heading">#</a></h2>
+<ul class="simple">
+<li><p><strong>Mean + std</strong> (<code class="docutils literal notranslate"><span class="pre">mean_and_std=True</span></code>): <code class="docutils literal notranslate"><span class="pre">std</span></code> is the total predictive standard deviation. It sums aleatoric variance (averaged scale head) and epistemic variance (spread of ensemble means), so high values mean either noisy data or disagreement across members.</p></li>
+<li><p><strong>Credible intervals</strong> (<code class="docutils literal notranslate"><span class="pre">credible_intervals=[...])</span></code>): Quantiles are taken over <em>samples from the full mixture</em> of ensemble members and posterior draws. This captures both aleatoric and epistemic uncertainty. For example, requesting <code class="docutils literal notranslate"><span class="pre">[0.05,</span> <span class="pre">0.95]</span></code> returns lower/upper curves you can treat as a 90% credible band.</p></li>
+<li><p><strong>Raw outputs</strong> (<code class="docutils literal notranslate"><span class="pre">raw=True</span></code>): Shape <code class="docutils literal notranslate"><span class="pre">(E,</span> <span class="pre">T,</span> <span class="pre">N,</span> <span class="pre">D)</span></code> for regression where <code class="docutils literal notranslate"><span class="pre">D=2</span></code> (mean, scale). You can manually compute aleatoric vs epistemic components, plot per-member predictions, or customise intervals if needed.</p></li>
+</ul>
 </section>
 <section id="key-hyperparameters">
 <h2>Key hyperparameters<a class="headerlink" href="#key-hyperparameters" title="Link to this heading">#</a></h2>
@@ -526,7 +553,7 @@ versions and provides tasks such as <code class="docutils literal notranslate"><
 <ul class="simple">
 <li><p>The <a class="reference internal" href="quick_start.html#quick-start"><span class="std std-ref">Quick start</span></a> page shows condensed scripts you can run end to end.</p></li>
 <li><p><a class="reference internal" href="api.html#api"><span class="std std-ref">API Reference</span></a> documents every public class and helper in the package.</p></li>
-<li><p><a class="reference internal" href="auto_examples/index.html#general-examples"><span class="std std-ref">Example Gallery</span></a> renders notebooks and plots that mirror the examples
+<li><p><a class="reference external" href="https://scikit-learn.org/stable/auto_examples/index.html#general-examples" title="(in scikit-learn v1.7)"><span>Examples</span></a> renders notebooks and plots that mirror the examples
 in the <code class="docutils literal notranslate"><span class="pre">examples/</span></code> directory.</p></li>
 </ul>
 </section>
@@ -581,6 +608,8 @@ in the <code class="docutils literal notranslate"><span class="pre">examples/</s
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#estimator-overview">Estimator overview</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#data-preparation">Data preparation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#understanding-the-outputs">Understanding the outputs</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gaussian-likelihood-regression">Gaussian likelihood (regression)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-to-read-uncertainties">How to read uncertainties</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#key-hyperparameters">Key hyperparameters</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#sampler-and-builder-internals">Sampler and builder internals</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#accelerators-and-environment">Accelerators and environment</a></li>
@@ -638,7 +667,7 @@ in the <code class="docutils literal notranslate"><span class="pre">examples/</s
 
   <p class="copyright">
     
-      © Copyright 2016, V. Birodkar.
+      © Copyright 2025, Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel.
       <br/>
     
   </p>

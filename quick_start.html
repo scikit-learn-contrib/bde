@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Quick start &#8212; Scikit-learn Project Template 0.1.dev247+g43d77f81e documentation</title>
+    <title>Quick start &#8212; bde 0.1.dev291+g78b71f5d5 documentation</title>
   
   
   
@@ -42,7 +42,7 @@
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
   <script src="_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
 
-    <script src="_static/documentation_options.js?v=a4f4d1ce"></script>
+    <script src="_static/documentation_options.js?v=c1a2cc65"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/design-tabs.js?v=36754332"></script>
@@ -50,7 +50,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="User Guide" href="user_guide.html" />
-    <link rel="prev" title="Project template for scikit-learn extension" href="index.html" />
+    <link rel="prev" title="Bayesian Deep Ensembles via MILE: easy to use, scikit-learn compatible and fast (JAX powered)" href="index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -127,8 +127,8 @@
       
     
     
-    <img src="_static/logo.png" class="logo__image only-light" alt="Scikit-learn Project Template 0.1.dev247+g43d77f81e documentation - Home"/>
-    <script>document.write(`<img src="_static/logo.png" class="logo__image only-dark" alt="Scikit-learn Project Template 0.1.dev247+g43d77f81e documentation - Home"/>`);</script>
+    <img src="_static/logo.png" class="logo__image only-light" alt="bde 0.1.dev291+g78b71f5d5 documentation - Home"/>
+    <script>document.write(`<img src="_static/logo.png" class="logo__image only-dark" alt="bde 0.1.dev291+g78b71f5d5 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -166,7 +166,7 @@
 
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="auto_examples/index.html">
-                        Example Gallery
+                        Examples
                       </a>
                     </li>
                 
@@ -291,7 +291,7 @@ document.write(`
 
                     <li class="nav-item">
                       <a class="nav-link nav-internal" href="auto_examples/index.html">
-                        Example Gallery
+                        Examples
                       </a>
                     </li>
                 
@@ -389,8 +389,7 @@ document.write(`
 <span id="id1"></span><h1>Quick start<a class="headerlink" href="#quick-start" title="Link to this heading">#</a></h1>
 <p><code class="docutils literal notranslate"><span class="pre">bde</span></code> implements Bayesian Deep Ensembles that plug directly into scikit-learn
 pipelines while running training and sampling in JAX. This page walks through
-setting up the environment, running your first estimators, and validating the
-installation.</p>
+installing the package, setting up the environment and information regarding JAX device count.</p>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h2>
 <p>The package will be published on PyPI soon. Until then you can install the
@@ -415,112 +414,6 @@ hardware:</p>
 </pre></div></div><p>You can set it once per shell session or inject it programmatically before
 importing JAX in your Python scripts.</p>
 </section>
-<section id="run-a-regression-model">
-<h2>Run a regression model<a class="headerlink" href="#run-a-regression-model" title="Link to this heading">#</a></h2>
-<p>The snippet below creates a toy regression dataset and fits a
-<a class="reference internal" href="generated/bde.BdeRegressor.html#bde.BdeRegressor" title="bde.BdeRegressor"><code class="xref py py-class docutils literal notranslate"><span class="pre">bde.BdeRegressor</span></code></a> instance. It mirrors the script in
-<code class="docutils literal notranslate"><span class="pre">examples/plot_regression.py</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;XLA_FLAGS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;--xla_force_host_platform_device_count=8&quot;</span>
-
-<span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
-<span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="kn">import</span> <span class="n">fetch_openml</span>
-<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">root_mean_squared_error</span>
-<span class="kn">from</span> <span class="nn">bde</span> <span class="kn">import</span> <span class="n">BdeRegressor</span>
-<span class="kn">from</span> <span class="nn">bde.loss</span> <span class="kn">import</span> <span class="n">GaussianNLL</span>
-
-
-<span class="n">data</span> <span class="o">=</span> <span class="n">fetch_openml</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;airfoil_self_noise&quot;</span><span class="p">,</span> <span class="n">as_frame</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
- <span class="n">X</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># shape (1503, 5)</span>
- <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># shape (1503, 1)</span>
-
-<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
-    <span class="n">X</span><span class="p">,</span>
-    <span class="n">y</span><span class="p">,</span>
-    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
-    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="c1"># Normalize data</span>
-
- <span class="n">Xmu</span><span class="p">,</span> <span class="n">Xstd</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
- <span class="n">Ymu</span><span class="p">,</span> <span class="n">Ystd</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y_train</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">y_train</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-8</span>
-
- <span class="n">Xtr</span> <span class="o">=</span> <span class="p">(</span><span class="n">X_train</span> <span class="o">-</span> <span class="n">Xmu</span><span class="p">)</span> <span class="o">/</span> <span class="n">Xstd</span>
- <span class="n">Xte</span> <span class="o">=</span> <span class="p">(</span><span class="n">X_test</span> <span class="o">-</span> <span class="n">Xmu</span><span class="p">)</span> <span class="o">/</span> <span class="n">Xstd</span>
- <span class="n">ytr</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_train</span> <span class="o">-</span> <span class="n">Ymu</span><span class="p">)</span> <span class="o">/</span> <span class="n">Ystd</span>
- <span class="n">yte</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_test</span> <span class="o">-</span> <span class="n">Ymu</span><span class="p">)</span> <span class="o">/</span> <span class="n">Ystd</span>
-
- <span class="n">regressor</span> <span class="o">=</span> <span class="n">BdeRegressor</span><span class="p">(</span>
-     <span class="n">hidden_layers</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">],</span>
-     <span class="n">n_members</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-     <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-     <span class="n">loss</span><span class="o">=</span><span class="n">GaussianNLL</span><span class="p">(),</span>
-     <span class="n">epochs</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-     <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
-     <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
-     <span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-     <span class="n">n_thinning</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-     <span class="n">patience</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
- <span class="p">)</span>
-
- <span class="n">regressor</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">ytr</span><span class="p">)</span>
-
-<span class="n">mean</span><span class="p">,</span> <span class="n">std</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">X_test</span><span class="p">),</span> <span class="n">mean_and_std</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">mu</span><span class="p">,</span> <span class="n">intervals</span> <span class="o">=</span> <span class="n">regressor</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">Xte</span><span class="p">,</span> <span class="n">credible_intervals</span><span class="o">=</span><span class="p">[</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span>
-<span class="n">raw</span> <span class="o">=</span> <span class="n">regressor</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">Xte</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;RSME: &quot;</span><span class="p">,</span> <span class="n">root_mean_squared_error</span><span class="p">(</span><span class="n">y_true</span><span class="o">=</span><span class="n">yte</span><span class="p">,</span> <span class="n">y_pred</span><span class="o">=</span><span class="n">means</span><span class="p">))</span>
-<span class="n">score</span> <span class="o">=</span> <span class="n">regressor</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">Xtr</span><span class="p">,</span> <span class="n">ytr</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;the sklearn score is </span><span class="si">{</span><span class="n">score</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="run-a-classification-model">
-<h2>Run a classification model<a class="headerlink" href="#run-a-classification-model" title="Link to this heading">#</a></h2>
-<p><a class="reference internal" href="generated/bde.BdeClassifier.html#bde.BdeClassifier" title="bde.BdeClassifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">bde.BdeClassifier</span></code></a> follows the same API and works with standard
-datasets such as Iris:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;XLA_FLAGS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;--xla_force_host_platform_device_count=8&quot;</span>
-
-<span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="kn">import</span> <span class="n">load_iris</span>
-<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
-
-<span class="kn">from</span> <span class="nn">bde</span> <span class="kn">import</span> <span class="n">BdeClassifier</span>
-<span class="kn">from</span> <span class="nn">bde.loss</span> <span class="kn">import</span> <span class="n">CategoricalCrossEntropy</span>
-
-<span class="n">iris</span> <span class="o">=</span> <span class="n">load_iris</span><span class="p">()</span>
-<span class="n">X</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">)</span>
-<span class="n">y</span> <span class="o">=</span> <span class="n">iris</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
-<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
-     <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-<span class="n">classifier</span> <span class="o">=</span> <span class="n">BdeClassifier</span><span class="p">(</span>
-     <span class="n">n_members</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-     <span class="n">hidden_layers</span><span class="o">=</span><span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">],</span>
-     <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-     <span class="n">loss</span><span class="o">=</span><span class="n">CategoricalCrossEntropy</span><span class="p">(),</span>
-     <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
-     <span class="n">epochs</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-     <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
-     <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
-     <span class="n">n_samples</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-     <span class="n">n_thinning</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-     <span class="n">patience</span><span class="o">=</span><span class="mi">2</span>
-     <span class="p">)</span>
-<span class="n">classifier</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_train</span><span class="p">)</span>
-<span class="n">preds</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-<span class="n">probs</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-<span class="n">score</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
-<span class="n">raw</span> <span class="o">=</span> <span class="n">classifier</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">raw</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted class probabilities:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">probs</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Predicted class labels:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">preds</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;True labels:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;the sklearn score is </span><span class="si">{</span><span class="n">score</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The shape of the raw predictions are </span><span class="si">{</span><span class="n">raw</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</section>
 <section id="work-with-the-development-environment">
 <h2>Work with the development environment<a class="headerlink" href="#work-with-the-development-environment" title="Link to this heading">#</a></h2>
 <p>Once you clone the repository, bootstrap the dev dependencies and tooling with:</p>
@@ -540,12 +433,12 @@ sphinx-gallery examples</p></li>
 <section id="next-steps">
 <h2>Next steps<a class="headerlink" href="#next-steps" title="Link to this heading">#</a></h2>
 <ul class="simple">
-<li><p>Dive into <a class="reference internal" href="user_guide.html#user-guide"><span class="std std-ref">User Guide</span></a> for a walkthrough of the estimator internals and
+<li><p>Dive into <a class="reference internal" href="user_guide.html#user-guide"><span class="std std-ref">User Guide</span></a> for a walkthrough of the package internals and
 configuration knobs.</p></li>
 <li><p>Explore the auto-generated API reference in <a class="reference internal" href="api.html#api"><span class="std std-ref">API Reference</span></a> to see every public
 class, function, and dataclass.</p></li>
-<li><p>Run the gallery in <a class="reference internal" href="auto_examples/index.html#general-examples"><span class="std std-ref">Example Gallery</span></a> to compare regression and
-classification behaviours on real-world datasets.</p></li>
+<li><p>Run the gallery in <a class="reference external" href="https://scikit-learn.org/stable/auto_examples/index.html#general-examples" title="(in scikit-learn v1.7)"><span>Examples</span></a> to compare regression and
+classification behaviours on real-world datasets!</p></li>
 </ul>
 </section>
 </section>
@@ -566,7 +459,7 @@ classification behaviours on real-world datasets.</p></li>
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">Project template for <code class="docutils literal notranslate"><span class="pre">scikit-learn</span></code> extension</p>
+        <p class="prev-next-title">Bayesian Deep Ensembles via MILE: easy to use, scikit-learn compatible and fast (JAX powered)</p>
       </div>
     </a>
     <a class="right-next"
@@ -598,8 +491,6 @@ classification behaviours on real-world datasets.</p></li>
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#set-the-jax-device-count">Set the JAX device count</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#run-a-regression-model">Run a regression model</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#run-a-classification-model">Run a classification model</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#work-with-the-development-environment">Work with the development environment</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#next-steps">Next steps</a></li>
 </ul>
@@ -655,7 +546,7 @@ classification behaviours on real-world datasets.</p></li>
 
   <p class="copyright">
     
-      © Copyright 2016, V. Birodkar.
+      © Copyright 2025, Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel.
       <br/>
     
   </p>
