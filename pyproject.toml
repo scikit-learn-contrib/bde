@@ -14,8 +14,16 @@ description = "Bayesian Deep Ensembles with MILE (JAX), scikit-learn style."
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "scikit-learn>=1.4.2",
+  "numpy>=1.26.4",
+  "scipy>=1.16.2",
+  "scikit-learn>=1.7.2",
+  "jax>=0.4.28",
+  "jaxlib>=0.4.28",
+  "optax>=0.2.1",
+  "blackjax==1.2.2",
+  "tqdm>=4.67.1",
 ]
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
