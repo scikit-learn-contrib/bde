@@ -1,9 +1,13 @@
+<p align="center">
+  <img src="doc/logo/bde_logo.png" alt="bde logo" width="100">
+</p>
+
 bde: Bayesian Deep Ensembles for scikit-learn
 ====================================================
 
-![tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
-[![codecov](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://codecov.io/gh/scikit-learn-contrib/bde)
-![doc](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)
+<!-- [tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
+[![codecov](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://codecov.io/gh/scikit-learn-contrib/bde)-->
+[![doc](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://vyron-arvanitis.github.io/bde/)
 
 Introduction
 ------------
