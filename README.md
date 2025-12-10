@@ -1,9 +1,13 @@
+<p align="center">
+  <img src="doc/_static/img/bde_logo.png" alt="bde logo" width="100">
+</p>
+
 bde: Bayesian Deep Ensembles for scikit-learn
 ====================================================
 
-![tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
-[![codecov](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://codecov.io/gh/scikit-learn-contrib/bde)
-![doc](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)
+<!-- [tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
+[![codecov](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://codecov.io/gh/scikit-learn-contrib/bde)-->
+[![doc](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://vyron-arvanitis.github.io/bde/)
 
 Introduction
 ------------
@@ -25,7 +29,7 @@ Installation
 ------------
 
 ```
-pip install --index-url <pending-release-url> bde
+pip install git+[https://github.com/scikit-learn-contrib/bde.git](https://github.com/vyron-arvanitis/bde.git)
 ```
 
 The public package index is not published yet; the command above is a placeholder
@@ -58,6 +62,17 @@ export XLA_FLAGS="--xla_force_host_platform_device_count=8"
 ```
 
 Adjust the value to match the number of CPU (or GPU) devices you plan to use.
+
+
+Gaussian likelihood parameterization
+------------------------------------
+
+For regression, the network outputs two values per datapoint: a mean (`mu`) and an
+unconstrained scale. The scale is always transformed with `softplus` (plus a small
+epsilon) inside the loss, warmup, sampling, and prediction utilities to ensure it
+remains positive. When you request `raw=True`, you receive the unconstrained scale
+head and should apply the same `softplus` transform yourself, as shown in the example
+above.
 
 ### Regression Example
 
@@ -145,15 +160,6 @@ print(f"The sklearn test score is {score}")
 print(f"This is the history of the regressor\n {regressor.history()}")
 ```
 
-Gaussian likelihood parameterization
-------------------------------------
-
-For regression, the network outputs two values per datapoint: a mean (`mu`) and an
-unconstrained scale. The scale is always transformed with `softplus` (plus a small
-epsilon) inside the loss, warmup, sampling, and prediction utilities to ensure it
-remains positive. When you request `raw=True`, you receive the unconstrained scale
-head and should apply the same `softplus` transform yourself, as shown in the example
-above.
 
 ### Classification Example
 
