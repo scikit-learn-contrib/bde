@@ -1,4 +1,13 @@
-# Bayesian Deep Ensembles for scikit-learn <a href='https://github.com/vyron-arvanitis/bde'><img src='doc/_static/img/bde_logo.png' align="right" width="30%"></a>
+# Bayesian Deep Ensembles for scikit-learn
+
+<div style="float: right; text-align: center; width: 30%; margin-left: 20px;">
+    <a href="https://github.com/vyron-arvanitis/bde">
+        <img src="doc/_static/img/bde_logo.png" width="100%">
+    </a>
+    <div style="font-size: 11px; color: gray; margin-top: 4px;">
+        created with nano-banana-pro
+    </div>
+</div>
 
 Installation
 ------------
