@@ -39,8 +39,11 @@ classifiers = [
 
 
 [project.urls]
-Homepage = "https://github.com/scikit-learn-contrib/bde"
-Issues = "https://github.com/scikit-learn-contrib/bde/issues"
+# Homepage = "https://github.com/scikit-learn-contrib/bde"
+# Issues = "https://github.com/scikit-learn-contrib/bde/issues"
+Homepage = "https://github.com/vyron-arvanitis/bde"
+Issues = "https://github.com/vyron-arvanitis/bde/issues"
+
 
 [tool.setuptools_scm]
 version_file = "bde/_version.py"
