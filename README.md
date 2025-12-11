@@ -1,8 +1,19 @@
-<p align="center">
-  <img src="doc/_static/img/bde_logo.png" alt="bde logo" width="100">
-</p>
+<table>
+  <tr>
+    <td style="vertical-align: middle; padding-left: 25px;">
+      <span style="font-size: 36px; font-weight: bold; line-height: 1.2;">
+        Bayesian Deep Ensembles<br>
+        <span style="font-size: 30px; font-weight: normal;">
+          for scikit-learn
+        </span>
+      </span>
+    </td>
+    <td><img src="doc/_static/img/bde_logo.png" width="350"></td>
+  </tr>
+</table>
 
-bde: Bayesian Deep Ensembles for scikit-learn
+
+
 ====================================================
 
 <!-- [tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
