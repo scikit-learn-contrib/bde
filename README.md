@@ -1,5 +1,8 @@
 # Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/vyron-arvanitis/bde"><img src="doc/_static/img/bde_logo.svg" align="right" width="30%">
-
+[![Docs](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://vyron-arvanitis.github.io/bde/)
+[![Tests](https://github.com/<org>/<repo>/actions/workflows/<workflow>.yml/badge.svg)](https://github.com/<org>/<repo>/actions/workflows/<workflow>.yml)
+![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen)
+[![License](https://img.shields.io/github/license/<org>/<repo>)](LICENSE)
 
 
 
