@@ -8,7 +8,7 @@
         </span>
       </span>
     </td>
-    <td><img src="doc/_static/img/bde_logo.png" width="350"></td>
+    <td><img src="doc/_static/img/bde_logo.png" width="150"></td>
   </tr>
 </table>
 
