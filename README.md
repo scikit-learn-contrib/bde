@@ -1,24 +1,12 @@
-<table>
-  <tr>
-    <td style="vertical-align: middle; padding-left: 25px;">
-      <span style="font-size: 36px; font-weight: bold; line-height: 1.2;">
-        Bayesian Deep Ensembles<br>
-        <span style="font-size: 30px; font-weight: normal;">
-          for scikit-learn
-        </span>
-      </span>
-    </td>
-    <td><img src="doc/_static/img/bde_logo.png" width="150"></td>
-  </tr>
-</table>
+<img src="doc/_static/img/bde_logo.png"
+     width="230"
+     style="float: right; margin: 10px 0 20px 20px;">
+
+# Bayesian Deep Ensembles  
+### for scikit-learn
 
 
-
-====================================================
-
-<!-- [tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
-[![codecov](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://codecov.io/gh/scikit-learn-contrib/bde)-->
-[![doc](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://vyron-arvanitis.github.io/bde/)
+[![codecov](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://vyron-arvanitis.github.io/bde/)
 
 Introduction
 ------------
