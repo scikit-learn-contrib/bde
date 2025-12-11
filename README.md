@@ -2,7 +2,7 @@
 
 <div style="float: right; text-align: center; width: 30%; margin-left: 20px;">
     <a href="https://github.com/vyron-arvanitis/bde">
-        <img src="doc/_static/img/bde_logo.png" width="100%">
+        <img src="doc/_static/img/bde_logo.png" width="70%">
     </a>
     <div style="font-size: 11px; color: gray; margin-top: 4px;">
         created with nano-banana-pro
