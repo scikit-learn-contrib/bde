@@ -31,4 +31,4 @@ jobs:
         uses: codecov/codecov-action@v5.5.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: scikit-learn-contrib/bde
+          slug: vyron-arvanitis/bde

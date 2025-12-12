@@ -1,5 +1,8 @@
 # Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/vyron-arvanitis/bde"><img src="doc/_static/img/bde_logo.svg" align="right" width="30%">
-
+[![Docs Status](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml)
+[![Tests](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml)
+![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen)
+[![License](https://img.shields.io/github/license/vyron-arvanitis/bde)](LICENSE)
 
 
 
@@ -7,7 +10,7 @@ Installation
 ------------
 
 ```
-pip install git+[https://github.com/scikit-learn-contrib/bde.git](https://github.com/vyron-arvanitis/bde.git)
+pip install git+https://github.com/vyron-arvanitis/bde.git
 ```
 
 The public package index is not published yet; the command above is a placeholder
