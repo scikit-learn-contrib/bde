@@ -1,10 +1,25 @@
-# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/vyron-arvanitis/bde"><img src="doc/_static/img/bde_logo.svg" align="right" width="30%">
+# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/vyron-arvanitis/bde"><img src="doc/_static/img/logo.svg" align="right" width="30%">
 [![Docs Status](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml)
 [![Tests](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml)
 ![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen)
 [![License](https://img.shields.io/github/license/vyron-arvanitis/bde)](LICENSE)
 
 
+Introduction
+------------
+
+**bde** is a user-friendly implementation of Bayesian Deep Ensembles compatible with
+both scikit-learn and JAX. It exposes estimators that plug into scikit-learn
+pipelines while leveraging JAX for accelerator-backed training, sampling, and
+uncertainty estimation.
+
+In particular, **bde** implements **Microcanonical Langevin Ensembles (MILE)** as
+introduced in [*Microcanonical Langevin Ensembles: Advancing the Sampling of Bayesian Neural Networks* (ICLR 2025)](https://arxiv.org/abs/2502.06335).
+A conceptual overview of MILE is shown below:
+
+<div style="width: 60%; margin: auto;">
+    <img src="doc/_static/img/flowchart.png" alt="MILE Overview" style="width: 100%;">
+</div>
 
 Installation
 ------------
