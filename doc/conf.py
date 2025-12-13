@@ -117,6 +117,6 @@ sphinx_gallery_conf = {
     "gallery_dirs": "auto_examples",
     "reference_url": {"bde": None},
     "default_thumb_file": str(
-        Path(__file__).parent.resolve() / "_static/img/index_examples.svg"
+        Path(__file__).parent.resolve() / "_static/img/index_examples_small.png"
     ),
 }

@@ -33,7 +33,6 @@ The public package index isn’t published yet; the command above is a placehold
 Usage
 -----
 ```python
-import bde
 from bde import BdeRegressor, BdeClassifier
 # reg = BdeRegressor(...)
 # clas = BdeClassifier(...)
