@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User guide : contents &#8212; bde 0.1.dev294+gb32f9ebcc documentation</title>
+    <title>User guide : contents &#8212; bde 0.1.dev339+g14caffd3e documentation</title>
   
   
   
@@ -42,7 +42,7 @@
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8d27b9dea8ad943066ae" />
   <script src="_static/vendor/fontawesome/6.5.1/js/all.min.js?digest=8d27b9dea8ad943066ae"></script>
 
-    <script src="_static/documentation_options.js?v=c7110737"></script>
+    <script src="_static/documentation_options.js?v=0726b844"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/design-tabs.js?v=36754332"></script>
@@ -127,8 +127,8 @@
       
     
     
-    <img src="_static/bde_logo.png" class="logo__image only-light" alt="bde 0.1.dev294+gb32f9ebcc documentation - Home"/>
-    <script>document.write(`<img src="_static/bde_logo.png" class="logo__image only-dark" alt="bde 0.1.dev294+gb32f9ebcc documentation - Home"/>`);</script>
+    <img src="_static/logo.svg" class="logo__image only-light" alt="bde 0.1.dev339+g14caffd3e documentation - Home"/>
+    <script>document.write(`<img src="_static/logo.svg" class="logo__image only-dark" alt="bde 0.1.dev339+g14caffd3e documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -394,6 +394,22 @@ concepts. The sections below assume that background and concentrate on how
 you should prepare data to get reliable results.
 For installation, environment setup, and JAX device configuration, start with
 <a class="reference internal" href="quick_start.html#quick-start"><span class="std std-ref">Quick start</span></a>.</p>
+<section id="method">
+<h2>Method<a class="headerlink" href="#method" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">bde</span></code> implements Bayesian Deep Ensembles using <strong>Microcanonical Langevin Ensembles (MILE)</strong>,
+a hybrid approach for Bayesian neural network inference that combines deterministic
+ensemble pre-training with efficient MCMC sampling.</p>
+<p>Concretely, ensemble members are first trained independently using standard
+optimization, providing diverse and well-initialized starting points. These models
+are then refined using <strong>Microcanonical Langevin Monte Carlo (MCLMC)</strong> to generate
+high-quality posterior samples. This design yields strong predictive performance and
+reliable uncertainty estimates while remaining computationally efficient.</p>
+<p>The method is particularly well-suited for the complex, multi-modal posteriors
+encountered in neural networks and can be implemented embarrassingly parallel across
+multiple devices.</p>
+<p>For references and theoretical as well as algorithmic details, see
+[<em>Microcanonical Langevin Ensembles: Advancing the Sampling of Bayesian Neural Networks</em> (ICLR 2025)](<a class="reference external" href="https://arxiv.org/abs/2502.06335">https://arxiv.org/abs/2502.06335</a>).</p>
+</section>
 <section id="estimator-overview">
 <h2>Estimator overview<a class="headerlink" href="#estimator-overview" title="Link to this heading">#</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">bde</span></code> exposes two scikit-learn compatible estimators:</p>
@@ -507,7 +523,7 @@ is <code class="docutils literal notranslate"><span class="pre">None</span></cod
 </li>
 </ul>
 <p><strong>Sampling</strong></p>
-<ul class="simple">
+<ul>
 <li><dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">warmup_steps</span></code> / <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> / <code class="docutils literal notranslate"><span class="pre">n_thinning</span></code></dt><dd><p>Control the MCMC sampling stage. <code class="docutils literal notranslate"><span class="pre">warmup_steps</span></code> adjusts the step size,
 <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> defines the number of retained posterior draws, and
@@ -516,7 +532,7 @@ is <code class="docutils literal notranslate"><span class="pre">None</span></cod
 </dl>
 </li>
 <li><dl class="simple">
-<dt><code class="docutils literal notranslate"><span class="pre">desired_energy_var_start</span></code> / <code class="docutils literal notranslate"><span class="pre">desired_energy_var_end</span></code> / <code class="docutils literal notranslate"><span class="pre">step_size_init</span></code></dt><dd><p>Configure the samplers behaviour. The <code class="docutils literal notranslate"><span class="pre">desired_energy_var_*</span></code> parameters
+<dt><code class="docutils literal notranslate"><span class="pre">desired_energy_var_start</span></code> / <code class="docutils literal notranslate"><span class="pre">desired_energy_var_end</span></code> / <code class="docutils literal notranslate"><span class="pre">step_size_init</span></code></dt><dd><p>Configure the samplers behavior. The <code class="docutils literal notranslate"><span class="pre">desired_energy_var_*</span></code> parameters
 set the target variance of the energy during sampling which is linearly
 annealed from start to end over the course of the warmup phase. The
 <code class="docutils literal notranslate"><span class="pre">step_size_init</span></code> parameter sets the initial step size for the dynamics
@@ -524,11 +540,27 @@ integrator; this is adapted during warmup to reach the desired energy
 variance. For medium sized BNNs a good default is to set
 <code class="docutils literal notranslate"><span class="pre">desired_energy_var_start=0.5</span></code>, <code class="docutils literal notranslate"><span class="pre">desired_energy_var_end=0.1</span></code>, and
 pick the learning rate as the <code class="docutils literal notranslate"><span class="pre">step_size_init</span></code> (or slightly larger). For simpler
-models or highly overparameterized settings (for example a 2x16 network provides
+models or highly over parameterized settings (for example a 2x16 network provides
 good results on a small dataset, then using a 3x32 network would be considered
-highly overparameterized) decreasing the desired energy variance targets might
+highly over parameterized) decreasing the desired energy variance targets might
 be necessary to reach good performance. <strong>The desired energy variance is the most
 important hyperparameter</strong> to tune for sampler performance.</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt><code class="docutils literal notranslate"><span class="pre">prior_family</span></code></dt><dd><p>Isotropic weight prior used for all ensemble members. Accepts string keys or
+<code class="xref py py-class docutils literal notranslate"><span class="pre">bde.sampler.prior.PriorDist</span></code> enums. Three families are supported:
+<code class="docutils literal notranslate"><span class="pre">standardnormal</span></code> (unit-variance Gaussian, and the default when unspecified),
+<code class="docutils literal notranslate"><span class="pre">normal</span></code> (Gaussian with configurable <code class="docutils literal notranslate"><span class="pre">loc</span></code>/ <code class="docutils literal notranslate"><span class="pre">scale</span></code>), and <code class="docutils literal notranslate"><span class="pre">laplace</span></code>.
+Combine with <code class="docutils literal notranslate"><span class="pre">prior_kwargs</span></code> to adjust the distribution; for example <code class="docutils literal notranslate"><span class="pre">{&quot;scale&quot;:</span> <span class="pre">0.1}</span></code>
+narrows the prior and the initialisation around zero.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">standardnormal</span></code> shortcut always uses <code class="docutils literal notranslate"><span class="pre">loc=0</span></code> and <code class="docutils literal notranslate"><span class="pre">scale=1</span></code> and
+ignores <code class="docutils literal notranslate"><span class="pre">prior_kwargs</span></code>. Pick <code class="docutils literal notranslate"><span class="pre">normal</span></code> if you want a Gaussian prior with
+a different variance.</p>
+</div>
 </dd>
 </dl>
 </li>
@@ -606,6 +638,7 @@ in the <code class="docutils literal notranslate"><span class="pre">examples/</s
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#method">Method</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#estimator-overview">Estimator overview</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#data-preparation">Data preparation</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gaussian-likelihood-regression">Gaussian likelihood (regression)</a></li>
@@ -621,7 +654,7 @@ in the <code class="docutils literal notranslate"><span class="pre">examples/</s
 
   
   <div class="tocsection editthispage">
-    <a href="https://github.com/scikit-learn-contrib/bde/edit/master/doc/user_guide.rst">
+    <a href="https://github.com/vyron-arvanitis/bde/edit/main/doc/user_guide.rst">
       <i class="fa-solid fa-pencil"></i>
       
       
