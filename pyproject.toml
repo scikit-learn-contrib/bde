@@ -3,12 +3,12 @@ requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bde"
+name = "sklearn-contrib-bde"
 dynamic = ["version"]
 authors = [
-    { name = "Arvanitis Vyron", email = "vyronas.arvanitis@gmail.com" },
-    { name = "Aslanidis Angelos", email = "angelo.aslanidis@gmail.com" },
-    { name = "Sommer Emanuel", email = "emanuel.sommer@stat.uni-muenchen.de" }
+  { name = "Arvanitis Vyron", email = "vyronas.arvanitis@gmail.com" },
+  { name = "Aslanidis Angelos", email = "angelo.aslanidis@gmail.com" },
+  { name = "Sommer Emanuel", email = "emanuel.sommer@stat.uni-muenchen.de" },
 ]
 description = "Bayesian Deep Ensembles with MILE (JAX), scikit-learn style."
 readme = "README.md"
@@ -25,31 +25,38 @@ dependencies = [
 ]
 
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: BSD License",
-    "Operating System :: POSIX",
-    "Operating System :: Unix",
-    "Operating System :: MacOS",
-    "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: POSIX",
+  "Operating System :: Unix",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
 ]
 
 
 [project.urls]
-# Homepage = "https://github.com/scikit-learn-contrib/bde"
-# Issues = "https://github.com/scikit-learn-contrib/bde/issues"
-Homepage = "https://github.com/vyron-arvanitis/bde"
-Issues = "https://github.com/vyron-arvanitis/bde/issues"
+Homepage = "https://github.com/scikit-learn-contrib/bde"
+Issues = "https://github.com/scikit-learn-contrib/bde/issues"
+# Homepage = "https://github.com/vyron-arvanitis/bde"
+# Issues = "https://github.com/vyron-arvanitis/bde/issues"
 
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+bde = ["data/*.csv", "data/*.data"]
 
 [tool.setuptools_scm]
 version_file = "bde/_version.py"
 
-[tool.setuptools]
-packages = ["bde"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bde*"]
+exclude = ["bde.tests*", "bde.utils.tests*"]
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -88,7 +95,7 @@ lint-fix = { depends-on = ["black-fix", "ruff-fix"] }
 
 pre-commit-install = { cmd = "pre-commit install" }
 pre-commit-run = { cmd = "pre-commit run --all-files" }
-pre-commit = {depends-on = ["pre-commit-install", "pre-commit-run"]}
+pre-commit = { depends-on = ["pre-commit-install", "pre-commit-run"] }
 
 [tool.pixi.feature.test.dependencies]
 pytest = "*"
@@ -101,7 +108,7 @@ test = { cmd = "pytest -vsl --cov=bde --cov-report=xml bde" }
 matplotlib = "*"
 numpydoc = "*"
 pydata-sphinx-theme = "*"
-setuptools-scm = ">=8"  # needed for the versioning
+setuptools-scm = ">=8"    # needed for the versioning
 sphinx = "*"
 sphinx-design = "*"
 sphinx-gallery = "*"
@@ -134,13 +141,13 @@ force-exclude = "bde/_version.py"
 line-length = 88
 target-version = "py38"
 exclude = [
-    ".git",
-    "__pycache__",
-    "dist",
-    "doc/_build",
-    "doc/auto_examples",
-    "build",
-    "bde/_version.py",
+  ".git",
+  "__pycache__",
+  "dist",
+  "doc/_build",
+  "doc/auto_examples",
+  "build",
+  "bde/_version.py",
 ]
 
 # Linting configuration

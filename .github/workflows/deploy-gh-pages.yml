@@ -11,7 +11,6 @@ on:
 jobs:
   deploy-gh-pages:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v6
       with:

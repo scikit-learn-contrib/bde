@@ -10,7 +10,7 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  build:
+  test:
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-latest, macos-latest]
@@ -31,4 +31,5 @@ jobs:
         uses: codecov/codecov-action@v5.5.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: vyron-arvanitis/bde
+          # slug: vyron-arvanitis/bde
+          slug: scikit-learn-contrib/bde
