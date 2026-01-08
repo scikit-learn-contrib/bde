@@ -1,12 +1,12 @@
-# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/vyron-arvanitis/bde"><img src="doc/_static/img/logo.svg" align="right" height="150" />
+﻿# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/scikit-learn-contrib/bde"><img src="doc/_static/img/logo.svg" align="right" height="150" />
 
-[![Docs Status](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml)
-[![Tests](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml)
+[![Docs Status](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml)
+[![Tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml)
 ![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen)
-[![License](https://img.shields.io/github/license/vyron-arvanitis/bde)](LICENSE)
+[![License](https://img.shields.io/github/license/scikit-learn-contrib/bde)](LICENSE)
 
 
-👉 **[Start Here: Complete Online Documentation](https://vyron-arvanitis.github.io/bde/)**
+👉 **[Start Here: Complete Online Documentation](https://scikit-learn-contrib.github.io/bde/)**
 
 
 Introduction
@@ -29,7 +29,7 @@ Installation
 ------------
 Users can install the package via the following command:
 ```
-pip install git+https://github.com/vyron-arvanitis/bde.git
+pip install git+https://github.com/scikit-learn-contrib/bde.git
 ```
 
 The public package index isn’t published yet; the command above is a placeholder for the upcoming release.
@@ -238,3 +238,4 @@ flowchart TD
 | **Airfoil** | UCI Machine Learning Repository (Dua & Graff, 2017) | Regression |
 | **Concrete** | UCI Machine Learning Repository (Yeh, 2006) | Regression |
 | **Iris** | Fisher (1936); canonical modern version distributed via scikit-learn | Multiclass classification (setosa, versicolor, virginica) |
+

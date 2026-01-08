@@ -1,4 +1,4 @@
-.. _quick_start:
+﻿.. _quick_start:
 
 ###############
 Quick start
@@ -16,7 +16,7 @@ current source build:
 
 .. prompt:: bash $
 
-  pip install git+https://github.com/vyron-arvanitis/bde.git
+  pip install git+https://github.com/scikit-learn-contrib/bde.git
 
 If you prefer reproducible environments with GPU or multi-device CPU support,
 consider using `pixi <https://prefix.dev/docs/pixi/overview>`__ as described in
@@ -72,3 +72,4 @@ Next steps
   class, function, and dataclass.
 * Run the gallery in :ref:`general_examples` to compare regression and
   classification behaviours on real-world datasets!
+

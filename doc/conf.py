@@ -1,4 +1,4 @@
-# Configuration file for the Sphinx documentation builder.
+﻿# Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
@@ -60,7 +60,7 @@ html_sidebars = {
 
 html_theme_options = {
     "external_links": [],
-    "github_url": "https://github.com/vyron-arvanitis/bde",
+    "github_url": "https://github.com/scikit-learn-contrib/bde",
     # "twitter_url": "https://twitter.com/pandas_dev",
     "use_edit_page_button": True,
     "show_toc_level": 1,
@@ -68,7 +68,7 @@ html_theme_options = {
 }
 
 html_context = {
-    "github_user": "vyron-arvanitis",
+    "github_user": "scikit-learn-contrib",
     "github_repo": "bde",
     "github_version": "main",
     "doc_path": "doc",
@@ -120,3 +120,4 @@ sphinx_gallery_conf = {
         Path(__file__).parent.resolve() / "_static/img/index_examples_small.png"
     ),
 }
+

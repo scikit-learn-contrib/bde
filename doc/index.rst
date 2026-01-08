@@ -1,4 +1,4 @@
-.. bde documentation master file, created by
+﻿.. bde documentation master file, created by
    sphinx-quickstart on Mon Jan 18 14:44:12 2016.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -12,10 +12,10 @@ Bayesian Deep Ensembles via MILE: easy to use, scikit-learn compatible and fast 
 **Date**: |today| **Version**: |version|
 
 **Useful links**:
-`Source Repository <https://github.com/vyron-arvanitis/bde.git>`__
+`Source Repository <https://github.com/scikit-learn-contrib/bde.git>`__
+`Issues & Ideas <https://github.com/scikit-learn-contrib/bdek/issues>`__ |
 
 .. `Source Repository <https://github.com/scikit-learn-contrib/bde>`__ |
-.. `Issues & Ideas <https://github.com/scikit-learn-contrib/bdek/issues>`__ |
 
 This is the documentation for the `bde`.
 
@@ -104,3 +104,4 @@ This is the documentation for the `bde`.
     user_guide
     api
     auto_examples/index
+
