@@ -1,4 +1,4 @@
-.. _quick_start:
+﻿.. _quick_start:
 
 ###############
 Quick start
@@ -11,12 +11,17 @@ installing the package, setting up the environment and information regarding JAX
 Installation
 ============
 
-The package will be published on PyPI soon. Until then you can install the
-current source build:
+To install the latest release from PyPI, run:
 
 .. prompt:: bash $
 
-  pip install git+https://github.com/vyron-arvanitis/bde.git
+  pip install sklearn-contrib-bde
+
+To install the latest development version from GitHub, run:
+
+.. prompt:: bash $
+
+  pip install git+https://github.com/scikit-learn-contrib/bde.git
 
 If you prefer reproducible environments with GPU or multi-device CPU support,
 consider using `pixi <https://prefix.dev/docs/pixi/overview>`__ as described in
