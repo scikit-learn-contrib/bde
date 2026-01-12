@@ -15,7 +15,7 @@ project = "bde"
 copyright = "2025, Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel"
 author = "Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel"
 
-release = get_version("bde")
+release = get_version("sklearn-contrib-bde")
 version = ".".join(release.split(".")[:3])
 
 # -- General configuration ---------------------------------------------------

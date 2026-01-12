@@ -11,8 +11,13 @@ installing the package, setting up the environment and information regarding JAX
 Installation
 ============
 
-The package will be published on PyPI soon. Until then you can install the
-current source build:
+To install the latest release from PyPI, run:
+
+.. prompt:: bash $
+
+  pip install sklearn-contrib-bde
+
+To install the latest development version from GitHub, run:
 
 .. prompt:: bash $
 

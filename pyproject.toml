@@ -22,6 +22,7 @@ dependencies = [
   "optax>=0.2.1",
   "blackjax==1.2.2",
   "tqdm>=4.67.1",
+  "ipython>=8.0",
 ]
 
 classifiers = [

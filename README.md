@@ -13,9 +13,9 @@ Introduction
 ------------
 
 **bde** is a user-friendly implementation of Bayesian Deep Ensembles compatible with
-both scikit-learn and JAX. It exposes estimators that plug into scikit-learn
-pipelines while leveraging JAX for accelerator-backed training, sampling, and
-uncertainty estimation.
+scikit-learn with a particular focus on tabular data. It exposes estimators that plug 
+into scikit-learn pipelines while leveraging JAX for accelerator-backed training, 
+sampling, and uncertainty quantification.
 
 In particular, **bde** implements **Microcanonical Langevin Ensembles (MILE)** as
 introduced in [*Microcanonical Langevin Ensembles: Advancing the Sampling of Bayesian Neural Networks* (ICLR 2025)](https://arxiv.org/abs/2502.06335).
@@ -27,12 +27,18 @@ A conceptual overview of MILE is shown below:
 
 Installation
 ------------
-Users can install the package via the following command:
+
+To install the latest release from PyPI, run:
+
+```
+pip install sklearn-contrib-bde
+```
+
+To install the latest development version from GitHub, run:
+
 ```
 pip install git+https://github.com/scikit-learn-contrib/bde.git
 ```
-
-The public package index isn’t published yet; the command above is a placeholder for the upcoming release.
 
 Developer environment
 ---------------------
