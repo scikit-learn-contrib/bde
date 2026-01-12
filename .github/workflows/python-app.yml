@@ -10,7 +10,7 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  build:
+  test:
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-latest, macos-latest]
@@ -26,9 +26,3 @@ jobs:
 
       - name: Run tests
         run: pixi run -e ${{ matrix.environment }} test
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5.5.2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: vyron-arvanitis/bde

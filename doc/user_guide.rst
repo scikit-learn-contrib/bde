@@ -32,6 +32,12 @@ The method is particularly well-suited for the complex, multi-modal posteriors
 encountered in neural networks and can be implemented embarrassingly parallel across
 multiple devices.
 
+Note that this package currently supports fully connected feedforward networks only and
+is targeted at tabular data tasks. The method can however also be applied to other
+architectures and data modalities, but these are not yet in the scope of this
+particular implementation. Further the full package acts in the full-batch setting
+only; stochastic mini-batching is not supported at this time.
+
 For references and theoretical as well as algorithmic details, see
 `Microcanonical Langevin Ensembles: Advancing the Sampling of Bayesian Neural Networks (ICLR 2025) <https://arxiv.org/abs/2502.06335>`_.
 

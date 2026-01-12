@@ -1,21 +1,21 @@
-# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/vyron-arvanitis/bde"><img src="doc/_static/img/logo.svg" align="right" height="150" />
+﻿# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/scikit-learn-contrib/bde"><img src="doc/_static/img/logo.svg" align="right" height="150" />
 
-[![Docs Status](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/deploy-gh-pages.yml)
-[![Tests](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/vyron-arvanitis/bde/actions/workflows/python-app.yml)
+[![Docs Status](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml)
+[![Tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml)
 ![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen)
-[![License](https://img.shields.io/github/license/vyron-arvanitis/bde)](LICENSE)
+[![License](https://img.shields.io/github/license/scikit-learn-contrib/bde)](LICENSE)
 
 
-👉 **[Start Here: Complete Online Documentation](https://vyron-arvanitis.github.io/bde/)**
+👉 **[Start Here: Complete Online Documentation](https://scikit-learn-contrib.github.io/bde/)**
 
 
 Introduction
 ------------
 
 **bde** is a user-friendly implementation of Bayesian Deep Ensembles compatible with
-both scikit-learn and JAX. It exposes estimators that plug into scikit-learn
-pipelines while leveraging JAX for accelerator-backed training, sampling, and
-uncertainty estimation.
+scikit-learn with a particular focus on tabular data. It exposes estimators that plug 
+into scikit-learn pipelines while leveraging JAX for accelerator-backed training, 
+sampling, and uncertainty quantification.
 
 In particular, **bde** implements **Microcanonical Langevin Ensembles (MILE)** as
 introduced in [*Microcanonical Langevin Ensembles: Advancing the Sampling of Bayesian Neural Networks* (ICLR 2025)](https://arxiv.org/abs/2502.06335).
@@ -27,17 +27,23 @@ A conceptual overview of MILE is shown below:
 
 Installation
 ------------
-Users can install the package via the following command:
+
+To install the latest release from PyPI, run:
+
 ```
-pip install git+https://github.com/vyron-arvanitis/bde.git
+pip install sklearn-contrib-bde
 ```
 
-The public package index isn’t published yet; the command above is a placeholder for the upcoming release.
+To install the latest development version from GitHub, run:
+
+```
+pip install git+https://github.com/scikit-learn-contrib/bde.git
+```
 
 Developer environment
 ---------------------
 
-We recommend using [pixi](https://prefix.dev/docs/pixi/overview) to create a
+We recommend using [pixi](https://pixi.prefix.dev/latest/) to create a
 deterministic development environment:
 
 ```
