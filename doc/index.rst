@@ -13,7 +13,7 @@ Bayesian Deep Ensembles via MILE: easy to use, scikit-learn compatible and fast 
 
 **Useful links**:
 `Source Repository <https://github.com/scikit-learn-contrib/bde.git>`__ |
-`Issues & Ideas <https://github.com/scikit-learn-contrib/bdek/issues>`__ 
+`Issues & Ideas <https://github.com/scikit-learn-contrib/bde/issues>`__ 
 
 This is the documentation for the `bde` package.
 
