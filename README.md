@@ -37,7 +37,7 @@ The public package index isn’t published yet; the command above is a placehold
 Developer environment
 ---------------------
 
-We recommend using [pixi](https://prefix.dev/docs/pixi/overview) to create a
+We recommend using [pixi](https://pixi.prefix.dev/latest/) to create a
 deterministic development environment:
 
 ```
@@ -238,4 +238,3 @@ flowchart TD
 | **Airfoil** | UCI Machine Learning Repository (Dua & Graff, 2017) | Regression |
 | **Concrete** | UCI Machine Learning Repository (Yeh, 2006) | Regression |
 | **Iris** | Fisher (1936); canonical modern version distributed via scikit-learn | Multiclass classification (setosa, versicolor, virginica) |
-

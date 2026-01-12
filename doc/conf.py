@@ -120,4 +120,3 @@ sphinx_gallery_conf = {
         Path(__file__).parent.resolve() / "_static/img/index_examples_small.png"
     ),
 }
-

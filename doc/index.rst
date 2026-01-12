@@ -104,4 +104,3 @@ This is the documentation for the `bde`.
     user_guide
     api
     auto_examples/index
-

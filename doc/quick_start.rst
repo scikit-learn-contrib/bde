@@ -72,4 +72,3 @@ Next steps
   class, function, and dataclass.
 * Run the gallery in :ref:`general_examples` to compare regression and
   classification behaviours on real-world datasets!
-
