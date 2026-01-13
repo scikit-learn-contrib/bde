@@ -76,3 +76,7 @@ target/
 
 # auto-generated files
 bde/_version.py
+
+# Ide
+
+.vscode
