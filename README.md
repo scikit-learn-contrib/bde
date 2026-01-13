@@ -94,7 +94,7 @@ from sklearn.model_selection import train_test_split
 from bde import BdeRegressor
 from bde.loss import GaussianNLL
 
-data = fetch_openml(name="airfoil_self_noise", as_frame=True)
+data = fetch_openml(name="airfoil_self_noise", as_frame=True) # requires pandas
 
 X = data.data.values
 y = data.target.values.reshape(-1, 1)
