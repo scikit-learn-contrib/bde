@@ -72,14 +72,14 @@ def cli_args():
         required=True,
         help="Benchmark dataset.",
     )
-    
+
     parser.add_argument(
         "--models",
         nargs="+",
         default=["bde", "linear", "mlp"],
         help="Models to run. Example: --models bde linear rf",
     )
-    
+
     parser.add_argument(
         "--n-runs",
         type=int,
