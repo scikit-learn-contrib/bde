@@ -60,6 +60,6 @@ for example airfoil - potentially benchmark against other methods like random fo
 
 # AI usage
 
-TBD
+Generative AI was used for smart code autocompletion via GitHub Copilot, using the Claude Sonnet 3.7 and Claude Sonnet 4 models. Its use was limited to local, line- or block-level completion during software development. Further Codex was used to assist in the generation of the first draft of the package documentation and for few refactors ensuring the compatibility with the `scikit-learn` API. No AI tools were used for ideation, architectural or design decisions, code review or testing strategy. All generated suggestions were critically reviewed, modified where necessary, and fully validated by the authors, who retain complete responsibility for the correctness, originality, licensing compliance, and ethical integrity of all materials.
 
 # References
