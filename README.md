@@ -25,6 +25,13 @@ A conceptual overview of MILE is shown below:
     <img src="doc/_static/img/flowchart.png" alt="MILE Overview" style="width: 100%;">
 </div>
 
+
+**Scope:** As of right now this package supports full-batch MILE for fully connected
+feedforward networks, covering classification and regression on tabular data. 
+The method can however also be applied to other
+architectures and data modalities, but these are not yet in scope of this
+particular implementation.
+
 Installation
 ------------
 
@@ -87,7 +94,7 @@ from sklearn.model_selection import train_test_split
 from bde import BdeRegressor
 from bde.loss import GaussianNLL
 
-data = fetch_openml(name="airfoil_self_noise", as_frame=True)
+data = fetch_openml(name="airfoil_self_noise", as_frame=True) # requires pandas
 
 X = data.data.values
 y = data.target.values.reshape(-1, 1)
