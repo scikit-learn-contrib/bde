@@ -25,6 +25,13 @@ A conceptual overview of MILE is shown below:
     <img src="doc/_static/img/flowchart.png" alt="MILE Overview" style="width: 100%;">
 </div>
 
+
+**Scope:** As of right now this package supports full-batch MILE for fully connected
+feedforward networks, covering classification and regression on tabular data. 
+The method can however also be applied to other
+architectures and data modalities, but these are not yet in scope of this
+particular implementation.
+
 Installation
 ------------
 
