@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+
 from bde import BdeRegressor
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -10,27 +11,96 @@ import jax.numpy as jnp
 from sklearn.neural_network import MLPRegressor
 from bde import BdeRegressor
 from sklearn.linear_model import LinearRegression
+import time
+from pathlib import Path
+from bde.loss.loss import GaussianNLL
+from bde.sampler.prior import PriorDist
+import logging
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+import xgboost as xgb
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
+
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
 
 
 # ------------- configuration of models -------------
-def bde_regressor():
-    return BdeRegressor()
+def bde_regressor(seed) -> BdeRegressor:
+    return BdeRegressor(
+        n_members=10,
+        hidden_layers=[16, 16, 16, 16],
+        loss=GaussianNLL(),
+        epochs=1000,
+        validation_split=0.15,
+        lr=1e-3,
+        weight_decay=1e-4,
+        warmup_steps=50000,
+        n_samples=10000,
+        n_thinning=10,
+        patience=10,
+        prior_family=PriorDist.NORMAL,
+        prior_kwargs={"loc": 0, "scale": 1.5},
+        seed=seed,
+    )
 
 
-def mlp_regressor():
-    return MLPRegressor(hidden_layer_sizes=(2, 12))
+def mlp_regressor(seed) -> MLPRegressor:
+    return MLPRegressor(hidden_layer_sizes=(2, 12), random_state=seed)
 
 
-def linear_regressor():
+def linear_regressor() -> LinearRegression:
     return LinearRegression()
 
 
+def rand_forest(seed) -> RandomForestRegressor:
+    return RandomForestRegressor(
+        n_estimators=300,
+        criterion="squared_error",
+        warm_start=True,
+        random_state=seed,
+    )
+
+
+def xgb_reg(seed) -> xgb.XGBRegressor:
+    return xgb.XGBRegressor(
+        tree_method="hist",
+        n_estimators=2000,
+        learning_rate=0.05,
+        max_depth=6,
+        random_state=seed,
+    )
+
+
+MODEL_FACTORY = {
+    "bde": lambda seed: bde_regressor(seed),
+    "mlp": lambda seed: mlp_regressor(seed),
+    "linear": lambda seed: linear_regressor(),
+    "rf": lambda seed: rand_forest(seed),
+    "xgb": lambda seed: xgb_reg(seed),
+}
+
+
 # ------------- configuration of data -------------
-def config_data(data_file):
-    data = pd.read_csv(data_file, sep=",", header=None)
+
+DATA_DIR = Path(__file__).resolve().parents[1] / "bde" / "data"
+DATASETS = {
+    "airfoil": {"file": "airfoil.csv", "sep": ",", "header": 0},
+    "concrete": {"file": "concrete.data", "sep": " ", "header": None},
+}
+
+
+def config_data(dataset):
+    spec = DATASETS[dataset]
+    path = DATA_DIR / spec["file"]
+    data = pd.read_csv(path, sep=spec["sep"], header=spec["header"])
+
     X = data.iloc[:, :-1].values
     y = data.iloc[:, -1].values
 
@@ -52,31 +122,71 @@ def config_data(data_file):
     return X_train, X_test, y_train, y_test
 
 
+# ------------- Store results -------------
+
+
+def save_results(out_dir: str, rows: list[dict]) -> None:
+    df = pd.DataFrame(rows)
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    df.to_csv(out_dir / "results.csv", index=False)
+
+
+# ------------- Negative Log Likelihood Computation -------------
+
+
+def neg_log_likelihood(y, mu, sigma):
+    sigma = np.maximum(sigma, 1e-8)
+
+    return 0.5 * (np.log(2 * np.pi * sigma**2) + (y - mu) ** 2 / sigma**2)
+
+
 # ------------- main runner -------------
-def runner_regression(model, X_train, X_test, y_train, y_test):
+def runner_regression(
+    model, model_name, dataset, run_idx, seed, X_train, X_test, y_train, y_test
+):
+    logger.info(
+        "Start: dataset=%s model=%s run=%d seed=%d", dataset, model_name, run_idx, seed
+    )
+
+    t0 = time.perf_counter()
     model.fit(X_train, y_train)
     if isinstance(model, BdeRegressor):
-        mus, sigma = model.predict(X_test)
+        mus, sigma = model.predict(X_test, mean_and_std=True)
+        nll = neg_log_likelihood(y_test, mus, sigma)
     else:
-        mus = model.predict(X_test)
-    rmse = root_mean_squared_error(y_true=y_test, y_pred=mus)
-    pass
+        mu = model.predict(X_test)
+        sigma = None
+
+    elapsed = time.perf_counter() - t0
+
+    rmse = root_mean_squared_error(y_true=y_test, y_pred=mu)
+
+    if sigma is None:
+        nll = neg_log_likelihood(y_test, mu, rmse).mean()
+    else:
+        nll = neg_log_likelihood(y_test, mu, sigma).mean()
+
+    logger.info(
+        "Done:  dataset=%s model=%s run=%d rmse=%.6f runtime_s=%.3f",
+        dataset,
+        model_name,
+        run_idx,
+        rmse,
+        elapsed,
+    )
+    return rmse, nll, elapsed
 
 
 # ------------- CLI arguments -------------
 def cli_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--dataset",
-        choises=["airfoil", "concrete"],
-        required=True,
-        help="Benchmark dataset.",
-    )
+    parser.add_argument("--dataset", choices=list(DATASETS.keys()), required=True)
 
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["bde", "linear", "mlp"],
+        default=["bde", "linear", "mlp", "rf", "xgb"],
         help="Models to run. Example: --models bde linear rf",
     )
 
@@ -97,12 +207,42 @@ def cli_args():
     parser.add_argument(
         "--out",
         type=str,
-        default=None,
+        default="scripts/results",
         help="Output CSV path for per-run results.",
     )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
-    print()
-    # runner_regression()
+    args = cli_args()
+    X_train, X_test, y_train, y_test = config_data(args.dataset)
+
+    rows = []
+    for model_name in args.models:
+        for run_idx in range(args.n_runs):
+            seed = args.seed + run_idx
+            model = MODEL_FACTORY[model_name](seed)
+            rmse, runtime = runner_regression(
+                model,
+                model_name,
+                args.dataset,
+                run_idx,
+                seed,
+                X_train,
+                X_test,
+                y_train,
+                y_test,
+            )
+
+            rows.append(
+                {
+                    "dataset": args.dataset,
+                    "model": model_name,
+                    "run": run_idx,
+                    "rmse": rmse,
+                    "neruntime_s": runtime,
+                }
+            )
+
+    if args.out:
+        save_results(args.out, rows)
