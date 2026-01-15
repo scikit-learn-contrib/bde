@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
-os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=8"
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=10"
 
 
 # ------------- configuration of models -------------
@@ -141,8 +141,9 @@ def config_data(dataset):
 def save_results(out_dir: str, rows: list[dict]) -> None:
     df = pd.DataFrame(rows)
     out_dir = Path(out_dir)
+    path = out_dir / "results.csv"
     out_dir.mkdir(parents=True, exist_ok=True)
-    df.to_csv(out_dir / "results.csv", index=False)
+    df.to_csv(path, index=False)
 
 
 # ------------- Negative Log Likelihood Computation -------------
@@ -247,16 +248,15 @@ if __name__ == "__main__":
                 y_test,
             )
 
-            rows.append(
-                {
-                    "dataset": args.dataset,
-                    "model": model_name,
-                    "run": run_idx,
-                    "rmse": rmse,
-                    "nll": nll,
-                    "neruntime_s": runtime,
-                }
-            )
+            row = {
+                "dataset": args.dataset,
+                "model": model_name,
+                "run": run_idx,
+                "rmse": float(rmse),
+                "nll": float(nll),
+                "runtime_s": float(runtime),
+            }
+            rows.append(row)
 
-    if args.out:
-        save_results(args.out, rows)
+        if args.out:
+            save_results(args.out, rows)
