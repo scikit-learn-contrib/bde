@@ -289,6 +289,6 @@ def sklearn_pipeline():
 
 if __name__ == "__main__":
     regression_airfoil_example()
-    # classification_example()
-    # regression_concrete_example()
-    # sklearn_pipeline()
+    classification_example()
+    regression_concrete_example()
+    sklearn_pipeline()

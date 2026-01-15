@@ -747,8 +747,6 @@ class BdeRegressor(Bde, RegressorMixin, BaseEstimator):
         x: ArrayLike,
         mean_and_std: bool = False,
         credible_intervals: list[float] | None = None,
-        # Docstring necessary to explain this parameter which
-        # actually lists quantiles not the intervals
         raw: bool = False,
     ):
         """Predict regression targets with optional uncertainty summaries.

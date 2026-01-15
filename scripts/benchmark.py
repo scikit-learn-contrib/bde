@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 
+
 from bde import BdeRegressor
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -19,6 +20,9 @@ import logging
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 import xgboost as xgb
+from tabpfn import TabPFNRegressor
+from tabpfn.constants import ModelVersion
+from catboost import CatBoostRegressor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,17 +46,13 @@ def bde_regressor(seed) -> BdeRegressor:
         lr=1e-3,
         weight_decay=1e-4,
         warmup_steps=50000,
-        n_samples=10000,
+        n_samples=1000,
         n_thinning=10,
-        patience=10,
+        patience=20,
         prior_family=PriorDist.NORMAL,
         prior_kwargs={"loc": 0, "scale": 1.5},
         seed=seed,
     )
-
-
-def mlp_regressor(seed) -> MLPRegressor:
-    return MLPRegressor(hidden_layer_sizes=(2, 12), random_state=seed)
 
 
 def linear_regressor() -> LinearRegression:
@@ -78,12 +78,25 @@ def xgb_reg(seed) -> xgb.XGBRegressor:
     )
 
 
+def catboost_reg(seed) -> CatBoostRegressor:
+    return CatBoostRegressor(
+        random_seed=seed, depth=6, iterations=1000, learning_rate=0.05
+    )
+
+
+def tabpfn_reg(seed) -> TabPFNRegressor:
+    return TabPFNRegressor(random_state=seed).create_default_for_version(
+        ModelVersion.V2, ignore_pretraining_limits=True
+    )
+
+
 MODEL_FACTORY = {
     "bde": lambda seed: bde_regressor(seed),
-    "mlp": lambda seed: mlp_regressor(seed),
     "linear": lambda seed: linear_regressor(),
     "rf": lambda seed: rand_forest(seed),
     "xgb": lambda seed: xgb_reg(seed),
+    "catboost": lambda seed: catboost_reg(seed),
+    "tabpfn": lambda seed: tabpfn_reg(seed),
 }
 
 
@@ -155,17 +168,17 @@ def runner_regression(
         mus, sigma = model.predict(X_test, mean_and_std=True)
         nll = neg_log_likelihood(y_test, mus, sigma)
     else:
-        mu = model.predict(X_test)
+        mus = model.predict(X_test)
         sigma = None
 
     elapsed = time.perf_counter() - t0
 
-    rmse = root_mean_squared_error(y_true=y_test, y_pred=mu)
+    rmse = root_mean_squared_error(y_true=y_test, y_pred=mus)
 
     if sigma is None:
-        nll = neg_log_likelihood(y_test, mu, rmse).mean()
+        nll = neg_log_likelihood(y_test, mus, rmse).mean()
     else:
-        nll = neg_log_likelihood(y_test, mu, sigma).mean()
+        nll = neg_log_likelihood(y_test, mus, sigma).mean()
 
     logger.info(
         "Done:  dataset=%s model=%s run=%d rmse=%.6f runtime_s=%.3f",
@@ -186,7 +199,7 @@ def cli_args():
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["bde", "linear", "mlp", "rf", "xgb"],
+        default=["bde", "linear", "rf", "xgb"],
         help="Models to run. Example: --models bde linear rf",
     )
 
@@ -222,7 +235,7 @@ if __name__ == "__main__":
         for run_idx in range(args.n_runs):
             seed = args.seed + run_idx
             model = MODEL_FACTORY[model_name](seed)
-            rmse, runtime = runner_regression(
+            rmse, nll, runtime = runner_regression(
                 model,
                 model_name,
                 args.dataset,
@@ -240,6 +253,7 @@ if __name__ == "__main__":
                     "model": model_name,
                     "run": run_idx,
                     "rmse": rmse,
+                    "nll": nll,
                     "neruntime_s": runtime,
                 }
             )
