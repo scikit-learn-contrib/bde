@@ -49,8 +49,6 @@ def bde_regressor(seed) -> BdeRegressor:
         n_samples=1000,
         n_thinning=10,
         patience=20,
-        prior_family=PriorDist.NORMAL,
-        prior_kwargs={"loc": 0, "scale": 1.5},
         seed=seed,
     )
 
@@ -106,22 +104,30 @@ DATA_DIR = Path(__file__).resolve().parents[1] / "bde" / "data"
 DATASETS = {
     "airfoil": {"file": "airfoil.csv", "sep": ",", "header": 0},
     "concrete": {"file": "concrete.data", "sep": " ", "header": None},
+    "bikesharing": {"file": "bike_sharing_dataset/hour.csv", "sep": ",", "header": 0},
 }
 
 
-def config_data(dataset):
+def config_data(dataset, split_seed: int):
     spec = DATASETS[dataset]
     path = DATA_DIR / spec["file"]
     data = pd.read_csv(path, sep=spec["sep"], header=spec["header"])
 
-    X = data.iloc[:, :-1].values
-    y = data.iloc[:, -1].values
+    if dataset == "bikesharing":
+        y = data["cnt"].to_numpy(dtype=float)
+
+        X = data.drop(
+            columns=["cnt", "casual", "registered", "instant", "dteday"]
+        ).to_numpy(dtype=float)
+    else:
+        X = data.iloc[:, :-1].to_numpy(dtype=float)
+        y = data.iloc[:, -1].to_numpy(dtype=float)
 
     X = jnp.array(X)
     y = jnp.array(y)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X, y, test_size=0.2, random_state=split_seed
     )
     x_scaler = StandardScaler()
     y_scaler = StandardScaler()
@@ -229,7 +235,7 @@ def cli_args():
 
 if __name__ == "__main__":
     args = cli_args()
-    X_train, X_test, y_train, y_test = config_data(args.dataset)
+    X_train, X_test, y_train, y_test = config_data(args.dataset, split_seed=args.seed)
 
     rows = []
     for model_name in args.models:
