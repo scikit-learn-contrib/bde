@@ -78,7 +78,12 @@ def xgb_reg(seed) -> xgb.XGBRegressor:
 
 def catboost_reg(seed) -> CatBoostRegressor:
     return CatBoostRegressor(
-        random_seed=seed, depth=6, iterations=1000, learning_rate=0.05
+        random_seed=seed,
+        depth=6,
+        iterations=1000,
+        learning_rate=0.05,
+        allow_writing_files=False,
+        verbose=False,
     )
 
 
@@ -206,7 +211,7 @@ def cli_args():
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["bde", "linear", "rf", "xgb"],
+        default=["bde", "linear", "rf", "xgb", "catboost"],
         help="Models to run. Example: --models bde linear rf",
     )
 
