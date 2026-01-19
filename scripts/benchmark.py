@@ -88,8 +88,8 @@ def catboost_reg(seed) -> CatBoostRegressor:
 
 
 def tabpfn_reg(seed) -> TabPFNRegressor:
-    return TabPFNRegressor(random_state=seed).create_default_for_version(
-        ModelVersion.V2, ignore_pretraining_limits=True
+    return TabPFNRegressor.create_default_for_version(
+        ModelVersion.V2, ignore_pretraining_limits=True, random_state=seed
     )
 
 
