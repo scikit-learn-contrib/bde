@@ -59,7 +59,7 @@ Through automated orchestration of optimization, sampling, parallelization, and 
 # Usage Example
 The following example illustrates a regression task with uncertainty quantification using `bde` in only a few lines of code. Training inputs are assumed to be preprocessed (e.g., normalized). The workflow consists of
 (i) specifying the ensemble model and sampling hyperparameters, (ii) fitting the model, and
-(iii) obtaining posterior predictive summaries.
+(iii) obtaining posterior predictive quantities, including predictive moments, credible intervals, and raw (non-aggregated) ensemble outputs.
 
 ```python
 from bde import BdeRegressor
@@ -82,6 +82,8 @@ regressor = BdeRegressor(
 regressor.fit(x=X_train, y=y_train)
 
 means, sigmas = regressor.predict(X_test, mean_and_std=True)
+mean, intervals = regressor.predict(X_test, credible_intervals=[0.1, 0.9])
+raw = regressor.predict(X_test, raw=True)
 ```
 Classification follows analogously using `BdeClassifier`.
 
