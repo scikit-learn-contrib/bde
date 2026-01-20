@@ -11,8 +11,10 @@ authors:
     equal-contrib: true
     affiliation: 1
   - name: Angelos Aslanidis
+    orcid: 0009-0009-6699-2691
     equal-contrib: true
     affiliation: 1
+    email: a.aslanidis@campus.lmu.de
   - name: Emanuel Sommer
     orcid: 0000-0002-1606-7547
     equal-contrib: true
@@ -55,8 +57,33 @@ Through automated orchestration of optimization, sampling, parallelization, and 
 `bde` bridges the gap between high-performance MCMC research and practical data science. By providing a curated implementation of MILE for tabular data, it enables researchers and practitioners alike to easily apply Bayesian Deep Ensembles. Its inclusion in the `scikit-learn-contrib` organization ensures adherence to rigorous software standards and API consistency, making it a trusted, community-ready tool for reproducible uncertainty quantification in tabular machine learning.
 
 # Usage Example
+The following example illustrates a regression task with uncertainty quantification using `bde` in only a few lines of code. Training inputs are assumed to be preprocessed (e.g., normalized). The workflow consists of
+(i) specifying the ensemble model and sampling hyperparameters, (ii) fitting the model, and
+(iii) obtaining posterior predictive summaries.
 
-for example airfoil - potentially benchmark against other methods like random forests, deep ensembles, xgboost, tabpfn?
+```python
+from bde import BdeRegressor
+
+regressor = BdeRegressor(
+        n_members=8,
+        hidden_layers=[16, 16],
+        epochs=1000,
+        validation_split=0.15,
+        lr=1e-3,
+        weight_decay=1e-4,
+        patience=20,
+        warmup_steps=5000,
+        n_samples=200,
+        n_thinning=10,
+        desired_energy_var_start=0.5, # key MILE hyperparameter
+        desired_energy_var_end=0.1 # key MILE hyperparameter
+)
+
+regressor.fit(x=X_train, y=y_train)
+
+means, sigmas = regressor.predict(X_test, mean_and_std=True)
+```
+Classification follows analogously using `BdeClassifier`.
 
 # AI usage
 
