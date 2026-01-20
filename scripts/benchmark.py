@@ -43,11 +43,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../"
 def bde_regressor(seed) -> BdeRegressor:
     return BdeRegressor(
         n_members=10,
-        hidden_layers=[4, 8, 8, 8, 8, 4],
+        hidden_layers=[16, 16, 16, 16],
         loss=GaussianNLL(),
         epochs=1000,
         validation_split=0.15,
-        lr=1e-2,
+        lr=1e-3,
         weight_decay=1e-4,
         warmup_steps=50000,
         n_samples=1000,
@@ -88,6 +88,7 @@ def catboost_reg(seed) -> CatBoostRegressor:
         depth=6,
         iterations=1000,
         learning_rate=0.05,
+        loss_function="RMSEWithUncertainty",
         allow_writing_files=False,
         verbose=False,
         thread_count=10,
@@ -202,11 +203,17 @@ def runner_regression(
     elif isinstance(model, CatBoostRegressor) and hasattr(
         model, "virtual_ensembles_predict"
     ):
-        ve = np.asarray(
-            model.virtual_ensembles_predict(X_test, virtual_ensembles_count=10)
-        )  # (n_samples, n_ens, 1)
-        mus = ve.mean(axis=1).squeeze(-1)
-        sigma = ve.std(axis=1, ddof=0).squeeze(-1)
+        tu = model.virtual_ensembles_predict(
+            X_test,
+            prediction_type="TotalUncertainty",
+            virtual_ensembles_count=10,
+            thread_count=10,
+        )  # shape (n_samples, 3) for RMSEWithUncertainty: [mean, knowledge_unc, data_unc] 
+        
+        mus = tu[:, 0]
+        knowledge = tu[:, 1]       # epistemic uncertainty (model)
+        data = tu[:, 2]            # aleatoric uncertainty (data)
+        sigma = np.sqrt(np.maximum(knowledge + data, 1e-8))
     else:
         mus = model.predict(X_test)
 

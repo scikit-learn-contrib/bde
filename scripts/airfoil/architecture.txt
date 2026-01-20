@@ -1,4 +1,5 @@
-BdeRegressor(
+def bde_regressor(seed) -> BdeRegressor:
+    return BdeRegressor(
         n_members=10,
         hidden_layers=[16, 16, 16, 16],
         loss=GaussianNLL(),
@@ -10,38 +11,49 @@ BdeRegressor(
         n_samples=1000,
         n_thinning=10,
         patience=20,
-        prior_family=PriorDist.NORMAL,
-        prior_kwargs={"loc": 0, "scale": 1.5},
         seed=seed,
     )
 
-LinearRegression()
 
-RandomForestRegressor(
-    n_estimators=300,
-    criterion="squared_error",
-    warm_start=True,
-    random_state=seed,
-)
+def linear_regressor() -> LinearRegression:
+    return LinearRegression()
 
-xgb.XGBRegressor(
+
+def rand_forest(seed) -> RandomForestRegressor:
+    return RandomForestRegressor(
+        n_estimators=1000,
+        criterion="squared_error",
+        random_state=seed,
+        n_jobs=10,
+    )
+
+
+def xgb_reg(seed) -> xgb.XGBRegressor:
+    return xgb.XGBRegressor(
         tree_method="hist",
         n_estimators=2000,
         learning_rate=0.05,
         subsample=0.8,
         max_depth=6,
         random_state=seed,
+        n_jobs=10,
     )
 
-CatBoostRegressor(
+
+def catboost_reg(seed) -> CatBoostRegressor:
+    return CatBoostRegressor(
         random_seed=seed,
         depth=6,
         iterations=1000,
         learning_rate=0.05,
+        loss_function="RMSEWithUncertainty",
         allow_writing_files=False,
         verbose=False,
+        thread_count=10,
     )
 
-TabPFNRegressor.create_default_for_version(
+
+def tabpfn_reg(seed) -> TabPFNRegressor:
+    return TabPFNRegressor.create_default_for_version(
         ModelVersion.V2, ignore_pretraining_limits=True, random_state=seed
     )

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 set -a
-source bench.env
+source scripts/bench.env
 set +a
 python scripts/benchmark.py "$@"
