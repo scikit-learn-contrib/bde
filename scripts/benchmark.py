@@ -39,11 +39,11 @@ os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=10"
 def bde_regressor(seed) -> BdeRegressor:
     return BdeRegressor(
         n_members=10,
-        hidden_layers=[16, 16, 16, 16],
+        hidden_layers=[4, 8, 8, 8, 8, 4],
         loss=GaussianNLL(),
         epochs=1000,
         validation_split=0.15,
-        lr=1e-3,
+        lr=1e-2,
         weight_decay=1e-4,
         warmup_steps=50000,
         n_samples=1000,
