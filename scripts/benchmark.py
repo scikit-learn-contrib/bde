@@ -23,6 +23,11 @@ import xgboost as xgb
 from tabpfn import TabPFNRegressor
 from tabpfn.constants import ModelVersion
 from catboost import CatBoostRegressor
+import torch
+
+torch.set_num_threads(10)
+torch.set_num_interop_threads(1)
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,7 +37,6 @@ logger = logging.getLogger(__name__)
 
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
-os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=10"
 
 
 # ------------- configuration of models -------------
@@ -59,10 +63,10 @@ def linear_regressor() -> LinearRegression:
 
 def rand_forest(seed) -> RandomForestRegressor:
     return RandomForestRegressor(
-        n_estimators=300,
+        n_estimators=1000,
         criterion="squared_error",
-        warm_start=True,
         random_state=seed,
+        n_jobs=10,
     )
 
 
@@ -71,8 +75,10 @@ def xgb_reg(seed) -> xgb.XGBRegressor:
         tree_method="hist",
         n_estimators=2000,
         learning_rate=0.05,
+        subsample=0.8,
         max_depth=6,
         random_state=seed,
+        n_jobs=10,
     )
 
 
@@ -84,6 +90,7 @@ def catboost_reg(seed) -> CatBoostRegressor:
         learning_rate=0.05,
         allow_writing_files=False,
         verbose=False,
+        thread_count=10,
     )
 
 
@@ -167,6 +174,10 @@ def neg_log_likelihood(y, mu, sigma):
 
 
 # ------------- main runner -------------
+
+IQR_TO_STD = 1.3489795
+
+
 def runner_regression(
     model, model_name, dataset, run_idx, seed, X_train, X_test, y_train, y_test
 ):
@@ -174,33 +185,66 @@ def runner_regression(
         "Start: dataset=%s model=%s run=%d seed=%d", dataset, model_name, run_idx, seed
     )
 
+    nll_default = np.nan
+    sigma = None
+
     t0 = time.perf_counter()
     model.fit(X_train, y_train)
+    train_time = time.perf_counter() - t0  # time took to train
+
     if isinstance(model, BdeRegressor):
         mus, sigma = model.predict(X_test, mean_and_std=True)
-        nll = neg_log_likelihood(y_test, mus, sigma)
+    elif isinstance(model, TabPFNRegressor):
+        out = model.predict(X_test, output_type="main", quantiles=[0.25, 0.75])
+        mus = out["mean"]
+        qs_25, qs_75 = out["quantiles"]
+        sigma = (qs_75 - qs_25) / IQR_TO_STD
+    elif isinstance(model, CatBoostRegressor) and hasattr(
+        model, "virtual_ensembles_predict"
+    ):
+        ve = np.asarray(
+            model.virtual_ensembles_predict(X_test, virtual_ensembles_count=10)
+        )  # (n_samples, n_ens, 1)
+        mus = ve.mean(axis=1).squeeze(-1)
+        sigma = ve.std(axis=1, ddof=0).squeeze(-1)
     else:
         mus = model.predict(X_test)
-        sigma = None
 
-    elapsed = time.perf_counter() - t0
+    total_time = time.perf_counter() - t0  # time took to trian and predict
 
     rmse = root_mean_squared_error(y_true=y_test, y_pred=mus)
 
-    if sigma is None:
-        nll = neg_log_likelihood(y_test, mus, rmse).mean()
-    else:
-        nll = neg_log_likelihood(y_test, mus, sigma).mean()
+    nll_mean = float(
+        np.mean(neg_log_likelihood(y_test, mus, rmse))
+    )  # baseline with global sigmma
+
+    if sigma is not None:
+        sigma = np.maximum(sigma, 1e-8)
+        nll_default = float(np.mean(neg_log_likelihood(y_test, mus, sigma)))
 
     logger.info(
-        "Done:  dataset=%s model=%s run=%d rmse=%.6f runtime_s=%.3f",
+        (
+            "Done:  dataset=%s model=%s run=%d mean=%.6f rmse=%.6f nll_default=%.6f"
+            " nll_mean=%.6f  train_time=%.6f total_time=%.6f"
+        ),
         dataset,
         model_name,
         run_idx,
+        mus.mean(),
         rmse,
-        elapsed,
+        nll_default,
+        nll_mean,
+        train_time,
+        total_time,
     )
-    return rmse, nll, elapsed
+    return (
+        float(mus.mean()),
+        float(rmse),
+        float(nll_default),
+        float(nll_mean),
+        float(train_time),
+        float(total_time),
+    )
 
 
 # ------------- CLI arguments -------------
@@ -247,25 +291,30 @@ if __name__ == "__main__":
         for run_idx in range(args.n_runs):
             seed = args.seed + run_idx
             model = MODEL_FACTORY[model_name](seed)
-            rmse, nll, runtime = runner_regression(
-                model,
-                model_name,
-                args.dataset,
-                run_idx,
-                seed,
-                X_train,
-                X_test,
-                y_train,
-                y_test,
+            mus, rmse, nll_default, nll_mean, train_time, total_time = (
+                runner_regression(
+                    model,
+                    model_name,
+                    args.dataset,
+                    run_idx,
+                    seed,
+                    X_train,
+                    X_test,
+                    y_train,
+                    y_test,
+                )
             )
 
             row = {
                 "dataset": args.dataset,
                 "model": model_name,
                 "run": run_idx,
-                "rmse": float(rmse),
-                "nll": float(nll),
-                "runtime_s": float(runtime),
+                "mean": mus,
+                "rmse": rmse,
+                "nll_default": nll_default,
+                "nll_mean": nll_mean,
+                "train_time": train_time,
+                "total_time": total_time,
             }
             rows.append(row)
 

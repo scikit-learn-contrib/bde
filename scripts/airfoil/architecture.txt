@@ -28,6 +28,7 @@ xgb.XGBRegressor(
         tree_method="hist",
         n_estimators=2000,
         learning_rate=0.05,
+        subsample=0.8,
         max_depth=6,
         random_state=seed,
     )

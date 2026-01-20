@@ -8,8 +8,10 @@ tags:
   - uncertainty quantification
 authors:
   - name: Vyron Arvanitis
+    orcid: 0009-0001-2290-5084
     equal-contrib: true
     affiliation: 1
+    email: vyronas.arvanitis@gmail.com
   - name: Angelos Aslanidis
     orcid: 0009-0009-6699-2691
     equal-contrib: true
@@ -82,10 +84,15 @@ regressor = BdeRegressor(
 regressor.fit(x=X_train, y=y_train)
 
 means, sigmas = regressor.predict(X_test, mean_and_std=True)
-mean, intervals = regressor.predict(X_test, credible_intervals=[0.1, 0.9])
+means, intervals = regressor.predict(X_test, credible_intervals=[0.1, 0.9])
 raw = regressor.predict(X_test, raw=True)
 ```
+
 Classification follows analogously using `BdeClassifier`.
+
+# Benchmark for Regression
+
+<!-- TBD -->
 
 # AI usage
 
