@@ -7,17 +7,18 @@ on:
   pull_request:
     branches:
       - main
+    types: [opened, synchronize, reopened]
 
 jobs:
-  build:
+  test:
     strategy:
       matrix:
         os: [ windows-latest, ubuntu-latest, macos-latest]
         environment: [ test ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.9.1
+      - uses: actions/checkout@v6
+      - uses: prefix-dev/setup-pixi@v0.9.3
         with:
 #          pixi-version: v0.23.0
           environments: ${{ matrix.environment }}
@@ -25,9 +26,3 @@ jobs:
 
       - name: Run tests
         run: pixi run -e ${{ matrix.environment }} test
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5.5.1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: scikit-learn-contrib/bde

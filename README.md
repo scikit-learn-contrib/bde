@@ -1,49 +1,69 @@
-bde: Bayesian Deep Ensembles for scikit-learn
-====================================================
+﻿# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/scikit-learn-contrib/bde"><img src="doc/_static/img/logo.svg" align="right" height="150" />
 
-![tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)
-[![codecov](https://codecov.io/gh/scikit-learn-contrib/bde/graph/badge.svg?token=L0XPWwoPLw)](https://codecov.io/gh/scikit-learn-contrib/bde)
-![doc](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)
+[![Docs Status](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml)
+[![Tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml)
+![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen)
+[![License](https://img.shields.io/github/license/scikit-learn-contrib/bde)](LICENSE)
+
+
+👉 **[Start Here: Complete Online Documentation](https://scikit-learn-contrib.github.io/bde/)**
+
 
 Introduction
 ------------
 
 **bde** is a user-friendly implementation of Bayesian Deep Ensembles compatible with
-both scikit-learn and JAX. It exposes estimators that plug into scikit-learn
-pipelines while leveraging JAX for accelerator-backed training, sampling, and
-uncertainty estimation.
+scikit-learn with a particular focus on tabular data. It exposes estimators that plug 
+into scikit-learn pipelines while leveraging JAX for accelerator-backed training, 
+sampling, and uncertainty quantification.
 
 In particular, **bde** implements **Microcanonical Langevin Ensembles (MILE)** as
 introduced in [*Microcanonical Langevin Ensembles: Advancing the Sampling of Bayesian Neural Networks* (ICLR 2025)](https://arxiv.org/abs/2502.06335).
-A conceptual overview of MILE is shown below (in general implementation details of this package are not exactly matching this diagram):
+A conceptual overview of MILE is shown below:
 
 <div style="width: 60%; margin: auto;">
     <img src="doc/_static/img/flowchart.png" alt="MILE Overview" style="width: 100%;">
 </div>
 
+
+**Scope:** As of right now this package supports full-batch MILE for fully connected
+feedforward networks, covering classification and regression on tabular data. 
+The method can however also be applied to other
+architectures and data modalities, but these are not yet in scope of this
+particular implementation.
+
 Installation
 ------------
 
+To install the latest release from PyPI, run:
+
 ```
-pip install --index-url <pending-release-url> bde
+pip install sklearn-contrib-bde
 ```
 
-The public package index is not published yet; the command above is a placeholder
-for the upcoming release.
+To install the latest development version from GitHub, run:
 
-Dependency Management
+```
+pip install git+https://github.com/scikit-learn-contrib/bde.git
+```
+
+Developer environment
 ---------------------
 
-We recommend using [pixi](https://prefix.dev/docs/pixi/overview) to create a
+We recommend using [pixi](https://pixi.prefix.dev/latest/) to create a
 deterministic development environment:
 
 ```
 pixi install
+
+# Then you can directly run examples like so:
 pixi run python -m examples.example
 ```
 
 Pixi ensures the correct JAX, CUDA (when needed), and scikit-learn versions are
-selected automatically. See `pixi.toml` for channel and platform details.
+selected automatically. See `pixi.lock` for channel and platform details.
+
+
 
 Example Usage
 -------------
@@ -54,7 +74,7 @@ scripts, remember to set the XLA device count so JAX allocates enough host devic
 this needs to be done before importing JAX):
 
 ```
-export XLA_FLAGS="--xla_force_host_platform_device_count=8"
+export XLA_FLAGS="--xla_force_host_platform_device_count=<n_decive>"
 ```
 
 Adjust the value to match the number of CPU (or GPU) devices you plan to use.
@@ -74,11 +94,11 @@ from sklearn.model_selection import train_test_split
 from bde import BdeRegressor
 from bde.loss import GaussianNLL
 
-
-data = fetch_openml(name="airfoil_self_noise", as_frame=True)
+data = fetch_openml(name="airfoil_self_noise", as_frame=True) # requires pandas
 
 X = data.data.values
 y = data.target.values.reshape(-1, 1)
+
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
@@ -91,33 +111,31 @@ Xte = (X_test - Xmu) / Xstd
 ytr = (y_train - Ymu) / Ystd
 yte = (y_test - Ymu) / Ystd
 
+# Build the regressor
 regressor = BdeRegressor(
     hidden_layers=[16, 16],
     n_members=8,
     seed=0,
     loss=GaussianNLL(),
     epochs=200,
+    validation_split=0.15,
     lr=1e-3,
-    warmup_steps=5000, # 50k in the original paper
-    n_samples=2000, # 10k in the original paper
+    weight_decay=1e-4,
+    warmup_steps=5000,
+    n_samples=2000,
     n_thinning=2,
     patience=10,
 )
 
+# Fit the regressor
 regressor.fit(x=Xtr, y=ytr)
 
+# Get results from regressor
 means, sigmas = regressor.predict(Xte, mean_and_std=True)
-
-print("RSME: ", root_mean_squared_error(y_true=yte, y_pred=means))
-
 mean, intervals = regressor.predict(Xte, credible_intervals=[0.1, 0.9])
-
-lower = intervals[0]
-upper = intervals[1]
-coverage = jnp.mean((yte.ravel() >= lower) & (yte.ravel() <= upper))
-print(f"Coverage of the 80% credible interval: {coverage * 100:.2f}%")
-
+raw = regressor.predict(Xte, raw=True) # (ensemble members, n_samples/n_thinning, n_test_data, (mu,sigma))
 ```
+
 
 ### Classification Example
 
@@ -134,32 +152,36 @@ from bde.loss import CategoricalCrossEntropy
 
 iris = load_iris()
 X = iris.data.astype("float32")
-y = iris.target.astype("int32").ravel()  # 0, 1, 2
+y = iris.target.astype("int32").ravel()
+
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
+# Build the classifier
 classifier = BdeClassifier(
     n_members=4,
     hidden_layers=[16, 16],
     seed=0,
     loss=CategoricalCrossEntropy(),
     activation="relu",
-    epochs=100,
+    epochs=1000,
+    validation_split=0.15,
     lr=1e-3,
-    warmup_steps=400, # very few steps required for this simple dataset
+    warmup_steps=400,  # very few steps required for this simple dataset
     n_samples=100,
     n_thinning=1,
     patience=10,
 )
 
+# Fit the classifier
 classifier.fit(x=X_train, y=y_train)
 
+# Get results from classifier
 preds = classifier.predict(X_test)
 probs = classifier.predict_proba(X_test)
-
-accuracy = jnp.mean(preds == y_test)
-print(f"Test accuracy: {accuracy * 100:.2f}%")
+score = classifier.score(X_train, y_train)
+raw = classifier.predict(X_test, raw=True) # (ensemble members, n_samples/n_thinning, n_test_data, n_classes)
 ```
 
 Workflow
@@ -172,12 +194,13 @@ The high-level estimators follow this flow during `fit` and evaluation:
 - `BdeBuilder.fit_members` (`bde/bde_builder.py`) trains each network, handles device padding, and applies early stopping.
 - `_build_log_post` constructs the ensemble log-posterior, then `warmup_bde` (`bde/sampler/warmup.py`) adapts step sizes before sampling.
 - Sampler utilities (`bde/sampler/*`) draw posterior samples and cache them for downstream prediction.
-- `Bde.evaluate` / predictor utilities (`bde/bde_evaluator.py`) aggregate samples into means, intervals, and probabilities.
+- User-facing `predict` / `predict_proba` call the private `_evaluate` / `_make_predictor` (`bde/bde_evaluator.py`) to aggregate samples into means, intervals, probabilities, or raw outputs.
 
 ```mermaid
 flowchart TD
     subgraph User
-        FitCall["Call Bde.fit(X, y)"]
+        FitCall["Call BdeRegressor/BdeClassifier.fit(X, y)"]
+        PredCall["Call predict(...)/predict_proba(...)"]
     end
 
     subgraph Bde
@@ -188,8 +211,10 @@ flowchart TD
         LogPost["_build_log_post(X, y)"]
         WarmSampler["_warmup_sampler(logpost)"]
         Keys["_generate_rng_keys + _normalize_tuned_parameters"]
-        Draw["_draw_samples(...)"]
+        Draw["_draw_samples(...) via MileWrapper.sample_batched"]
         Cache["positions_eT_ stored in estimator"]
+        Eval["_evaluate(... flags ...)"]
+        MakePred["_make_predictor(Xte)"]
     end
 
     subgraph Warmup
@@ -206,8 +231,6 @@ flowchart TD
     end
 
     subgraph Evaluation
-        EvalCall["Call Bde.evaluate(Xte, ...)"]
-        MakePred["_make_predictor(Xte)"]
         Predictor["BdePredictor"]
         Outputs["Predictions (mean, std, intervals, probs, raw)"]
     end
@@ -216,6 +239,15 @@ flowchart TD
     Builder --> Train --> LogPost --> WarmSampler --> Keys --> Draw --> Cache
     WarmSampler --> Warm --> Adapter --> Adapt --> Results
     Draw --> Wrapper --> Batch --> Posterior
-    Cache --> EvalCall --> MakePred --> Predictor --> Outputs
+    Cache --> PredCall --> Eval --> MakePred --> Predictor --> Outputs
     Posterior --> Predictor
 ```
+
+
+### Datasets included in the package for testing purposes
+
+| Dataset | Source | Task |
+|---------|---------|------|
+| **Airfoil** | UCI Machine Learning Repository (Dua & Graff, 2017) | Regression |
+| **Concrete** | UCI Machine Learning Repository (Yeh, 2006) | Regression |
+| **Iris** | Fisher (1936); canonical modern version distributed via scikit-learn | Multiclass classification (setosa, versicolor, virginica) |

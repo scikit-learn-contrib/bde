@@ -1,19 +1,21 @@
-# Configuration file for the Sphinx documentation builder.
+﻿# Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
 import sys
+from pathlib import Path
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 from importlib.metadata import version as get_version
 
-project = "Scikit-learn Project Template"
-copyright = "2016, V. Birodkar"
-author = "V. Birodkar"
-release = get_version("bde")
+project = "bde"
+copyright = "2025, Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel"
+author = "Arvanitis Vyron, Aslanidis Angelos, Sommer Emanuel"
+
+release = get_version("sklearn-contrib-bde")
 version = ".".join(release.split(".")[:3])
 
 # -- General configuration ---------------------------------------------------
@@ -45,7 +47,7 @@ default_role = "literal"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_style = "css/bde.css"
-html_logo = "_static/img/logo.png"
+html_logo = "_static/img/logo.svg"
 # html_favicon = "_static/img/favicon.ico"
 html_css_files = [
     "css/bde.css",
@@ -68,7 +70,7 @@ html_theme_options = {
 html_context = {
     "github_user": "scikit-learn-contrib",
     "github_repo": "bde",
-    "github_version": "master",
+    "github_version": "main",
     "doc_path": "doc",
 }
 
@@ -77,7 +79,9 @@ html_context = {
 autodoc_default_options = {
     "members": True,
     "inherited-members": True,
+    "special-members": "__init__",
 }
+
 
 # generate autosummary even if no references
 autosummary_generate = True
@@ -103,7 +107,8 @@ intersphinx_mapping = {
 # -- Options for sphinx-gallery -----------------------------------------------
 
 # Generate the plot for the gallery
-plot_gallery = True
+plot_gallery = "True"
+
 
 sphinx_gallery_conf = {
     "doc_module": "bde",
@@ -111,4 +116,7 @@ sphinx_gallery_conf = {
     "examples_dirs": "../examples",
     "gallery_dirs": "auto_examples",
     "reference_url": {"bde": None},
+    "default_thumb_file": str(
+        Path(__file__).parent.resolve() / "_static/img/index_examples_small.png"
+    ),
 }
