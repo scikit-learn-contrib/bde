@@ -1,0 +1,46 @@
+BdeRegressor(
+        n_members=10,
+        hidden_layers=[16, 16, 16, 16],
+        loss=GaussianNLL(),
+        epochs=1000,
+        validation_split=0.15,
+        lr=1e-3,
+        weight_decay=1e-4,
+        warmup_steps=50000,
+        n_samples=1000,
+        n_thinning=10,
+        patience=20,
+        prior_family=PriorDist.NORMAL,
+        prior_kwargs={"loc": 0, "scale": 1.5},
+        seed=seed,
+    )
+
+LinearRegression()
+
+RandomForestRegressor(
+    n_estimators=300,
+    criterion="squared_error",
+    warm_start=True,
+    random_state=seed,
+)
+
+xgb.XGBRegressor(
+        tree_method="hist",
+        n_estimators=2000,
+        learning_rate=0.05,
+        max_depth=6,
+        random_state=seed,
+    )
+
+CatBoostRegressor(
+        random_seed=seed,
+        depth=6,
+        iterations=1000,
+        learning_rate=0.05,
+        allow_writing_files=False,
+        verbose=False,
+    )
+
+TabPFNRegressor.create_default_for_version(
+        ModelVersion.V2, ignore_pretraining_limits=True, random_state=seed
+    )
