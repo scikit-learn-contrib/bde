@@ -45,7 +45,7 @@ def bde_regressor(seed) -> BdeRegressor:
         n_members=10,
         hidden_layers=[16, 16, 16, 16],
         loss=GaussianNLL(),
-        epochs=1000,
+        epochs=1200,
         validation_split=0.15,
         lr=1e-3,
         weight_decay=1e-4,
@@ -54,6 +54,7 @@ def bde_regressor(seed) -> BdeRegressor:
         n_thinning=10,
         patience=20,
         seed=seed,
+
     )
 
 
