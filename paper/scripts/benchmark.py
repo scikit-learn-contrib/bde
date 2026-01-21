@@ -9,13 +9,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import root_mean_squared_error
 from sklearn.model_selection import train_test_split
 import jax.numpy as jnp
-from sklearn.neural_network import MLPRegressor
 from bde import BdeRegressor
 from sklearn.linear_model import LinearRegression
 import time
 from pathlib import Path
 from bde.loss.loss import GaussianNLL
-from bde.sampler.prior import PriorDist
 import logging
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
@@ -54,7 +52,6 @@ def bde_regressor(seed) -> BdeRegressor:
         n_thinning=10,
         patience=20,
         seed=seed,
-
     )
 
 
@@ -209,11 +206,11 @@ def runner_regression(
             prediction_type="TotalUncertainty",
             virtual_ensembles_count=10,
             thread_count=10,
-        )  # shape (n_samples, 3) for RMSEWithUncertainty: [mean, knowledge_unc, data_unc] 
-        
+        )  # shape (n_samples, 3) for RMSEWithUncertainty: [mean, knowledge_unc, data_unc]
+
         mus = tu[:, 0]
-        knowledge = tu[:, 1]       # epistemic uncertainty (model)
-        data = tu[:, 2]            # aleatoric uncertainty (data)
+        knowledge = tu[:, 1]  # epistemic uncertainty (model)
+        data = tu[:, 2]  # aleatoric uncertainty (data)
         sigma = np.sqrt(np.maximum(knowledge + data, 1e-8))
     else:
         mus = model.predict(X_test)

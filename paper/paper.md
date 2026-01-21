@@ -92,7 +92,38 @@ Classification follows analogously using `BdeClassifier`.
 
 # Benchmark for Regression
 
-<!-- TBD -->
+<h3 style="margin-left: 24%;">Airfoil dataset
+</h3>
+
+
+
+|               | RMSE                | NLL (distr. regr.)   | NLL (mean regr.)     | Runtime (s) |
+| ------------- | ------------------- | -------------------- | -------------------- | ----------- |
+| Linear Model  | 0.6598 ± 0.0000 | -                    | 1.0032 ± 0.0000  | 0.0009 ± 0.0004  |
+| Random Forest | 0.2560 ± 0.0015 | -                    | 0.0567 ± 0.0057 | 1.4610 ± 0.0127    |
+| XGBoost       | 0.2025 ± 0.0055 | -                    | -0.1782 ± 0.0269 | 1.2466 ± 0.0305   |
+| CatBoost      | 0.2393 ± 0.0036 | 0.1479 ± 0.1414   | -0.0109 ± 0.0152 | 0.8474 ± 0.0246   |
+| TabPFN (V2)   | 0.1359 ± 0.0028 | -0.9338 ± 0.0195  | -0.5769 ± 0.0205 | 9.3150 ± 0.7825    |
+| BDE($10, \, 16\times4$)       | **0.1215 ± 0.0042** | **-0.9126 ± 0.0131**  | **-0.6888 ± 0.0347** | 240.8765 ± 4.4666  |
+
+<h3 style="margin-left: 23%;">Bikesharing dataset
+</h3>
+
+|               | RMSE               | NLL (distr. regr.) | NLL (mean regr.)  | Runtime (s) |
+| ------------- | -------------------| -------------------- | -------------------- | ----------- |
+| Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.000  | 0.0035 ± 0.0000 |
+| Random Forest | 0.2440 ± 0.002     | -                   | 0.0085 ± 0.0009  | 6.8065 ±  0.0009|
+| XGBoost       | 0.2143 ±  0.0010   | -                   | -0.1215 ± 0.0049 | 1.8980 ± 0.0049 |
+| CatBoost      | 0.2652 ±  0.0021   | -0.373666 ± 0.0229      | 0.0918 ±  0.0080 | 2.5237 ± 0.0080 |
+| TabPFN (V2)   | **0.2103 ± 0.0008**| -0.685566 ±  0.0063    | **-0.1400 ± 0.0041** | 1245.9870 ±  0.0041|
+| BDE($10, \, 16\times4$)       | 0.2261 ± 0.0016    | **-0.731546 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.0797 ± 0.0071 |
+
+
+*Caption: Mean performance (RMSE), uncertainty-quantification metrics (NLL for distributional and mean regression), and total runtime (training + prediction), reported as mean ± standard deviation over 5 independent runs (different random seeds)*.
+
+For all the models, 10 CPU cores were allocated and no additional tunning was performed. For **BDE**, we used $10$ MLP members (4 layers with 16 neurons) and we drew $100$ posterior samples for prediction (via $n_{samples} =1000$ using a thinning factor of 10 ).
+
+\*default
 
 # AI usage
 
