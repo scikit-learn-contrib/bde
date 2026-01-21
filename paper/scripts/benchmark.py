@@ -221,7 +221,9 @@ def runner_regression(
 
     nll_mean = float(
         np.mean(neg_log_likelihood(y_test, mus, rmse))
-    )  # baseline with global sigmma
+    )  # baseline with global sigma, using the rmse evaluated on the test set
+    # this leakage is acceptable for benchmarking purposes as it is consistent across
+    # all models and acts in favor of the baselines
 
     if sigma is not None:
         sigma = np.maximum(sigma, 1e-8)

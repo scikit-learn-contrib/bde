@@ -45,7 +45,7 @@ bibliography: paper.bib
 The workflow of `bde` implements the robust two-stage BDE inference process of MILE. First, it optimizes `n_members` many (usually 8) independent, flexibly configurable feed-forward neural networks using regularized empirical risk minimization (with the negative log-likelihood as loss) via the AdamW optimizer [@loshchilov2018decoupled]. Second, it transitions to a sampling phase using Microcanonical Langevin Monte Carlo [@robnik2023microcanonical; @robnik2024fluctuation], enhanced with a tuning phase adapted for Bayesian Neural Networks [@sommer2025mile]. In essence optimization finds diverse high-likelihood modes; sampling explores local posterior structure. This process generates an ensemble of samples (models) that constitute an implicit posterior approximation.
 
 **Key Software Design Feature.**
-Because optimization and sampling across ensemble members are independent, bde exploits JAX’s parallelization and just-in-time compilation to scale efficiently across CPUs, GPUs, and TPUs. Given new test data, the package approximates the posterior predictive, enabling point predictions, credible intervals, coverage estimates, and other uncertainty metrics through a unified interface.
+Because optimization and sampling across ensemble members are independent, `bde` exploits JAX’s parallelization and just-in-time compilation to scale efficiently across CPUs, GPUs, and TPUs. Given new test data, the package approximates the posterior predictive, enabling point predictions, credible intervals, coverage estimates, and other uncertainty metrics through a unified interface.
 
 # Statement of Need and State of the Field
 
@@ -56,26 +56,24 @@ Reliable uncertainty quantification (UQ) is increasingly viewed as a critical co
 Through automated orchestration of optimization, sampling, parallelization, and predictive inference, `bde` offers a fast, reproducible, and practical solution for applying sampling-based BDL methods to tabular supervised learning tasks.
 
 **Research Impact.**
-`bde` bridges the gap between high-performance MCMC research and practical data science. By providing a curated implementation of MILE for tabular data, it enables researchers and practitioners alike to easily apply Bayesian Deep Ensembles. Its inclusion in the `scikit-learn-contrib` organization ensures adherence to rigorous software standards and API consistency, making it a trusted, community-ready tool for reproducible uncertainty quantification in tabular machine learning.
+`bde` bridges the gap between high-performance MCMC research and practical data science. By providing a curated implementation of MILE for tabular data, it enables researchers and practitioners alike to easily apply Bayesian Deep Ensembles. Its inclusion in the `scikit-learn-contrib` organization ensures adherence to rigorous software standards and API consistency, making it a trusted, community-ready tool for reproducible UQ in tabular machine learning.
 
 # Usage Example
-The following example illustrates a regression task with uncertainty quantification using `bde` in only a few lines of code. Training inputs are assumed to be preprocessed (e.g., normalized). The workflow consists of
-(i) specifying the ensemble model and sampling hyperparameters, (ii) fitting the model, and
-(iii) obtaining posterior predictive quantities, including predictive moments, credible intervals, and raw (non-aggregated) ensemble outputs.
+The following example illustrates a regression task with UQ using `bde` in only a few lines of code. Training inputs are assumed to be preprocessed and normalized. The workflow specifies the ensemble and sampling hyperparameters, fits the model, and obtains posterior predictive quantities, including predictive moments, credible intervals, and raw ensemble outputs.
 
 ```python
 from bde import BdeRegressor
 
 regressor = BdeRegressor(
-        n_members=8,
-        hidden_layers=[16, 16],
+        n_members=8, # natively uses up to 8 cores in parallel
+        hidden_layers=[16, 16], # MLP architecture
         epochs=1000,
         validation_split=0.15,
         lr=1e-3,
         weight_decay=1e-4,
         patience=20,
         warmup_steps=5000,
-        n_samples=200,
+        n_samples=200, # 200/10 x 8 = 160 final posterior samples
         n_thinning=10,
         desired_energy_var_start=0.5, # key MILE hyperparameter
         desired_energy_var_end=0.1 # key MILE hyperparameter
@@ -90,43 +88,32 @@ raw = regressor.predict(X_test, raw=True)
 
 Classification follows analogously using `BdeClassifier`.
 
-# Benchmark for Regression
+# Regression Benchmark
 
-<h3 style="margin-left: 24%;">Airfoil dataset
-</h3>
+We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance (RMSE), UQ metrics (NLL in the distributional and mean regression formulation), and total runtime (training + prediction), reported as mean ± standard deviation over 5 independent runs. The results show competitive out-of-the-box performance of BDE especially in UQ with it's native distributional regression capability.
 
-
-
-|               | RMSE                | NLL (distr. regr.)   | NLL (mean regr.)     | Runtime (s) |
+| `airfoil` | RMSE                | NLL (distr. regr.)   | NLL (mean regr.)     | Runtime (s) |
 | ------------- | ------------------- | -------------------- | -------------------- | ----------- |
-| Linear Model  | 0.6598 ± 0.0000 | -                    | 1.0032 ± 0.0000  | 0.0009 ± 0.0004  |
-| Random Forest | 0.2560 ± 0.0015 | -                    | 0.0567 ± 0.0057 | 1.4610 ± 0.0127    |
-| XGBoost       | 0.2025 ± 0.0055 | -                    | -0.1782 ± 0.0269 | 1.2466 ± 0.0305   |
-| CatBoost      | 0.2393 ± 0.0036 | 0.1479 ± 0.1414   | -0.0109 ± 0.0152 | 0.8474 ± 0.0246   |
-| TabPFN (V2)   | 0.1359 ± 0.0028 | -0.9338 ± 0.0195  | -0.5769 ± 0.0205 | 9.3150 ± 0.7825    |
-| BDE($10, 16\times4$)       | **0.1215 ± 0.0042** | **-0.9126 ± 0.0131**  | **-0.6888 ± 0.0347** | 240.8765 ± 4.4666  |
+| Linear Model  | 0.6598 ± 0.0000 | -                    | 1.0032 ± 0.0000  | 0.00  |
+| Random Forest | 0.2560 ± 0.0015 | -                    | 0.0567 ± 0.0057 | 1.46    |
+| XGBoost       | 0.2025 ± 0.0055 | -                    | -0.1782 ± 0.0269 | 1.25   |
+| CatBoost      | 0.2393 ± 0.0036 | 0.1479 ± 0.1414   | -0.0109 ± 0.0152 | 0.85   |
+| TabPFN (V2)   | 0.1359 ± 0.0028 | **-0.9338 ± 0.0195**  | -0.5769 ± 0.0205 | 9.32    |
+| BDE           | **0.1215 ± 0.0042** | **-0.9126 ± 0.0131**  | **-0.6888 ± 0.0347** | 240.88 |
 
-<h3 style="margin-left: 23%;">Bikesharing dataset
-</h3>
-
-|               | RMSE               | NLL (distr. regr.) | NLL (mean regr.)  | Runtime (s) |
+| `bikesharing` | RMSE               | NLL (distr. regr.) | NLL (mean regr.)  | Runtime (s) |
 | ------------- | -------------------| -------------------- | -------------------- | ----------- |
-| Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.000  | 0.0035 ± 0.0000 |
-| Random Forest | 0.2440 ± 0.002     | -                   | 0.0085 ± 0.0009  | 6.8065 ±  0.0009|
-| XGBoost       | 0.2143 ±  0.0010   | -                   | -0.1215 ± 0.0049 | 1.8980 ± 0.0049 |
-| CatBoost      | 0.2652 ±  0.0021   | -0.3737 ± 0.0229      | 0.0918 ±  0.0080 | 2.5237 ± 0.0080 |
-| TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** | 1245.9870 ±  0.0041|
-| BDE($10, 16\times4$)       | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.0797 ± 0.0071 |
+| Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.000  | 0.00 |
+| Random Forest | 0.2440 ± 0.002     | -                   | 0.0085 ± 0.0009  | 6.81 |
+| XGBoost       | 0.2143 ±  0.0010   | -                   | -0.1215 ± 0.0049 | 1.90 |
+| CatBoost      | 0.2652 ±  0.0021   | -0.3737 ± 0.0229      | 0.0918 ±  0.0080 | 2.52 |
+| TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** | 1245.99 |
+| BDE           | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.08 |
 
-
-*Caption: Mean performance (RMSE), uncertainty-quantification metrics (NLL for distributional and mean regression), and total runtime (training + prediction), reported as mean ± standard deviation over 5 independent runs (different random seeds)*.
-
-For all the models, 10 CPU cores were allocated and no additional tunning was performed. For **BDE**, we used $10$ MLP members (4 layers with 16 neurons) and we drew $100$ posterior samples for prediction (via $n_{samples} =1000$ using a thinning factor of 10 ).
-
-\*default
+All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from an MLP with four hidden layers of width 16. All experimental configurations are provided in the released codebase to ensure reproducibility.
 
 # AI usage
 
-Generative AI was used for smart code autocompletion via GitHub Copilot, using the Claude Sonnet 3.7 and Claude Sonnet 4 models. Its use was limited to local, line- or block-level completion during software development. Further Codex was used to assist in the generation of the first draft of the package documentation and for few refactors ensuring the compatibility with the `scikit-learn` API. No AI tools were used for ideation, architectural or design decisions, code review or testing strategy. All generated suggestions were critically reviewed, modified where necessary, and fully validated by the authors, who retain complete responsibility for the correctness, originality, licensing compliance, and ethical integrity of all materials.
+Generative AI was used via GitHub Copilot for local, line- or block-level code autocompletion during software development, using the Claude Sonnet 3.7 and 4 models. Codex was additionally used to assist with the initial draft of the package documentation and minor refactors to ensure compatibility with the `scikit-learn` API. No AI tools were used for ideation, architectural or design decisions, code review, or testing strategy. All AI-generated suggestions were critically reviewed, modified where necessary, and fully validated by the authors, who retain complete responsibility for correctness, originality, licensing compliance, and ethical integrity.
 
 # References
