@@ -65,7 +65,7 @@ The following example illustrates a regression task with UQ using `bde` in only 
 from bde import BdeRegressor
 
 regressor = BdeRegressor(
-        n_members=8, # natively uses up to 8 cores in parallel
+        n_members=8, # natively parallelizes over the available cores
         hidden_layers=[16, 16], # MLP architecture
         epochs=1000,
         validation_split=0.15,
@@ -104,16 +104,16 @@ We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bike
 | `bikesharing` | RMSE               | NLL (distr. regr.) | NLL (mean regr.)  | Runtime (s) |
 | ------------- | -------------------| -------------------- | -------------------- | ----------- |
 | Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.000  | 0.00 |
-| Random Forest | 0.2440 ± 0.002     | -                   | 0.0085 ± 0.0009  | 6.81 |
+| Random Forest | 0.2440 ± 0.0020    | -                   | 0.0085 ± 0.0009  | 6.81 |
 | XGBoost       | 0.2143 ±  0.0010   | -                   | -0.1215 ± 0.0049 | 1.90 |
 | CatBoost      | 0.2652 ±  0.0021   | -0.3737 ± 0.0229      | 0.0918 ±  0.0080 | 2.52 |
 | TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** | 1245.99 |
 | BDE           | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.08 |
 
-All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from an MLP with four hidden layers of width 16. All experimental configurations are provided in the released codebase to ensure reproducibility.
+All models used 10 CPU cores without additional tuning. For BDE, we generated only 1000 posterior samples from an MLP with four hidden layers of width 16. All experimental configurations are provided in the released codebase to ensure reproducibility.
 
 # AI usage
 
-Generative AI was used via GitHub Copilot for local, line- or block-level code autocompletion during software development, using the Claude Sonnet 3.7 and 4 models. Codex was additionally used to assist with the initial draft of the package documentation and minor refactors to ensure compatibility with the `scikit-learn` API. No AI tools were used for ideation, architectural or design decisions, code review, or testing strategy. All AI-generated suggestions were critically reviewed, modified where necessary, and fully validated by the authors, who retain complete responsibility for correctness, originality, licensing compliance, and ethical integrity.
+Generative AI was used via GitHub Copilot for local, line- or block-level code autocompletion during software development, using the Claude Sonnet 3.7 and 4 models. Codex was additionally used to assist with the initial draft of the package documentation and minor refactors to ensure compatibility with the `scikit-learn` API. No AI tools were used for ideation, architectural or design decisions, code review, or testing strategy. All AI-generated suggestions were critically reviewed, modified where necessary, and fully validated by the authors, who retain complete responsibility.
 
 # References

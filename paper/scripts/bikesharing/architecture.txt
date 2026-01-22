@@ -6,8 +6,8 @@ BdeRegressor(
     validation_split=0.15,
     lr=1e-3,
     weight_decay=1e-4,
-    warmup_steps=50000,
-    n_samples=1000,
+    warmup_steps=50000, # can be reduced for many tasks
+    n_samples=1000, # quite few (faster)
     n_thinning=10,
     patience=20,
     seed=seed,
