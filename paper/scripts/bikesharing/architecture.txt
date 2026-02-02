@@ -14,6 +14,20 @@ BdeRegressor(
 
 )
 
+BdeRegressor(
+    n_members=10,
+    hidden_layers=[16, 16, 16, 16],
+    loss=GaussianNLL(),
+    epochs=1200,
+    validation_split=0.15,
+    lr=1e-3,
+    weight_decay=1e-4,
+    warmup_steps=1,
+    n_samples=1,
+    n_thinning=0,
+    patience=20,
+    seed=seed,
+)
 
 LinearRegression()
 
