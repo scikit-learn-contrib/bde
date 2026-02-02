@@ -129,7 +129,7 @@ MODEL_FACTORY = {
 
 # ------------- configuration of data -------------
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "bde" / "data"
+DATA_DIR = Path(__file__).resolve().parents[2] / "bde" / "data"
 DATASETS = {
     "airfoil": {"file": "airfoil.csv", "sep": ",", "header": 0},
     "concrete": {"file": "concrete.data", "sep": " ", "header": None},
