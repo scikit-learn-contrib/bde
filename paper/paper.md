@@ -76,8 +76,9 @@ regressor = BdeRegressor(
         warmup_steps=5000,
         n_samples=200, # 200/10 x 8 = 160 final posterior samples
         n_thinning=10,
-        desired_energy_var_start=0.5, # Controls MCMC exploration (robust default)
-        desired_energy_var_end=0.1,   # Controls MCMC exploration (robust default)
+        # Controls MCMC exploration (default):
+        desired_energy_var_start=0.5, 
+        desired_energy_var_end=0.1,
 )
 
 regressor.fit(x=X_train, y=y_train)
