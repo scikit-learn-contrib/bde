@@ -55,6 +55,23 @@ def bde_regressor(seed) -> BdeRegressor:
     )
 
 
+def deep_ensemble(seed) -> BdeRegressor:
+    return BdeRegressor(
+        n_members=10,
+        hidden_layers=[16, 16, 16, 16],
+        loss=GaussianNLL(),
+        epochs=1200,
+        validation_split=0.15,
+        lr=1e-3,
+        weight_decay=1e-4,
+        warmup_steps=1,
+        n_samples=1,
+        n_thinning=0,
+        patience=20,
+        seed=seed,
+    )
+
+
 def linear_regressor() -> LinearRegression:
     return LinearRegression()
 
@@ -101,6 +118,7 @@ def tabpfn_reg(seed) -> TabPFNRegressor:
 
 MODEL_FACTORY = {
     "bde": lambda seed: bde_regressor(seed),
+    "de": lambda seed: deep_ensemble(seed),
     "linear": lambda seed: linear_regressor(),
     "rf": lambda seed: rand_forest(seed),
     "xgb": lambda seed: xgb_reg(seed),
