@@ -40,23 +40,23 @@ bibliography: paper.bib
 
 # Summary
 
-`bde` is a Python package designed to bring state-of-the-art sampling-based Bayesian Deep Learning (BDL) to practitioners and researchers. The package combines the speed and high-performance capabilities of JAX and `blackjax` [@jax2018github; @cabezas2024blackjax] with the user-friendly API of scikit-learn [@scikit-learn]. It specifically targets tabular supervised learning tasks, including distributional regression and (multi-class) classification, providing a seamless interface for Bayesian Deep Ensembles (BDEs) [@sommer2024connecting] via **Microcanonical Langevin Ensembles (MILE)** [@sommer2025mile].
+`bde` is a Python package designed to bring state-of-the-art sampling-based Bayesian Deep Learning (BDL) to practitioners and researchers. The package combines the speed and high-performance capabilities of JAX and `blackjax` [@jax2018github; @cabezas2024blackjax] with the user-friendly API of scikit-learn [@scikit-learn]. It targets tabular supervised learning tasks, including distributional regression and (multi-class) classification, providing a seamless interface for Bayesian Deep Ensembles (BDEs) [@sommer2024connecting] specifically implementing **Microcanonical Langevin Ensembles (MILE)** [@sommer2025mile].
 
-The workflow of `bde` implements the robust two-stage BDE inference process of MILE. First, it optimizes `n_members` many (usually 8) independent, flexibly configurable feed-forward neural networks using regularized empirical risk minimization (with the negative log-likelihood as loss) via the AdamW optimizer [@loshchilov2018decoupled]. Second, it transitions to a sampling phase using Microcanonical Langevin Monte Carlo [@robnik2023microcanonical; @robnik2024fluctuation], enhanced with a tuning phase adapted for Bayesian Neural Networks [@sommer2025mile]. In essence optimization finds diverse high-likelihood modes; sampling explores local posterior structure. This process generates an ensemble of samples (models) that constitute an implicit posterior approximation.
+The workflow of `bde` implements the two-stage BDE inference process of MILE. First, it optimizes `n_members` independent instances of a flexibly configurable feed-forward neural network using regularized empirical risk minimization (with the negative log-likelihood as loss) via the AdamW optimizer [@loshchilov2018decoupled]. Second, it transitions to a sampling phase using Microcanonical Langevin Monte Carlo [@robnik2023microcanonical; @robnik2024fluctuation], enhanced with a tuning phase adapted for Bayesian Neural Networks. This combination is referred to as MILE [@sommer2025mile]. In essence, the optimization of the ensemble of neural networks first finds diverse high-likelihood modes, from which sampling then explores local posterior structure. This process generates an ensemble of samples (models) that constitute an implicit posterior approximation.
 
 **Key Software Design Feature.**
 Because optimization and sampling across ensemble members are independent, `bde` exploits JAX’s parallelization and just-in-time compilation to scale efficiently across CPUs, GPUs, and TPUs. Given new test data, the package approximates the posterior predictive, enabling point predictions, credible intervals, coverage estimates, and other uncertainty metrics through a unified interface.
 
 # Statement of Need and State of the Field
 
-Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and Bayesian Deep Learning provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference or classical Bayesian modeling, accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming frameworks offer general-purpose MCMC but require substantial manual configuration to achieve competitive performance on neural network models.
+Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and BDL provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference or classical Bayesian modeling, accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming frameworks offer MCMC but require substantial manual configuration to achieve competitive performance on neural network models.
 
-`bde` addresses this gap by providing the first user-friendly implementation of MILE-a hybrid sampling technique shown to deliver strong predictive accuracy and calibrated uncertainty for Bayesian neural networks [@sommer2025mile]. By providing full scikit-learn compatibility, the package enables seamless integration into existing machine learning workflows, allowing users to obtain principled Bayesian uncertainty estimates without specialized knowledge of MCMC dynamics, initialization strategies, or JAX internals.
+`bde` addresses this gap by providing the first user-friendly implementation of MILE - a hybrid sampling technique shown to deliver strong predictive accuracy and calibrated uncertainty for Bayesian neural networks [@sommer2025mile]. By providing full scikit-learn compatibility, the package enables seamless integration into existing machine learning workflows, allowing users to obtain principled Bayesian uncertainty estimates without specialized knowledge of MCMC dynamics, initialization strategies, or JAX internals.
 
 Through automated orchestration of optimization, sampling, parallelization, and predictive inference, `bde` offers a fast, reproducible, and practical solution for applying sampling-based BDL methods to tabular supervised learning tasks.
 
 **Research Impact.**
-`bde` bridges the gap between high-performance MCMC research and practical data science. By providing a curated implementation of MILE for tabular data, it enables researchers and practitioners alike to easily apply Bayesian Deep Ensembles. Its inclusion in the `scikit-learn-contrib` organization ensures adherence to rigorous software standards and API consistency, making it a trusted, community-ready tool for reproducible UQ in tabular machine learning.
+`bde` bridges the gap between high-performance MCMC research and practical data science. By providing a curated implementation of MILE for tabular data, it enables researchers and practitioners alike to easily apply BDEs. Its inclusion in the `scikit-learn-contrib` organization ensures adherence to rigorous software standards and API consistency, making it a trusted, community-ready tool for reproducible UQ in tabular machine learning.
 
 # Usage Example
 The following example illustrates a regression task with UQ using `bde` in only a few lines of code. Training inputs are assumed to be preprocessed and normalized. The workflow specifies the ensemble and sampling hyperparameters, fits the model, and obtains posterior predictive quantities, including predictive moments, credible intervals, and raw ensemble outputs.
@@ -66,7 +66,7 @@ from bde import BdeRegressor
 
 regressor = BdeRegressor(
         n_members=8, # natively parallelizes over the available cores
-        hidden_layers=[16, 16], # MLP architecture
+        hidden_layers=[16, 16], # 2 hidden layers of width 16 (default activation: ReLU)
         epochs=1000,
         validation_split=0.15,
         lr=1e-3,
@@ -75,8 +75,8 @@ regressor = BdeRegressor(
         warmup_steps=5000,
         n_samples=200, # 200/10 x 8 = 160 final posterior samples
         n_thinning=10,
-        desired_energy_var_start=0.5, # key MILE hyperparameter
-        desired_energy_var_end=0.1 # key MILE hyperparameter
+        desired_energy_var_start=0.5, # Controls MCMC exploration (robust default)
+        desired_energy_var_end=0.1,   # Controls MCMC exploration (robust default)
 )
 
 regressor.fit(x=X_train, y=y_train)
@@ -90,7 +90,7 @@ Classification follows analogously using `BdeClassifier`.
 
 # Regression Benchmark
 
-We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance (RMSE), UQ metrics (NLL in the distributional and mean regression formulation), and total runtime (training + prediction), reported as mean ± standard deviation over 5 independent runs. The results show competitive out-of-the-box performance of BDE especially in UQ with it's native distributional regression capability.
+We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance (RMSE), UQ metrics (NLL in the distributional and mean regression formulation), and total runtime (training + prediction), reported as mean ± standard deviation over 5 independent runs. The results show competitive out-of-the-box performance of BDE especially in UQ with its native distributional regression capability.
 
 | `airfoil` | RMSE                | NLL (distr. regr.)   | NLL (mean regr.)     | Runtime (s) |
 | ------------- | ------------------- | -------------------- | -------------------- | ----------- |
@@ -110,7 +110,7 @@ We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bike
 | TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** | 1245.99 |
 | BDE           | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.08 |
 
-All models used 10 CPU cores without additional tuning. For BDE, we generated only 1000 posterior samples from an MLP with four hidden layers of width 16. All experimental configurations are provided in the released codebase to ensure reproducibility.
+All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from a feed-forward neural network with four hidden layers of width 16. The additional runtime of BDE reflects its capability to go beyond simple point estimates. It constructs a flexible approximation of the posterior distribution, providing probabilistic outputs that enable rigorous downstream decision-making and risk assessment. All experimental configurations are provided in the released codebase to ensure reproducibility.
 
 # AI usage
 
