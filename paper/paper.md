@@ -66,7 +66,8 @@ from bde import BdeRegressor
 
 regressor = BdeRegressor(
         n_members=8, # natively parallelizes over the available cores
-        hidden_layers=[16, 16], # 2 hidden layers of width 16 (default activation: ReLU)
+        # 2 hidden layers of width 16 (default activation: ReLU)
+        hidden_layers=[16, 16], 
         epochs=1000,
         validation_split=0.15,
         lr=1e-3,
