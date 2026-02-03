@@ -114,7 +114,7 @@ We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bike
 | TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** | 1246.0 |
 | BDE           | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.1 |
 
-All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from a feed-forward neural network with four hidden layers of width 16. The additional runtime of BDE reflects its capability to go beyond simple point estimates. It constructs a flexible approximation of the posterior distribution, providing probabilistic outputs that enable rigorous downstream decision-making and risk assessment. All experimental configurations are provided in the released codebase to ensure reproducibility.
+All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from a feed-forward neural network with four hidden layers of width 16. The additional runtime of BDE reflects its capability to go beyond simple point estimates. It constructs a flexible approximation of the posterior distribution, providing probabilistic outputs such as Credible Intervals that enable rigorous downstream decision-making and risk assessment. All experimental configurations are provided in the released codebase to ensure reproducibility.
 
 # AI usage
 
