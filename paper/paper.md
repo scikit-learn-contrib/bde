@@ -96,21 +96,23 @@ We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bike
 
 | `airfoil` | RMSE                | NLL (distr. regr.)   | NLL (mean regr.)     | Runtime (s) |
 | ------------- | ------------------- | -------------------- | -------------------- | ----------- |
-| Linear Model  | 0.6598 ± 0.0000 | -                    | 1.0032 ± 0.0000  | 0.00  |
-| Random Forest | 0.2560 ± 0.0015 | -                    | 0.0567 ± 0.0057 | 1.46    |
-| XGBoost       | 0.2025 ± 0.0055 | -                    | -0.1782 ± 0.0269 | 1.25   |
-| CatBoost      | 0.2393 ± 0.0036 | 0.1479 ± 0.1414   | -0.0109 ± 0.0152 | 0.85   |
-| TabPFN (V2)   | 0.1359 ± 0.0028 | **-0.9338 ± 0.0195**  | -0.5769 ± 0.0205 | 9.32    |
-| BDE           | **0.1215 ± 0.0042** | **-0.9126 ± 0.0131**  | **-0.6888 ± 0.0347** | 240.88 |
+| Linear Model  | 0.6598 ± 0.0000 | -                    | 1.0032 ± 0.0000  | 0.0  |
+| Random Forest | 0.2560 ± 0.0015 | -                    | 0.0567 ± 0.0057 | 1.5    |
+| XGBoost       | 0.2025 ± 0.0055 | -                    | -0.1782 ± 0.0269 | 1.3   |
+| CatBoost      | 0.2393 ± 0.0036 | 0.1479 ± 0.1414   | -0.0109 ± 0.0152 | 0.9   |
+| Deep Ensemble | 0.3650 ± 0.0038 | 0.1760 ± 0.0043  | 0.4100 ± 0.0105 | 1.2    |
+| TabPFN (V2)   | 0.1359 ± 0.0028 | **-0.9338 ± 0.0195**  | -0.5769 ± 0.0205 | 9.3    |
+| BDE           | **0.1215 ± 0.0042** | **-0.9126 ± 0.0131**  | **-0.6888 ± 0.0347** | 240.9 |
 
 | `bikesharing` | RMSE               | NLL (distr. regr.) | NLL (mean regr.)  | Runtime (s) |
 | ------------- | -------------------| -------------------- | -------------------- | ----------- |
-| Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.000  | 0.00 |
-| Random Forest | 0.2440 ± 0.0020    | -                   | 0.0085 ± 0.0009  | 6.81 |
-| XGBoost       | 0.2143 ±  0.0010   | -                   | -0.1215 ± 0.0049 | 1.90 |
-| CatBoost      | 0.2652 ±  0.0021   | -0.3737 ± 0.0229      | 0.0918 ±  0.0080 | 2.52 |
-| TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** | 1245.99 |
-| BDE           | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.08 |
+| Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.000  | 0.0 |
+| Random Forest | 0.2440 ± 0.0020    | -                   | 0.0085 ± 0.0009  | 6.8 |
+| XGBoost       | 0.2143 ±  0.0010   | -                   | -0.1215 ± 0.0049 | 1.9 |
+| CatBoost      | 0.2652 ±  0.0021   | -0.3737 ± 0.0229      | 0.0918 ±  0.0080 | 2.5 |
+| Deep Ensemble| 0.2880 ± 0.0052    | -0.4550 ± 0.0173   | 0.1740 ± 0.0181 | 39.8 |
+| TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** | 1246.0 |
+| BDE           | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  | 2555.1 |
 
 All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from a feed-forward neural network with four hidden layers of width 16. The additional runtime of BDE reflects its capability to go beyond simple point estimates. It constructs a flexible approximation of the posterior distribution, providing probabilistic outputs that enable rigorous downstream decision-making and risk assessment. All experimental configurations are provided in the released codebase to ensure reproducibility.
 
