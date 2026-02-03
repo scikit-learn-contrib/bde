@@ -106,7 +106,7 @@ We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bike
 
 | `bikesharing` | RMSE               | NLL (distr. regr.) | NLL (mean regr.)  |
 | ------------- | -------------------| -------------------- | -------------------- |
-| Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.000  |
+| Linear Model  | 0.7796 ± 0.0000    | -                  | 1.1700 ± 0.0000  |
 | Random Forest | 0.2440 ± 0.0020    | -                   | 0.0085 ± 0.0009  | 
 | XGBoost       | 0.2143 ±  0.0010   | -                   | -0.1215 ± 0.0049 | 
 | CatBoost      | 0.2652 ±  0.0021   | -0.3737 ± 0.0229      | 0.0918 ±  0.0080 |
