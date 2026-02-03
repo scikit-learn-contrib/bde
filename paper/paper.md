@@ -65,9 +65,9 @@ The following example illustrates a regression task with UQ using `bde` in only 
 from bde import BdeRegressor
 
 regressor = BdeRegressor(
-        n_members=8, # natively parallelizes over the available cores
-        # 2 hidden layers of width 16 (default activation: ReLU)
-        hidden_layers=[16, 16], 
+        n_members=8, # parallelizes over the available cores
+        hidden_layers=[16, 16], # 2 hidden layers of width 16
+        activation="relu", # (default)
         epochs=1000,
         validation_split=0.15,
         lr=1e-3,
