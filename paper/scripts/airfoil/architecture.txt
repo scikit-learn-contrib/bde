@@ -1,0 +1,69 @@
+BdeRegressor(
+    n_members=10,
+    hidden_layers=[16, 16, 16, 16],
+    loss=GaussianNLL(),
+    epochs=1000,
+    validation_split=0.15,
+    lr=1e-3,
+    weight_decay=1e-4,
+    warmup_steps=50000, # can be reduced for many tasks
+    n_samples=1000, # quite few (faster)
+    n_thinning=10,
+    patience=20,
+    seed=seed,
+)
+
+
+BdeRegressor(
+    n_members=10,
+    hidden_layers=[16, 16, 16, 16],
+    loss=GaussianNLL(),
+    epochs=1200,
+    validation_split=0.15,
+    lr=1e-3,
+    weight_decay=1e-4,
+    warmup_steps=1,
+    n_samples=1,
+    n_thinning=0,
+    patience=20,
+    seed=seed,
+)
+
+
+LinearRegression()
+
+
+RandomForestRegressor(
+    n_estimators=1000,
+    criterion="squared_error",
+    random_state=seed,
+    n_jobs=10,
+)
+
+
+xgb.XGBRegressor(
+    tree_method="hist",
+    n_estimators=2000,
+    learning_rate=0.05,
+    subsample=0.8,
+    max_depth=6,
+    random_state=seed,
+    n_jobs=10,
+)
+
+
+CatBoostRegressor(
+    random_seed=seed,
+    depth=6,
+    iterations=1000,
+    learning_rate=0.05,
+    loss_function="RMSEWithUncertainty",
+    allow_writing_files=False,
+    verbose=False,
+    thread_count=10,
+)
+
+
+TabPFNRegressor.create_default_for_version(
+    ModelVersion.V2, ignore_pretraining_limits=True, random_state=seed
+)

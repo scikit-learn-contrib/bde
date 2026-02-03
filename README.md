@@ -13,8 +13,8 @@ Introduction
 ------------
 
 **bde** is a user-friendly implementation of Bayesian Deep Ensembles compatible with
-scikit-learn with a particular focus on tabular data. It exposes estimators that plug 
-into scikit-learn pipelines while leveraging JAX for accelerator-backed training, 
+scikit-learn with a particular focus on tabular data. It exposes estimators that plug
+into scikit-learn pipelines while leveraging JAX for accelerator-backed training,
 sampling, and uncertainty quantification.
 
 In particular, **bde** implements **Microcanonical Langevin Ensembles (MILE)** as
@@ -27,7 +27,7 @@ A conceptual overview of MILE is shown below:
 
 
 **Scope:** As of right now this package supports full-batch MILE for fully connected
-feedforward networks, covering classification and regression on tabular data. 
+feedforward networks, covering classification and regression on tabular data.
 The method can however also be applied to other
 architectures and data modalities, but these are not yet in scope of this
 particular implementation.
