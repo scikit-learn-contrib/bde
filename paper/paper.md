@@ -44,21 +44,26 @@ bibliography: paper.bib
 
 The workflow of `bde` implements the two-stage BDE inference process of MILE. First, it optimizes `n_members` independent instances of a flexibly configurable feed-forward neural network using regularized empirical risk minimization (with the negative log-likelihood as loss) via the AdamW optimizer [@loshchilov2018decoupled]. Second, it transitions to a sampling phase using Microcanonical Langevin Monte Carlo [@robnik2023microcanonical; @robnik2024fluctuation], enhanced with a tuning phase adapted for Bayesian Neural Networks. This combination is referred to as MILE [@sommer2025mile]. In essence, the optimization of the ensemble of neural networks first finds diverse high-likelihood modes, from which sampling then explores local posterior structure. This process generates an ensemble of samples (models) that constitute an implicit posterior approximation.
 
-**Key Software Design Feature.**
+# Software design
+
 Because optimization and sampling across ensemble members are independent, `bde` exploits JAX’s parallelization and just-in-time compilation to scale efficiently across CPUs, GPUs, and TPUs. Given new test data, the package approximates the posterior predictive, enabling point predictions, credible intervals, coverage estimates, and other uncertainty metrics through a unified interface.
 
-# Statement of Need and State of the Field
+# State of the Field
 
 Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and BDL provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference or classical Bayesian modeling, accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming frameworks offer MCMC but require substantial manual configuration to achieve competitive performance on neural network models.
 
-`bde` addresses this gap by providing the first user-friendly implementation of MILE - a hybrid sampling technique shown to deliver strong predictive accuracy and calibrated uncertainty for Bayesian neural networks [@sommer2025mile]. By providing full scikit-learn compatibility, the package enables seamless integration into existing machine learning workflows, allowing users to obtain principled Bayesian uncertainty estimates without specialized knowledge of MCMC dynamics, initialization strategies, or JAX internals.
+# Statement of Need
+
+`bde` addresses the gap outlined above by providing the first user-friendly implementation of MILE - a hybrid sampling technique shown to deliver strong predictive accuracy and calibrated uncertainty for Bayesian neural networks [@sommer2025mile]. By providing full scikit-learn compatibility, the package enables seamless integration into existing machine learning workflows, allowing users to obtain principled Bayesian uncertainty estimates without specialized knowledge of MCMC dynamics, initialization strategies, or JAX internals.
 
 Through automated orchestration of optimization, sampling, parallelization, and predictive inference, `bde` offers a fast, reproducible, and practical solution for applying sampling-based BDL methods to tabular supervised learning tasks.
 
-**Research Impact.**
+# Research impact statement
+
 `bde` bridges the gap between high-performance MCMC research and practical data science. By providing a curated implementation of MILE for tabular data, it enables researchers and practitioners alike to easily apply BDEs. Its inclusion in the `scikit-learn-contrib` organization ensures adherence to rigorous software standards and API consistency, making it a trusted, community-ready tool for reproducible UQ in tabular machine learning.
 
 # Usage Example
+
 The following example illustrates a regression task with UQ using `bde` in only a few lines of code. Training inputs are assumed to be preprocessed and normalized. The workflow specifies the ensemble and sampling hyperparameters, fits the model, and obtains posterior predictive quantities, including predictive moments, credible intervals, and raw ensemble outputs.
 
 ```python
@@ -116,7 +121,7 @@ We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bike
 
 All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from a feed-forward neural network with four hidden layers of width 16. While even highly optimized BDEs generally incur a higher computational cost than optimization-based competitors due to the iterative nature of MCMC sampling, this investment enables the construction of a flexible, non-parametric posterior approximation. This trade-off, as demonstrated above, yields strong performance and rigorous epistemic UQ, e.g. through calibrated credible intervals. All experimental configurations are provided in the released codebase to ensure reproducibility.
 
-# AI usage
+# AI usage disclosure
 
 Generative AI was used via GitHub Copilot for local, line- or block-level code autocompletion during software development, using the Claude Sonnet 3.7 and 4 models. Codex was additionally used to assist with the initial draft of the package documentation and minor refactors to ensure compatibility with the `scikit-learn` API. No AI tools were used for ideation, architectural or design decisions, code review, or testing strategy. All AI-generated suggestions were critically reviewed, modified where necessary, and fully validated by the authors, who retain complete responsibility.
 
