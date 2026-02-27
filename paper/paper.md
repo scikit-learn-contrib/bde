@@ -48,11 +48,11 @@ The workflow of `bde` implements the two-stage BDE inference process of MILE. Fi
 
 Because optimization and sampling across ensemble members are independent, `bde` exploits JAX’s parallelization and just-in-time compilation to scale efficiently across CPUs, GPUs, and TPUs. Given new test data, the package approximates the posterior predictive, enabling point predictions, credible intervals, coverage estimates, and other uncertainty metrics through a unified interface.
 
-# State of the Field
+# State of the field
 
 Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and BDL provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference or classical Bayesian modeling, accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming frameworks offer MCMC but require substantial manual configuration to achieve competitive performance on neural network models.
 
-# Statement of Need
+# Statement of need
 
 `bde` addresses the gap outlined above by providing the first user-friendly implementation of MILE - a hybrid sampling technique shown to deliver strong predictive accuracy and calibrated uncertainty for Bayesian neural networks [@sommer2025mile]. By providing full scikit-learn compatibility, the package enables seamless integration into existing machine learning workflows, allowing users to obtain principled Bayesian uncertainty estimates without specialized knowledge of MCMC dynamics, initialization strategies, or JAX internals.
 
@@ -62,7 +62,7 @@ Through automated orchestration of optimization, sampling, parallelization, and 
 
 `bde` bridges the gap between high-performance MCMC research and practical data science. By providing a curated implementation of MILE for tabular data, it enables researchers and practitioners alike to easily apply BDEs. Its inclusion in the `scikit-learn-contrib` organization ensures adherence to rigorous software standards and API consistency, making it a trusted, community-ready tool for reproducible UQ in tabular machine learning.
 
-# Usage Example
+# Usage example
 
 The following example illustrates a regression task with UQ using `bde` in only a few lines of code. Training inputs are assumed to be preprocessed and normalized. The workflow specifies the ensemble and sampling hyperparameters, fits the model, and obtains posterior predictive quantities, including predictive moments, credible intervals, and raw ensemble outputs.
 
@@ -95,7 +95,7 @@ raw = regressor.predict(X_test, raw=True)
 
 Classification follows analogously using `BdeClassifier`.
 
-# Regression Benchmark
+# Regression benchmark
 
 We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance (RMSE), UQ metrics (NLL in the distributional and mean regression formulation), reported as mean ± standard deviation over 5 independent runs. The results show competitive out-of-the-box performance of BDE especially in UQ with its native distributional regression capability.
 
