@@ -843,7 +843,7 @@ class BdeClassifier(Bde, ClassifierMixin, BaseEstimator):
         seed : int, default=0
             Shared PRNG seed for member initialisation and sampling.
         loss : BaseLoss | None
-            Custom training loss; defaults to :class:`bde.loss.GaussianNLL`.
+            Custom training loss; defaults to :class:`bde.loss.CategoricalCrossEntropy`.
         activation : str, default='relu'
             Activation function applied to each hidden layer.
         epochs : int, default=20
