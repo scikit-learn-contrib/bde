@@ -97,7 +97,7 @@ Classification follows analogously using `BdeClassifier`.
 
 # Regression benchmark
 
-We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance (RMSE), UQ metrics (NLL in the distributional and mean regression formulation), reported as mean ± standard deviation over 5 independent runs. The results show competitive out-of-the-box performance of BDE especially in UQ with its native distributional regression capability.
+We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance (RMSE), UQ metrics (NLL in the distributional and mean regression formulation), reported as mean ± standard deviation over 5 independent model seeds and fixed train/test splits. The results show competitive out-of-the-box performance of BDE especially in UQ with its native distributional regression capability.
 
 | `airfoil` | RMSE                | NLL (distr. regr.)   | NLL (mean regr.)     |
 | ------------- | ------------------- | -------------------- | -------------------- |
