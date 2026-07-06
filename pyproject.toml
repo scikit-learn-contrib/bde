@@ -22,6 +22,7 @@ dependencies = [
   "optax>=0.2.1",
   "blackjax==1.2.2",
   "tqdm>=4.67.1",
+  "ipython>=8.0",
 ]
 
 classifiers = [
@@ -118,14 +119,11 @@ sphinx-prompt = "*"
 build-doc = { cmd = "make html", cwd = "doc" }
 clean-doc = { cmd = "rm -rf _build", cwd = "doc" }
 
-[tool.pixi.feature.dev.dependencies]
-ipython = ">=8.0"
-
 [tool.pixi.environments]
 doc = ["doc"]
 lint = ["lint"]
 test = ["test"]
-dev = ["doc", "lint", "test", "dev"]
+dev = ["doc", "lint", "test"]
 
 [tool.black]
 line-length = 88

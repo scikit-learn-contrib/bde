@@ -65,7 +65,6 @@ selected automatically. See `pixi.lock` for channel and platform details.
 
 For contributor tooling, use the `dev` Pixi environment. It combines the
 documentation, linting, and test environments.
-as IPython.
 
 
 Example Usage
