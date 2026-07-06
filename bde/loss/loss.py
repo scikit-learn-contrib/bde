@@ -26,8 +26,8 @@ class Rmse(BaseLoss):
 
     def __call__(self, preds: ArrayLike, y_true: ArrayLike):
         mu = preds[..., 0:1]
-        rmse = (mu - y_true) ** 2
-        return jnp.mean(rmse)
+        squared_error = (mu - y_true) ** 2
+        return jnp.sqrt(jnp.mean(squared_error))
 
 
 class GaussianNLL(BaseLoss):
