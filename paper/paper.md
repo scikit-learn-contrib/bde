@@ -47,10 +47,11 @@ The workflow of `bde` implements the two-stage BDE inference process of MILE. Fi
 # Software design
 
 Because optimization and sampling across ensemble members are independent, `bde` exploits JAX’s parallelization and just-in-time compilation to scale efficiently across CPUs, GPUs, and TPUs. Given new test data, the package approximates the posterior predictive, enabling point predictions, credible intervals, coverage estimates, and other uncertainty metrics through a unified interface.
+Further, this work currently targets the well-studied and empirically validated full-batch, fully connected-network setting for tabular data also studied in MILE [@sommer2025mile]. This makes it particularly suitable for the chosen scikit-learn framework. Stochastic-gradient variants such as SMILE [@sommer2026smile] require different algorithmic and software design choices, yet will be considered for future extensions.
 
 # State of the field
 
-Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and BDL provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference or classical Bayesian modeling, accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming frameworks offer MCMC but require substantial manual configuration to achieve competitive performance on neural network models.
+Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and BDL provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference [@duffield2025scalable], Laplace approximations [@daxberger2021laplace], or classical Bayesian modeling [@pymc2023], accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming and inference frameworks such as NumPyro [@phan2019numpyro] and `blackjax` [@cabezas2024blackjax] offer MCMC building blocks but require substantial manual configuration to achieve competitive Bayesian neural-network workflows.
 
 # Statement of need
 
