@@ -63,6 +63,8 @@ pixi run python -m examples.example
 Pixi ensures the correct JAX, CUDA (when needed), and scikit-learn versions are
 selected automatically. See `pixi.lock` for channel and platform details.
 
+For contributor tooling, use the `dev` Pixi environment. It combines the
+documentation, linting, and test environments.
 
 
 Example Usage
