@@ -2,7 +2,7 @@
 
 The scripts in this directory reproduce benchmark results used in the paper.
 
-## Additional dependencies
+## Benchmark environment
 
 The benchmark script (`benchmark.py`) additionally imports:
 
@@ -10,21 +10,34 @@ The benchmark script (`benchmark.py`) additionally imports:
 - `catboost`
 - `tabpfn`
 
-These are **benchmark-only** dependencies. They are intentionally not required by
-the core `sklearn-contrib-bde` package and are therefore not listed under the
-main project dependencies.
+These are **benchmark-only** dependencies. They are intentionally kept out of
+the core `sklearn-contrib-bde` package and provided through the optional pixi
+`benchmark` environment instead.
 
 ## Setup
 
 Run from the repository root unless noted otherwise.
 
-1. Create/install the base project environment as specified in the main project 
-documentation.
-
-2. Install benchmark-only Python packages into the pixi environment:
+1. Install the benchmark environment:
 
 ```bash
-pixi run python -m pip install xgboost catboost tabpfn
+pixi install -e benchmark
 ```
 
-3. Run the benchmark script `paper/scripts/run_bench.sh` to reproduce the benchmark.
+This installs the locked benchmark dependencies, including `pip`, `xgboost`,
+`catboost`, and `tabpfn`; no manual `pip install` or `ensurepip` step is needed.
+
+2. Run a benchmark through the pixi task. For example:
+
+```bash
+pixi run -e benchmark benchmark --dataset airfoil --models linear rf --n-runs 5
+```
+
+The task invokes `paper/scripts/run_bench.sh`. The wrapper resolves its paths
+relative to its own location, so this equivalent command also works from the
+repository root:
+
+```bash
+pixi run -e benchmark bash paper/scripts/run_bench.sh \
+  --dataset airfoil --models linear rf --n-runs 5
+```

@@ -105,6 +105,18 @@ pytest-cov = "*"
 [tool.pixi.feature.test.tasks]
 test = { cmd = "pytest -vsl --cov=bde --cov-report=xml bde" }
 
+[tool.pixi.feature.benchmark.dependencies]
+python = ">=3.9,<3.13"
+pip = "*"
+
+[tool.pixi.feature.benchmark.pypi-dependencies]
+xgboost = "*"
+catboost = "*"
+tabpfn = "*"
+
+[tool.pixi.feature.benchmark.tasks]
+benchmark = { cmd = "bash paper/scripts/run_bench.sh" }
+
 [tool.pixi.feature.doc.dependencies]
 matplotlib = "*"
 numpydoc = "*"
@@ -123,6 +135,7 @@ clean-doc = { cmd = "rm -rf _build", cwd = "doc" }
 doc = ["doc"]
 lint = ["lint"]
 test = ["test"]
+benchmark = ["benchmark"]
 dev = ["doc", "lint", "test"]
 
 [tool.black]
