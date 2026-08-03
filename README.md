@@ -1,5 +1,6 @@
 ﻿# Bayesian Deep Ensembles for scikit-learn <a href="https://github.com/scikit-learn-contrib/bde"><img src="doc/_static/img/logo.svg" align="right" height="150" />
 
+[![status](https://joss.theoj.org/papers/07d8c2903f2798c8e2bfb12f5e621472/status.svg)](https://joss.theoj.org/papers/07d8c2903f2798c8e2bfb12f5e621472)
 [![Docs Status](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/deploy-gh-pages.yml)
 [![Tests](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/scikit-learn-contrib/bde/actions/workflows/python-app.yml)
 ![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen)

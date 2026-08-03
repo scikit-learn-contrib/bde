@@ -1,0 +1,55 @@
+cff-version: "1.2.0"
+authors:
+- email: vyronas.arvanitis@gmail.com
+  family-names: Arvanitis
+  given-names: Vyron
+  orcid: "https://orcid.org/0009-0001-2290-5084"
+- email: a.aslanidis@campus.lmu.de
+  family-names: Aslanidis
+  given-names: Angelos
+  orcid: "https://orcid.org/0009-0009-6699-2691"
+- email: emanuel.sommer@stat.uni-muenchen.de
+  family-names: Sommer
+  given-names: Emanuel
+  orcid: "https://orcid.org/0000-0002-1606-7547"
+- family-names: Rügamer
+  given-names: David
+  orcid: "https://orcid.org/0000-0002-8772-9202"
+contact:
+- email: emanuel.sommer@stat.uni-muenchen.de
+  family-names: Sommer
+  given-names: Emanuel
+  orcid: "https://orcid.org/0000-0002-1606-7547"
+doi: 10.5281/zenodo.21452056
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - email: vyronas.arvanitis@gmail.com
+    family-names: Arvanitis
+    given-names: Vyron
+    orcid: "https://orcid.org/0009-0001-2290-5084"
+  - email: a.aslanidis@campus.lmu.de
+    family-names: Aslanidis
+    given-names: Angelos
+    orcid: "https://orcid.org/0009-0009-6699-2691"
+  - email: emanuel.sommer@stat.uni-muenchen.de
+    family-names: Sommer
+    given-names: Emanuel
+    orcid: "https://orcid.org/0000-0002-1606-7547"
+  - family-names: Rügamer
+    given-names: David
+    orcid: "https://orcid.org/0000-0002-8772-9202"
+  date-published: 2026-08-03
+  doi: 10.21105/joss.10653
+  issn: 2475-9066
+  issue: 124
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 10653
+  title: "bde: A Python Package for Bayesian Deep Ensembles via MILE"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.10653"
+  volume: 11
+title: "bde: A Python Package for Bayesian Deep Ensembles via MILE"
