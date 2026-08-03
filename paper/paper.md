@@ -40,7 +40,7 @@ bibliography: paper.bib
 
 # Summary
 
-`bde` is a Python package designed to bring state-of-the-art sampling-based Bayesian Deep Learning (BDL) to practitioners and researchers. The package combines the speed and high-performance capabilities of JAX [@jax2018github] and `blackjax` [@cabezas2024blackjax] with the user-friendly API of scikit-learn [@scikit-learn]. It targets tabular supervised learning tasks, including distributional regression and (multi-class) classification, providing a seamless interface for Bayesian Deep Ensembles (BDEs) [@sommer2024connecting] specifically implementing **Microcanonical Langevin Ensembles (MILE)** [@sommer2025mile].
+`bde` is a Python package designed to bring state-of-the-art sampling-based Bayesian Deep Learning (BDL) to practitioners and researchers. The package combines the speed and high-performance capabilities of JAX [@jax2018github] and `BlackJAX` [@cabezas2024blackjax] with the user-friendly API of scikit-learn [@scikit-learn]. It targets tabular supervised learning tasks, including distributional regression and (multi-class) classification, providing a seamless interface for Bayesian Deep Ensembles (BDEs) [@sommer2024connecting] specifically implementing **Microcanonical Langevin Ensembles (MILE)** [@sommer2025mile].
 
 The workflow of `bde` implements the two-stage BDE inference process of MILE. First, it optimizes `n_members` independent instances of a flexibly configurable feed-forward neural network using regularized empirical risk minimization (with the negative log-likelihood as loss) via the AdamW optimizer [@loshchilov2018decoupled]. Second, it transitions to a sampling phase using Microcanonical Langevin Monte Carlo [@robnik2023microcanonical; @robnik2024fluctuation], enhanced with a tuning phase adapted for Bayesian neural networks. This combination is referred to as MILE [@sommer2025mile]. In essence, the optimization of the ensemble of neural networks first finds diverse high-likelihood modes, from which sampling then explores local posterior structure. This process generates an ensemble of samples (models) that constitute an implicit posterior approximation.
 
@@ -51,7 +51,7 @@ Further, this work currently targets the well-studied and empirically validated 
 
 # State of the field
 
-Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and BDL provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference [@duffield2025scalable], Laplace approximations [@daxberger2021laplace], or classical Bayesian modeling [@pymc2023], accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming and inference frameworks such as NumPyro [@phan2019numpyro] and `blackjax` [@cabezas2024blackjax] offer MCMC building blocks but require substantial manual configuration to achieve competitive Bayesian neural-network workflows.
+Reliable uncertainty quantification (UQ) is increasingly viewed as a critical component of modern machine learning systems, and BDL provides a principled framework for achieving it [@papamarkou2024position]. While several libraries support optimization-based approaches such as variational inference [@duffield2025scalable], Laplace approximations [@daxberger2021laplace], or classical Bayesian modeling [@pymc2023], accessible tools for sampling-based inference in Bayesian neural networks remain scarce. Existing probabilistic programming and inference frameworks such as NumPyro [@phan2019numpyro] and `BlackJAX` [@cabezas2024blackjax] offer MCMC building blocks but require substantial manual configuration to achieve competitive Bayesian neural-network workflows.
 
 # Statement of need
 
@@ -98,7 +98,7 @@ Classification follows analogously using `BdeClassifier`.
 
 # Regression benchmark
 
-We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance (RMSE), UQ metrics (NLL in the distributional and mean regression formulation), reported as mean ± standard deviation over 5 independent model seeds and fixed train/test splits. The results show competitive out-of-the-box performance of BDE especially in UQ with its native distributional regression capability.
+We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bikesharing` [@misc_bike_sharing_dataset_275] datasets. We report mean predictive performance via the root mean squared error (RMSE), UQ via tha negative log-likelihood (NLL) in the distributional and mean regression formulation, and reported as mean ± standard deviation over 5 independent model seeds and fixed train/test splits. The results show competitive out-of-the-box performance for BDE, especially with respect to uncertainty quantification with its native distributional regression capability.
 
 | `airfoil` | RMSE                | NLL (distr. regr.)   | NLL (mean regr.)     |
 | ------------- | ------------------- | -------------------- | -------------------- |
@@ -120,7 +120,7 @@ We provide a small benchmark of `bde` on the `airfoil` [@Dua_2019] and the `bike
 | TabPFN (V2)   | **0.2103 ± 0.0008**| -0.6856 ±  0.0063    | **-0.1400 ± 0.0041** |
 | BDE           | 0.2261 ± 0.0016    | **-0.7315 ± 0.0098**   | -0.0679 ± 0.0071  |
 
-All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from a feed-forward neural network with four hidden layers of width 16. While even highly optimized BDEs generally incur a higher computational cost than optimization-based competitors due to the iterative nature of MCMC sampling, this investment enables the construction of a flexible, non-parametric posterior approximation. This trade-off, as demonstrated above, yields strong performance and rigorous epistemic UQ, e.g. through calibrated credible intervals. All experimental configurations are provided in the released codebase to ensure reproducibility.
+All models used 10 CPU cores without additional tuning. For BDE, we generated 1000 posterior samples from a feed-forward neural network with four hidden layers of width 16. While even highly optimized BDEs generally incur a higher computational cost than optimization-based competitors due to the iterative nature of MCMC sampling, this investment enables the construction of a flexible, non-parametric posterior approximation. This trade-off, as demonstrated above, yields strong performance and rigorous epistemic UQ, e.g., through calibrated credible intervals. All experimental configurations are provided in the released codebase to ensure reproducibility.
 
 # AI usage disclosure
 
